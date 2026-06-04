@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HR — заявки кандидатов · WowSpeak 🦉</title>
+<meta name="robots" content="noindex">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --purple:#7B61FF; --purple-dark:#5A45D9; --purple-light:#F0ECFF;
+  --orange:#FF8C42; --orange-light:#FFE8D6;
+  --pink:#E91E8C; --green:#22C55E; --green-light:#DCFCE7;
+  --red:#EF4444; --red-light:#FEE2E2; --blue:#3B82F6; --blue-light:#DBEAFE;
+  --teal:#14B8A6; --teal-light:#CCFBF1; --yellow:#F59E0B; --yellow-light:#FEF3C7;
+  --cream:#FFFBF2; --cream-dark:#F5EFE2;
+  --dark:#2D2D3F; --gray:#5A5A6E; --white:#fff;
+  --radius:12px; --radius-lg:20px;
+  --shadow-sm:0 1px 3px rgba(45,45,63,.06); --shadow:0 8px 28px rgba(45,45,63,.12);
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:inherit}
+body{font-family:'Nunito',sans-serif;background:var(--cream);color:var(--dark);line-height:1.5;font-size:15px;
+  background-image:radial-gradient(circle, rgba(123,97,255,.04) 1px, transparent 1px);background-size:26px 26px}
+h1,h2,h3{font-family:'Fredoka',sans-serif;font-weight:600}
+a{color:var(--purple);text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+.wrap{max-width:1100px;margin:0 auto;padding:0 18px}
+
+.header{position:sticky;top:0;z-index:40;background:rgba(255,251,242,.93);backdrop-filter:blur(10px);border-bottom:1px solid var(--cream-dark)}
+.header .wrap{display:flex;align-items:center;gap:14px;padding:12px 18px}
+.logo{font-family:'Fredoka',sans-serif;font-size:21px;color:var(--purple);font-weight:600}
+.header .me{margin-left:auto;font-size:13px;color:var(--gray);display:flex;gap:12px;align-items:center}
+.header .me button{background:none;border:none;color:var(--purple);font-weight:800;font-size:13px}
+
+/* login */
+#login{display:none;max-width:380px;margin:90px auto;background:var(--white);border:1px solid var(--cream-dark);
+  border-radius:var(--radius-lg);padding:32px 28px;box-shadow:var(--shadow);text-align:center}
+#login h1{font-size:22px;margin-bottom:18px}
+#login input{width:100%;padding:12px 14px;border:2px solid var(--cream-dark);border-radius:var(--radius);
+  font-size:15px;margin-bottom:12px;background:#FDFCF8}
+#login input:focus{outline:none;border-color:var(--purple)}
+#login button{width:100%;padding:13px;border:none;border-radius:999px;font-weight:800;font-size:15px;
+  background:linear-gradient(135deg,var(--purple),var(--purple-dark));color:#fff}
+#login .err{color:var(--red);font-size:13px;font-weight:700;margin-top:10px;display:none}
+
+/* app */
+#app{display:none;padding:24px 0 80px}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:18px}
+.toolbar select{padding:9px 32px 9px 12px;border:2px solid var(--cream-dark);border-radius:999px;font-size:13px;
+  font-weight:700;background:#fff;-webkit-appearance:none;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235A5A6E' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center}
+.toolbar .count{font-size:13px;color:var(--gray);font-weight:700;margin-left:auto}
+.toolbar .refresh{background:var(--purple-light);color:var(--purple-dark);border:none;border-radius:999px;
+  padding:9px 16px;font-weight:800;font-size:13px}
+
+/* application rows */
+.app-card{background:var(--white);border:1px solid var(--cream-dark);border-radius:var(--radius-lg);
+  padding:16px 18px;box-shadow:var(--shadow-sm);margin-bottom:12px;cursor:pointer;transition:transform .12s, box-shadow .12s;
+  display:grid;grid-template-columns:64px 1fr auto;gap:16px;align-items:center}
+.app-card:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+.score-pill{width:64px;height:64px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-family:'Fredoka',sans-serif;color:#fff;background:linear-gradient(135deg,var(--purple),var(--purple-dark))}
+.score-pill .n{font-size:21px;line-height:1}
+.score-pill .l{font-size:9px;opacity:.85;font-family:'Nunito',sans-serif;font-weight:800}
+.app-card .mid .name{font-weight:800;font-size:16px}
+.app-card .mid .sub{font-size:12.5px;color:var(--gray);margin:2px 0 7px}
+.badges{display:flex;flex-wrap:wrap;gap:5px}
+.badge{font-size:11px;font-weight:800;background:var(--green-light);color:#15803D;border-radius:999px;padding:3px 9px}
+.badge.ai{background:var(--purple-light);color:var(--purple-dark)}
+.status{font-size:12px;font-weight:800;border-radius:999px;padding:5px 12px;white-space:nowrap}
+.empty{text-align:center;color:var(--gray);padding:60px 0}
+
+/* kanban */
+.viewtoggle{display:flex;border:2px solid var(--cream-dark);border-radius:999px;overflow:hidden}
+.viewtoggle button{border:none;background:#fff;padding:8px 14px;font-size:13px;font-weight:800;color:var(--gray)}
+.viewtoggle button.on{background:var(--purple);color:#fff}
+#board{display:none;gap:12px;overflow-x:auto;padding-bottom:24px;align-items:flex-start}
+.col{flex:0 0 232px;background:var(--cream-dark);border-radius:16px;padding:10px;min-height:140px}
+.col h4{font-family:'Nunito',sans-serif;font-size:11.5px;font-weight:900;text-transform:uppercase;
+  letter-spacing:.04em;color:var(--gray);padding:4px 6px 10px;display:flex;justify-content:space-between}
+.col.dragover{outline:3px dashed var(--purple);outline-offset:-3px;border-radius:16px}
+.kcard{background:#fff;border:1px solid var(--cream-dark);border-radius:12px;padding:10px 12px;
+  margin-bottom:8px;cursor:grab;box-shadow:var(--shadow-sm)}
+.kcard:active{cursor:grabbing}
+.kcard .nm{font-weight:800;font-size:13.5px;display:flex;justify-content:space-between;gap:8px}
+.kcard .sc{font-family:'Fredoka',sans-serif;color:var(--purple);font-size:15px}
+.kcard .vt{font-size:11px;color:var(--gray);margin-top:2px}
+.take{border:none;background:var(--purple);color:#fff;border-radius:999px;padding:7px 13px;
+  font-size:12px;font-weight:800;cursor:pointer}
+.take:hover{background:var(--purple-dark)}
+.take.sm{margin-top:8px;width:100%;padding:6px 10px}
+#rejectOverlay{display:none;position:fixed;inset:0;background:rgba(45,45,63,.5);z-index:60;
+  align-items:center;justify-content:center;padding:18px}
+.reject-box{background:var(--cream);border-radius:var(--radius-lg);box-shadow:var(--shadow);
+  padding:26px 24px;max-width:420px;width:100%}
+.reject-box h3{font-size:19px;margin-bottom:16px}
+.reject-box label{display:block;font-size:12px;font-weight:900;color:var(--gray);
+  text-transform:uppercase;letter-spacing:.03em;margin:12px 0 5px}
+.reject-box select,.reject-box input{width:100%;padding:11px 12px;border:2px solid var(--cream-dark);
+  border-radius:var(--radius);font-size:14px;background:#fff;font-family:inherit}
+.reject-box .hint-mail{font-size:12px;color:var(--gray);margin-top:12px}
+.reject-actions{display:flex;gap:10px;margin-top:18px}
+.reject-actions button{flex:1;border:none;border-radius:999px;padding:12px;font-weight:800;font-size:14px}
+.reject-actions .rcancel{background:#fff;border:2px solid var(--cream-dark);color:var(--gray)}
+.reject-actions .rsave{background:var(--red);color:#fff}
+
+/* modal */
+#overlay{display:none;position:fixed;inset:0;background:rgba(45,45,63,.5);z-index:50;overflow-y:auto;padding:30px 14px}
+#modal{max-width:780px;margin:0 auto;background:var(--cream);border-radius:var(--radius-lg);box-shadow:var(--shadow);overflow:hidden}
+#modal .mhead{background:var(--white);padding:20px 24px;border-bottom:1px solid var(--cream-dark);
+  display:flex;align-items:flex-start;gap:14px}
+#modal .mhead h2{font-size:21px}
+#modal .mhead .sub{font-size:13px;color:var(--gray);margin-top:3px}
+#modal .mhead .x{margin-left:auto;background:none;border:none;font-size:24px;color:var(--gray);line-height:1}
+#modal .mbody{padding:20px 24px 28px;display:flex;flex-direction:column;gap:16px}
+.sec{background:var(--white);border:1px solid var(--cream-dark);border-radius:var(--radius-lg);padding:18px 20px}
+.sec h3{font-size:15px;margin-bottom:12px;color:var(--gray);text-transform:uppercase;letter-spacing:.04em;font-family:'Nunito',sans-serif;font-weight:900;font-size:12px}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:10px 20px;font-size:14px}
+.kv div b{display:block;font-size:11px;color:var(--gray);text-transform:uppercase;letter-spacing:.03em}
+video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
+.docs a{display:inline-flex;gap:7px;align-items:center;background:var(--purple-light);color:var(--purple-dark);
+  font-weight:800;font-size:13px;border-radius:999px;padding:8px 14px;margin:0 8px 8px 0}
+.mini-grid{border-collapse:separate;border-spacing:3px}
+.mini-grid th{font-size:10px;color:var(--gray);padding:2px 4px;font-weight:800}
+.mini-grid td{width:34px;height:22px;border-radius:6px;background:var(--cream-dark)}
+.mini-grid td.on{background:var(--green)}
+.status-row{display:flex;flex-wrap:wrap;gap:7px}
+.status-btn{border:2px solid var(--cream-dark);background:#fff;border-radius:999px;padding:7px 13px;font-size:12.5px;font-weight:800;color:var(--gray)}
+.status-btn.on{border-color:transparent;color:#fff}
+.notes-list{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.note{background:var(--cream);border-radius:var(--radius);padding:10px 12px;font-size:13.5px}
+.note .meta{font-size:11px;color:var(--gray);margin-top:4px}
+.note-add{display:flex;gap:8px}
+.note-add input{flex:1;padding:10px 12px;border:2px solid var(--cream-dark);border-radius:var(--radius);font-size:14px;background:#FDFCF8}
+.note-add button{background:var(--purple);color:#fff;border:none;border-radius:var(--radius);padding:0 16px;font-weight:800}
+.loading{text-align:center;color:var(--gray);padding:40px}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="wrap">
+    <span class="logo">🦉 WowSpeak · HR</span>
+    <div class="me" id="me"></div>
+  </div>
+</header>
+
+<!-- ===== Login ===== -->
+<div id="login">
+  <h1>Вход для персонала</h1>
+  <input type="email" id="loginEmail" placeholder="E-mail">
+  <input type="password" id="loginPass" placeholder="Пароль">
+  <button onclick="doLogin()">Войти</button>
+  <div class="err" id="loginErr"></div>
+</div>
+
+<!-- ===== App ===== -->
+<div id="app" class="wrap">
+  <div class="toolbar">
+    <select id="fVacancy" onchange="render()"><option value="">Все вакансии</option></select>
+    <select id="fStatus" onchange="render()">
+      <option value="">Все статусы</option>
+      <option value="active">Активные (не отказ/не в команде)</option>
+    </select>
+    <select id="fSort" onchange="render()">
+      <option value="score">По баллам ↓</option>
+      <option value="date">По дате ↓</option>
+    </select>
+    <select id="fAssign" onchange="render()">
+      <option value="">Все ответственные</option>
+      <option value="mine">Мои заявки</option>
+      <option value="none">Не назначены</option>
+    </select>
+    <div class="viewtoggle">
+      <button id="vList" class="on" onclick="setView('list')">Список</button>
+      <button id="vBoard" onclick="setView('board')">Канбан</button>
+    </div>
+    <button class="refresh" onclick="loadApps()">⟳ Обновить</button>
+    <span class="count" id="count"></span>
+  </div>
+  <div id="list"><div class="loading">Загружаю заявки…</div></div>
+  <div id="board"></div>
+</div>
+
+<!-- ===== Modal ===== -->
+<div id="overlay" onclick="if(event.target===this)closeCard()">
+  <div id="modal"></div>
+</div>
+
+<!-- ===== Reject modal ===== -->
+<div id="rejectOverlay" onclick="if(event.target===this)closeReject()">
+  <div class="reject-box">
+    <h3>Отказ по заявке</h3>
+    <label>Кто отказал</label>
+    <select id="rejWho" onchange="fillRejectReasons()">
+      <option value="school">Мы отказали</option>
+      <option value="candidate">Кандидат отказался</option>
+    </select>
+    <label>Причина</label>
+    <select id="rejReason"></select>
+    <label>Комментарий (необязательно)</label>
+    <input id="rejComment" placeholder="Детали для команды…">
+    <div class="hint-mail" id="rejHint">Кандидату автоматически уйдёт вежливое письмо (только при отказе с нашей стороны).</div>
+    <div class="reject-actions">
+      <button class="rcancel" onclick="closeReject()">Отмена</button>
+      <button class="rsave" onclick="saveReject()">Подтвердить отказ</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ============ Supabase: прокси + shared cookie между поддоменами ============
+const SUPABASE_URL = 'https://api.wowteach.ru';
+const SUPABASE_KEY = 'sb_publishable_nZIl9kzPNhkd9Gbsm7aAgA_cAeY1s4x';
+const isWowteachDomain = location.hostname.endsWith('.wowteach.ru');
+const sharedCookieStorage = {
+  getItem: (key) => {
+    const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const m = document.cookie.match(new RegExp('(?:^|; )' + escaped + '=([^;]+)'));
+    return m ? decodeURIComponent(m[1]) : null;
+  },
+  setItem: (key, value) => {
+    document.cookie = `${key}=${encodeURIComponent(value)}; domain=.wowteach.ru; path=/; max-age=31536000; secure; samesite=lax`;
+  },
+  removeItem: (key) => {
+    document.cookie = `${key}=; domain=.wowteach.ru; path=/; max-age=0; secure; samesite=lax`;
+  }
+};
+const sb = isWowteachDomain
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { storage: sharedCookieStorage } })
+  : window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ============ Словари ============
+const STATUSES = {
+  new:       { label:'Новая',         bg:'var(--purple-light)', fg:'var(--purple-dark)', solid:'var(--purple)' },
+  screening: { label:'Скрининг',      bg:'var(--blue-light)',   fg:'#1D4ED8',            solid:'var(--blue)' },
+  interview: { label:'Собеседование', bg:'var(--orange-light)', fg:'#C2410C',            solid:'var(--orange)' },
+  offer:     { label:'Оффер',         bg:'#FCE7F3',             fg:'#BE185D',            solid:'var(--pink)' },
+  rejected:  { label:'Отказ',         bg:'var(--red-light)',    fg:'#B91C1C',            solid:'var(--red)' }
+};
+const REJECT_REASONS = {
+  school: ['Недостаточный уровень английского','Не подходит график / часовой пояс','Недостаточно опыта',
+           'Не прошёл(а) собеседование / демо-урок','Не выполнил(а) тестовое задание','Слабая видео-визитка','Другое'],
+  candidate: ['Не устроили условия / оплата','Нашёл(ла) другую работу','Передумал(а) / личные обстоятельства',
+              'Пропал(а), не выходит на связь','Другое']
+};
+const REJECTED_BY = { school:'Мы отказали', candidate:'Кандидат отказался' };
+const EDU = { pedagogical:'Педагогическое', linguistic:'Профильное лингвистическое', other_higher:'Другое высшее', student:'Студент' };
+const EXP = { none:'Отсутствует', lt1:'Меньше 1 года', '1-2':'1–2 года', '3plus':'3+ лет' };
+const HOURS = { lt10:'< 10 ч/нед', '10-15':'10–15 ч/нед', '15-20':'15–20 ч/нед', '20-30':'20–30 ч/нед', fulltime:'Full-time (до 40 ч)' };
+const AGES = { '4-6':'4–6', '7-9':'7–9', '10-12':'10–12', teens:'Подростки', adults:'Взрослые' };
+const LEVEL = { B1:'B1', B2:'B2', C1:'C1', C2:'C2', native:'Носитель' };
+const DAYS = [['mon','Пн'],['tue','Вт'],['wed','Ср'],['thu','Чт'],['fri','Пт'],['sat','Сб'],['sun','Вс']];
+const SLOTS = ['morning','day','evening'];
+
+let me = null, apps = [], vacancies = [], staff = [];
+
+// ============ Boot ============
+document.addEventListener('DOMContentLoaded', init);
+async function init(){
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return showLogin();
+  const ok = await loadMe(session.user.id);
+  if (!ok) return showLogin();
+  showApp();
+}
+function isStaff(u){
+  const r = u?.roles;
+  const list = Array.isArray(r) ? r : (typeof r === 'string' ? [r] : []);
+  return list.includes('super_admin') || list.includes('assistant');
+}
+async function loadMe(authUid){
+  const { data } = await sb.from('users').select('id, name, email, roles, is_active').eq('auth_id', authUid).maybeSingle();
+  if (!data || data.is_active === false || !isStaff(data)) {
+    alert('Нет доступа: HR-раздел доступен персоналу школы.');
+    await sb.auth.signOut();
+    return false;
+  }
+  me = data;
+  document.getElementById('me').innerHTML = `${esc(data.name || data.email)} · <button onclick="logout()">Выйти</button>`;
+  return true;
+}
+function showLogin(){ document.getElementById('login').style.display = 'block'; document.getElementById('app').style.display = 'none'; }
+async function doLogin(){
+  const err = document.getElementById('loginErr'); err.style.display = 'none';
+  const { error } = await sb.auth.signInWithPassword({
+    email: document.getElementById('loginEmail').value.trim(),
+    password: document.getElementById('loginPass').value
+  });
+  if (error) { err.textContent = 'Не получилось войти: ' + error.message; err.style.display = 'block'; return; }
+  init();
+}
+async function logout(){ await sb.auth.signOut(); location.reload(); }
+async function showApp(){
+  document.getElementById('login').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  await loadVacancies();
+  await loadStaff();
+  await loadApps();
+}
+async function loadStaff(){
+  const { data } = await sb.from('users').select('id, name, email, roles, is_active');
+  staff = (data || []).filter(u => isStaff(u) && u.is_active !== false);
+  if (!staff.find(s => s.id === me.id)) staff.unshift(me);
+}
+function nameOf(id){ const u = staff.find(s => s.id === id); return u ? (u.name || u.email) : '…'; }
+
+// ============ Данные ============
+async function loadVacancies(){
+  const { data } = await sb.from('hr_vacancies').select('*').order('sort_order');
+  vacancies = data || [];
+  const sel = document.getElementById('fVacancy');
+  sel.innerHTML = '<option value="">Все вакансии</option>' +
+    vacancies.map(v => `<option value="${v.id}">${esc(v.title)}</option>`).join('');
+}
+async function loadApps(){
+  const { data, error } = await sb.from('hr_applications')
+    .select('*').order('created_at', { ascending:false });
+  if (error) { document.getElementById('list').innerHTML = '<div class="empty">Ошибка загрузки: '+esc(error.message)+'</div>'; return; }
+  apps = data || [];
+  render();
+}
+
+// ============ Отрисовка: список + канбан ============
+let view = 'list';
+function setView(v){
+  view = v;
+  document.getElementById('vList').classList.toggle('on', v === 'list');
+  document.getElementById('vBoard').classList.toggle('on', v === 'board');
+  render();
+}
+function filteredRows(){
+  const fV = document.getElementById('fVacancy').value;
+  const fS = document.getElementById('fStatus').value;
+  const sort = document.getElementById('fSort').value;
+  let rows = apps.slice();
+  if (fV) rows = rows.filter(a => a.vacancy_id === fV);
+  if (fS === 'active') rows = rows.filter(a => !['rejected','hired'].includes(a.status));
+  else if (fS) rows = rows.filter(a => a.status === fS);
+  const fA = document.getElementById('fAssign').value;
+  if (fA === 'mine') rows = rows.filter(a => a.assigned_to === me.id);
+  else if (fA === 'none') rows = rows.filter(a => !a.assigned_to);
+  if (sort === 'score') rows.sort((a,b) => (b.score ?? -1) - (a.score ?? -1));
+  return rows;
+}
+function render(){
+  const rows = filteredRows();
+  document.getElementById('count').textContent = rows.length + ' из ' + apps.length;
+
+  // дозаполняем фильтр статусов реальными значениями (один раз)
+  const fSel = document.getElementById('fStatus');
+  if (fSel.options.length === 2) {
+    Object.entries(STATUSES).forEach(([k,s]) => fSel.insertAdjacentHTML('beforeend', `<option value="${k}">${s.label}</option>`));
+  }
+
+  document.getElementById('list').style.display  = view === 'list'  ? '' : 'none';
+  document.getElementById('board').style.display = view === 'board' ? 'flex' : 'none';
+  if (view === 'list') renderList(rows); else renderBoard(rows);
+}
+function renderList(rows){
+  if (!rows.length) { document.getElementById('list').innerHTML = '<div class="empty">Заявок нет 🦉</div>'; return; }
+  document.getElementById('list').innerHTML = rows.map(a => {
+    const st = STATUSES[a.status] || STATUSES.new;
+    const vac = vacancies.find(v => v.id === a.vacancy_id);
+    const badges = (a.score_breakdown || []).map(b => `<span class="badge">${esc(b.label)} +${b.points}</span>`).join('');
+    return `<div class="app-card" onclick="openCard('${a.id}')">
+      <div class="score-pill"><span class="n">${a.score ?? '—'}</span><span class="l">баллов</span></div>
+      <div class="mid">
+        <div class="name">${esc(a.full_name)}</div>
+        <div class="sub">${esc(vac?.title || '')} · ${fmtDate(a.created_at)} · ${esc(a.telegram || a.email)}${a.assigned_to ? ' · 👤 ' + esc(nameOf(a.assigned_to)) : ''}</div>
+        <div class="badges">${badges || '<span class="badge" style="background:var(--cream-dark);color:var(--gray)">без баллов</span>'}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+        <span class="status" style="background:${st.bg};color:${st.fg}">${st.label}</span>
+        ${a.status === 'new' ? `<button class="take" onclick="event.stopPropagation();takeApp('${a.id}')">Взять в работу</button>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+function renderBoard(rows){
+  document.getElementById('board').innerHTML = Object.entries(STATUSES).map(([k,s]) => {
+    const cards = rows.filter(a => a.status === k);
+    return `<div class="col" data-status="${k}" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropCard(event)">
+      <h4><span>${s.label}</span><span>${cards.length}</span></h4>
+      ${cards.map(a => {
+        const vac = vacancies.find(v => v.id === a.vacancy_id);
+        return `<div class="kcard" draggable="true" ondragstart="dragStart(event,'${a.id}')" onclick="openCard('${a.id}')">
+          <div class="nm"><span>${esc(a.full_name)}</span><span class="sc">${a.score ?? '—'}</span></div>
+          <div class="vt">${esc(vac?.title || '')} · ${fmtDate(a.created_at)}</div>
+          ${a.assigned_to ? `<div class="vt">👤 ${esc(nameOf(a.assigned_to))}</div>` : ''}
+          ${a.status === 'new' ? `<button class="take sm" onclick="event.stopPropagation();takeApp('${a.id}')">Взять в работу</button>` : ''}
+        </div>`;
+      }).join('')}
+    </div>`;
+  }).join('');
+}
+// drag & drop между колонками
+function dragStart(e, id){ e.dataTransfer.setData('text/plain', id); }
+function dragOver(e){ e.preventDefault(); e.currentTarget.classList.add('dragover'); }
+function dragLeave(e){ e.currentTarget.classList.remove('dragover'); }
+async function dropCard(e){
+  e.preventDefault(); e.currentTarget.classList.remove('dragover');
+  const id = e.dataTransfer.getData('text/plain');
+  await updateStatusFor(id, e.currentTarget.dataset.status, false);
+}
+
+// ============ Карточка ============
+let current = null;
+async function openCard(id){
+  current = apps.find(a => a.id === id);
+  if (!current) return;
+  const a = current, ans = a.answers || {};
+  const st = STATUSES[a.status] || STATUSES.new;
+  const vac = vacancies.find(v => v.id === a.vacancy_id);
+
+  const gridHtml = `<table class="mini-grid"><tr><th></th>${SLOTS.map(s=>`<th>${{morning:'9–12',day:'12–16',evening:'16–21'}[s]}</th>`).join('')}</tr>` +
+    DAYS.map(([k,l]) => `<tr><th>${l}</th>${SLOTS.map(s =>
+      `<td class="${(ans.schedule_grid?.[k]||[]).includes(s) ? 'on':''}"></td>`).join('')}</tr>`).join('') + '</table>';
+
+  document.getElementById('modal').innerHTML = `
+    <div class="mhead">
+      <div>
+        <h2>${esc(a.full_name)} · <span style="color:var(--purple)">${a.score ?? '—'}</span></h2>
+        <div class="sub">${esc(vac?.title||'')} · заявка от ${fmtDate(a.created_at)}</div>
+      </div>
+      <button class="x" onclick="closeCard()">✕</button>
+    </div>
+    <div class="mbody">
+      <div class="sec"><h3>Статус</h3>
+        <div class="status-row">${Object.entries(STATUSES).map(([k,s]) =>
+          `<button class="status-btn ${a.status===k?'on':''}" style="${a.status===k?`background:${s.solid}`:''}" onclick="setStatus('${k}')">${s.label}</button>`).join('')}</div>
+        ${a.status==='rejected' ? `<div style="margin-top:10px;font-size:13px;color:var(--gray)"><b>${REJECTED_BY[a.rejected_by] || 'Отказ'}:</b> ${esc(a.rejection_reason || '—')}</div>` : ''}
+      </div>
+
+      <div class="sec"><h3>Ответственный</h3>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <select id="assignSel" onchange="reassign()" style="padding:9px 32px 9px 12px;border:2px solid var(--cream-dark);border-radius:999px;font-size:13px;font-weight:700;background:#fff">
+            <option value="">— не назначен —</option>
+            ${staff.map(s => `<option value="${s.id}" ${a.assigned_to===s.id?'selected':''}>${esc(s.name || s.email)}</option>`).join('')}
+          </select>
+          ${a.status==='new' ? `<button class="take" onclick="takeApp('${a.id}')">Взять в работу → Скрининг</button>` : ''}
+        </div>
+      </div>
+
+      <div class="sec"><h3>Видео-визитка</h3><div id="videoSlot" class="loading">Получаю видео…</div></div>
+
+      <div class="sec"><h3>Контакты и анкета</h3>
+        <div class="kv">
+          <div><b>E-mail</b>${esc(a.email)}</div>
+          <div><b>Телефон</b>${esc(a.phone||'—')}</div>
+          <div><b>Telegram</b>${esc(a.telegram||'—')}</div>
+          <div><b>Город / пояс</b>${esc(a.city_tz||'—')}</div>
+          <div><b>Уровень английского</b>${LEVEL[ans.english_level]||'—'}</div>
+          <div><b>Образование</b>${EDU[ans.education]||'—'}</div>
+          <div><b>Опыт</b>${EXP[ans.experience]||'—'}</div>
+          <div><b>Нагрузка</b>${HOURS[ans.weekly_hours_label]||'—'}</div>
+          <div><b>Возраст учеников</b>${(ans.ages||[]).map(x=>AGES[x]||x).join(', ')||'—'}</div>
+          <div><b>Доп. языки</b>${(ans.extra_languages||[]).join(', ')||'—'}</div>
+          ${'sales_exp' in ans ? `<div><b>Опыт онлайн-продаж</b>${ans.sales_exp?'Да':'Нет'}</div>` : ''}
+        </div>
+      </div>
+
+      <div class="sec"><h3>Расписание (МСК)</h3>${gridHtml}</div>
+
+      <div class="sec"><h3>Документы</h3><div class="docs" id="docsSlot" class="loading">Получаю ссылки…</div></div>
+
+      <div class="sec"><h3>Скоринг — почему столько баллов</h3>
+        <div class="badges">${(a.score_breakdown||[]).map(b=>`<span class="badge">${esc(b.label)} +${b.points}</span>`).join('')||'—'}</div>
+      </div>
+
+      <div class="sec"><h3>Заметки</h3>
+        <div class="notes-list" id="notesList">Загружаю…</div>
+        <div class="note-add"><input id="noteInput" placeholder="Добавить заметку…" onkeydown="if(event.key==='Enter')addNote()"><button onclick="addNote()">＋</button></div>
+      </div>
+    </div>`;
+  document.getElementById('overlay').style.display = 'block';
+  loadMedia(a); loadNotes(a.id);
+}
+function closeCard(){ document.getElementById('overlay').style.display = 'none'; current = null; }
+
+async function loadMedia(a){
+  // видео
+  const vs = document.getElementById('videoSlot');
+  if (a.video_path) {
+    const { data, error } = await sb.storage.from('hr-videos').createSignedUrl(a.video_path, 3600);
+    vs.innerHTML = (data?.signedUrl)
+      ? `<video controls preload="metadata" src="${data.signedUrl}"></video>`
+      : 'Не удалось получить видео: ' + esc(error?.message || '');
+  } else if (a.video_url) {
+    vs.innerHTML = `Внешняя ссылка: <a href="${esc(a.video_url)}" target="_blank">${esc(a.video_url)}</a>`;
+  } else vs.textContent = 'Видео не приложено';
+
+  // документы
+  const ds = document.getElementById('docsSlot');
+  const ans = a.answers || {};
+  const docs = [
+    ['resume_path','📄 Резюме'],
+    ['certificate_url','🪪 Сертификат языка'],
+    ['cert_teaching_path','🎓 Сертификат преподавателя']
+  ].filter(([k]) => ans[k]);
+  if (!docs.length) { ds.textContent = 'Документы не приложены'; return; }
+  const links = [];
+  for (const [k, label] of docs) {
+    const { data } = await sb.storage.from('hr-docs').createSignedUrl(ans[k], 3600);
+    if (data?.signedUrl) links.push(`<a href="${data.signedUrl}" target="_blank">${label}</a>`);
+  }
+  ds.innerHTML = links.join('') || 'Не удалось получить ссылки';
+}
+
+// ============ Статусы / назначение ============
+async function updateStatusFor(id, status, reopenModal, extra){
+  const app = apps.find(a => a.id === id);
+  if (!app) return;
+  if (app.status === status && !extra) return;
+  if (status === 'rejected' && !extra) { openRejectModal(id, !!reopenModal); return; }
+
+  const patch = { status, status_changed_at: new Date().toISOString(), ...(extra || {}) };
+  // взял новую заявку в работу → автоназначение на себя
+  if (app.status === 'new' && status !== 'new' && !app.assigned_to && !patch.assigned_to) {
+    patch.assigned_to = me.id; patch.assigned_at = new Date().toISOString();
+  }
+  const prev = app.status;
+  const { error } = await sb.from('hr_applications').update(patch).eq('id', id);
+  if (error) { alert('Не получилось: ' + error.message); return; }
+  await sb.from('hr_events').insert({ application_id: id, type: 'status_change',
+    payload: { from: prev, to: status, by: me.id, assigned_to: patch.assigned_to || app.assigned_to || null } });
+  Object.assign(app, patch);
+  if (current && current.id === id) current = app;
+  render();
+  if (reopenModal) openCard(id);
+}
+async function setStatus(status){ if (current) updateStatusFor(current.id, status, true); }
+async function takeApp(id){
+  await updateStatusFor(id, 'screening', !!(current && current.id === id),
+    { assigned_to: me.id, assigned_at: new Date().toISOString() });
+}
+async function reassign(){
+  if (!current) return;
+  const v = document.getElementById('assignSel').value || null;
+  const { error } = await sb.from('hr_applications')
+    .update({ assigned_to: v, assigned_at: v ? new Date().toISOString() : null }).eq('id', current.id);
+  if (error) { alert('Не получилось: ' + error.message); return; }
+  current.assigned_to = v;
+  render();
+}
+
+// ============ Окно отказа ============
+let pendingReject = null;
+function openRejectModal(id, reopen){
+  pendingReject = { id, reopen };
+  fillRejectReasons();
+  document.getElementById('rejectOverlay').style.display = 'flex';
+}
+function fillRejectReasons(){
+  const who = document.getElementById('rejWho').value;
+  document.getElementById('rejReason').innerHTML =
+    REJECT_REASONS[who].map(r => `<option>${r}</option>`).join('');
+}
+function closeReject(){ document.getElementById('rejectOverlay').style.display = 'none'; pendingReject = null; }
+async function saveReject(){
+  if (!pendingReject) return;
+  const who = document.getElementById('rejWho').value;
+  const reason = document.getElementById('rejReason').value;
+  const comment = document.getElementById('rejComment').value.trim();
+  const p = pendingReject; closeReject();
+  await updateStatusFor(p.id, 'rejected', p.reopen, {
+    rejected_by: who,
+    rejection_reason: reason + (comment ? ' — ' + comment : '')
+  });
+}
+
+// ============ Заметки ============
+async function loadNotes(appId){
+  const { data } = await sb.from('hr_notes').select('*').eq('application_id', appId).order('created_at', { ascending:false });
+  const el = document.getElementById('notesList');
+  if (!data?.length) { el.innerHTML = '<div style="color:var(--gray);font-size:13px">Пока пусто</div>'; return; }
+  el.innerHTML = data.map(n => `<div class="note">${esc(n.body)}<div class="meta">${fmtDate(n.created_at)}</div></div>`).join('');
+}
+async function addNote(){
+  const input = document.getElementById('noteInput');
+  const body = input.value.trim();
+  if (!body || !current) return;
+  const { error } = await sb.from('hr_notes').insert({ application_id: current.id, author_id: me.id, body });
+  if (error) { alert('Не получилось: ' + error.message); return; }
+  input.value = '';
+  loadNotes(current.id);
+}
+
+// ============ Утилиты ============
+function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmtDate(d){ return new Date(d).toLocaleDateString('ru-RU', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }); }
+</script>
+</body>
+</html>
