@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#7B61FF">
+<title>Кабинет кандидата — WowSpeak 🦉</title>
+<meta name="robots" content="noindex">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --purple:#7B61FF; --purple-dark:#5A45D9; --purple-light:#F0ECFF;
+  --orange:#FF8C42; --orange-light:#FFE8D6;
+  --pink:#E91E8C; --green:#22C55E; --green-light:#DCFCE7;
+  --red:#EF4444; --red-light:#FEE2E2;
+  --cream:#FFFBF2; --cream-dark:#F5EFE2;
+  --dark:#2D2D3F; --gray:#5A5A6E; --white:#fff;
+  --radius:14px; --radius-lg:24px;
+  --shadow-sm:0 1px 3px rgba(45,45,63,.06); --shadow:0 8px 28px rgba(45,45,63,.12);
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:inherit}
+body{font-family:'Nunito',sans-serif;background:var(--cream);color:var(--dark);line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+  background-image:radial-gradient(circle, rgba(123,97,255,.05) 1px, transparent 1px);background-size:26px 26px}
+h1,h2,h3{font-family:'Fredoka',sans-serif;font-weight:600;line-height:1.2}
+a{color:var(--purple);text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+.wrap{max-width:640px;margin:0 auto;padding:0 18px}
+
+.header{position:sticky;top:0;z-index:40;background:rgba(255,251,242,.93);backdrop-filter:blur(10px);border-bottom:1px solid var(--cream-dark)}
+.header .wrap{display:flex;align-items:center;justify-content:space-between;padding:13px 18px;max-width:640px}
+.logo{font-family:'Fredoka',sans-serif;font-size:22px;color:var(--purple);font-weight:600}
+.header .me{font-size:13px;color:var(--gray)}
+.header .me button{background:none;border:none;color:var(--purple);font-weight:800;font-size:13px}
+
+.card{background:var(--white);border:1px solid var(--cream-dark);border-radius:var(--radius-lg);
+  padding:28px 26px;box-shadow:var(--shadow-sm);margin-bottom:18px}
+
+/* login */
+#login{display:none;padding:60px 0}
+#login .card{text-align:center}
+#login h1{font-size:24px;margin-bottom:8px}
+#login p{color:var(--gray);font-size:15px;margin-bottom:20px}
+#login input{width:100%;padding:13px 14px;border:2px solid var(--cream-dark);border-radius:var(--radius);
+  font-size:16px;background:#FDFCF8;margin-bottom:12px}
+#login input:focus{outline:none;border-color:var(--purple)}
+#login button.go{width:100%;padding:14px;border:none;border-radius:999px;font-weight:800;font-size:16px;
+  background:linear-gradient(135deg,var(--purple),var(--purple-dark));color:#fff;box-shadow:var(--shadow)}
+#login .msg{margin-top:14px;font-size:14px;font-weight:700;display:none;border-radius:var(--radius);padding:12px}
+#login .msg.ok{display:block;background:var(--green-light);color:#15803D}
+#login .msg.err{display:block;background:var(--red-light);color:#B91C1C}
+
+/* cabinet */
+#cab{display:none;padding:30px 0 80px}
+#cab h1{font-size:clamp(22px,4vw,30px);margin-bottom:18px}
+.app-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:18px}
+.app-head h2{font-size:19px}
+.app-head .when{font-size:12.5px;color:var(--gray)}
+
+/* progress steps */
+.steps{display:flex;margin:8px 0 18px}
+.pstep{flex:1;text-align:center;position:relative}
+.pstep::before{content:"";position:absolute;top:13px;left:-50%;width:100%;height:3px;background:var(--cream-dark)}
+.pstep:first-child::before{display:none}
+.pstep.done::before,.pstep.cur::before{background:var(--purple)}
+.pstep .dot{width:28px;height:28px;border-radius:50%;background:var(--cream-dark);color:#fff;
+  display:flex;align-items:center;justify-content:center;margin:0 auto 6px;font-size:13px;font-weight:800;
+  position:relative;z-index:1;border:3px solid var(--cream)}
+.pstep.done .dot{background:var(--purple)}
+.pstep.cur .dot{background:var(--orange);box-shadow:0 4px 12px rgba(255,140,66,.45)}
+.pstep .lbl{font-size:10.5px;font-weight:800;color:var(--gray)}
+.pstep.cur .lbl{color:var(--dark)}
+
+.now{border-radius:var(--radius);padding:16px 18px;font-size:15px}
+.now b{display:block;font-family:'Fredoka',sans-serif;font-weight:600;font-size:17px;margin-bottom:4px}
+.now.info{background:var(--purple-light)}
+.now.warm{background:var(--orange-light)}
+.now.win{background:var(--green-light)}
+.now.sad{background:var(--cream-dark)}
+.contact{font-size:13.5px;color:var(--gray);margin-top:14px}
+
+#noapps{display:none}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="wrap">
+    <a class="logo" href="https://wowteach.ru">🦉 WowSpeak</a>
+    <div class="me" id="me"></div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- ===== Вход ===== -->
+  <div id="login">
+    <div class="card">
+      <h1>Кабинет кандидата</h1>
+      <p>Кабинет открывается при приглашении на собеседование — логин и пароль приходят в письме-приглашении.</p>
+      <input type="email" id="email" placeholder="E-mail из анкеты" onkeydown="if(event.key==='Enter')doLogin()">
+      <input type="password" id="pass" placeholder="Пароль из письма-приглашения" onkeydown="if(event.key==='Enter')doLogin()">
+      <button class="go" id="goBtn" onclick="doLogin()">Войти</button>
+      <div style="margin-top:12px;font-size:13.5px"><a href="#" onclick="sendLink();return false">Нет пароля или забыли? Прислать ссылку для входа на почту →</a></div>
+      <div class="msg" id="loginMsg"></div>
+    </div>
+    <div style="text-align:center;font-size:14px;color:var(--gray)">
+      Ещё не подавали заявку? <a href="https://wowteach.ru/#vacancies">Посмотреть вакансии →</a>
+    </div>
+  </div>
+
+  <!-- ===== Кабинет ===== -->
+  <div id="cab">
+    <h1>Ваши заявки</h1>
+    <div id="appsList"></div>
+    <div class="card" id="noapps">
+      <p style="font-size:15px">По адресу <b id="noappsEmail"></b> заявок не нашлось. Проверьте, что вошли с того же e-mail, который указывали в анкете — или подайте заявку:</p>
+      <p style="margin-top:12px"><a href="https://wowteach.ru/#vacancies"><b>Открытые вакансии WowSpeak →</b></a></p>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// Кабинет живёт на localStorage (НЕ общий cookie) — чтобы вход кандидата
+// не перетирал сессии персонала на других поддоменах .wowteach.ru
+const SUPABASE_URL = 'https://api.wowteach.ru';
+const SUPABASE_KEY = 'sb_publishable_nZIl9kzPNhkd9Gbsm7aAgA_cAeY1s4x';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const FLOW = [
+  ['new',       'Заявка'],
+  ['screening', 'Рассмотрение'],
+  ['interview', 'Собеседование'],
+  ['offer',     'Оффер'],
+  ['hired',     'В команде']
+];
+const NOW_TEXT = {
+  new:       { cls:'info', t:'Заявка получена 🎉', d:'Мы внимательно посмотрим вашу анкету и видео-визитку и свяжемся с вами по e-mail или в Telegram.' },
+  screening: { cls:'info', t:'Заявка на рассмотрении', d:'Рекрутер изучает вашу анкету и видео-визитку. Следующий шаг — приглашение на собеседование, мы напишем вам.' },
+  interview: { cls:'warm', t:'Этап собеседования 🎤', d:'Мы пригласили вас на онлайн-собеседование с демо-уроком. Проверьте почту (и папку «Спам») — там письмо с деталями.' },
+  offer:     { cls:'win',  t:'Вам направлен оффер! 🎉', d:'Поздравляем! Проверьте почту — мы свяжемся, чтобы обсудить условия и следующие шаги.' },
+  hired:     { cls:'win',  t:'Добро пожаловать в команду! 🦉', d:'Скоро здесь появится ваш план онбординга: обучение, наставник и первые ученики.' },
+  rejected_school:    { cls:'sad', t:'По заявке принято решение', d:'К сожалению, сейчас мы не готовы предложить сотрудничество — подробности мы отправили вам на почту. Анкета сохранена в кадровом резерве: если появится подходящая вакансия, мы напишем.' },
+  rejected_candidate: { cls:'sad', t:'Заявка закрыта', d:'Заявка закрыта по вашей инициативе. Будем рады видеть вас снова — двери WowSpeak открыты!' }
+};
+
+document.addEventListener('DOMContentLoaded', init);
+async function init(){
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { show('login'); return; }
+  document.getElementById('me').innerHTML =
+    `${esc(session.user.email)} · <button onclick="logout()">Выйти</button>`;
+  await loadApps();
+  show('cab');
+}
+function show(id){
+  document.getElementById('login').style.display = id === 'login' ? 'block' : 'none';
+  document.getElementById('cab').style.display   = id === 'cab'   ? 'block' : 'none';
+}
+
+async function doLogin(){
+  const email = document.getElementById('email').value.trim().toLowerCase();
+  const pass  = document.getElementById('pass').value;
+  const msg = document.getElementById('loginMsg');
+  msg.className = 'msg';
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { msg.className='msg err'; msg.textContent='Проверьте e-mail.'; return; }
+  if (!pass) { msg.className='msg err'; msg.textContent='Введите пароль из письма-приглашения (или запросите ссылку ниже).'; return; }
+  const btn = document.getElementById('goBtn');
+  btn.disabled = true; btn.textContent = 'Входим…';
+  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+  btn.disabled = false; btn.textContent = 'Войти';
+  if (error) { msg.className='msg err'; msg.textContent='Не получилось войти: проверьте пароль или запросите ссылку для входа ниже.'; return; }
+  init();
+}
+
+async function sendLink(){
+  const email = document.getElementById('email').value.trim().toLowerCase();
+  const msg = document.getElementById('loginMsg');
+  msg.className = 'msg';
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { msg.className='msg err'; msg.textContent='Сначала введите e-mail.'; return; }
+  const { error } = await sb.auth.signInWithOtp({
+    email,
+    options: { emailRedirectTo: 'https://job.wowteach.ru/' }
+  });
+  if (error) { msg.className='msg err'; msg.textContent='Не получилось: ' + error.message; return; }
+  msg.className='msg ok';
+  msg.textContent = '✉️ Ссылка отправлена! Откройте письмо на этом устройстве и перейдите по ссылке.';
+}
+async function logout(){ await sb.auth.signOut(); location.reload(); }
+
+async function loadApps(){
+  const { data, error } = await sb.rpc('hr_my_applications');
+  const list = document.getElementById('appsList');
+  if (error) { list.innerHTML = '<div class="card">Не получилось загрузить: ' + esc(error.message) + '</div>'; return; }
+  if (!data || !data.length) {
+    const { data: { session } } = await sb.auth.getSession();
+    document.getElementById('noappsEmail').textContent = session?.user?.email || '';
+    document.getElementById('noapps').style.display = 'block';
+    return;
+  }
+  list.innerHTML = data.map(a => {
+    const isRejected = a.status === 'rejected';
+    const flowIdx = FLOW.findIndex(([k]) => k === a.status);
+    const steps = FLOW.map(([k, lbl], i) => {
+      let cls = '';
+      if (!isRejected) {
+        if (i < flowIdx) cls = 'done';
+        else if (i === flowIdx) cls = i === FLOW.length - 1 ? 'done cur' : 'cur';
+      }
+      return `<div class="pstep ${cls}"><div class="dot">${cls.includes('done') && !cls.includes('cur') ? '✓' : i + 1}</div><div class="lbl">${lbl}</div></div>`;
+    }).join('');
+    const nowKey = isRejected ? (a.rejected_by === 'candidate' ? 'rejected_candidate' : 'rejected_school') : a.status;
+    const now = NOW_TEXT[nowKey] || NOW_TEXT.new;
+    return `<div class="card">
+      <div class="app-head">
+        <h2>${esc(a.vacancy_title)}</h2>
+        <div class="when">заявка от ${fmtDate(a.created_at)}</div>
+      </div>
+      ${isRejected ? '' : `<div class="steps">${steps}</div>`}
+      <div class="now ${now.cls}"><b>${now.t}</b>${now.d}</div>
+      ${a.interview_materials ? `<div style="margin-top:14px;background:var(--purple-light);border-radius:var(--radius);padding:16px 18px">
+        <b style="font-family:'Fredoka',sans-serif;font-weight:600;display:block;margin-bottom:6px">📚 Материалы к собеседованию</b>
+        <div style="font-size:14.5px">${a.interview_materials}</div>
+      </div>` : ''}
+      <div class="contact">Вопросы? Просто ответьте на любое наше письмо — оно попадёт команде WowSpeak.</div>
+    </div>`;
+  }).join('');
+}
+
+function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmtDate(d){ return new Date(d).toLocaleDateString('ru-RU', { day:'numeric', month:'long', year:'numeric' }); }
+</script>
+</body>
+</html>
