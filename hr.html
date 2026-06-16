@@ -113,6 +113,10 @@ button{font-family:inherit;cursor:pointer}
 #modal .mhead h2{font-size:21px}
 #modal .mhead .sub{font-size:13px;color:var(--gray);margin-top:3px}
 #modal .mhead .x{margin-left:auto;background:none;border:none;font-size:24px;color:var(--gray);line-height:1}
+#modal .mhead .arch-btn{background:var(--cream-dark);border:none;color:var(--gray);font-weight:800;font-size:12.5px;
+  border-radius:999px;padding:7px 14px;cursor:pointer;white-space:nowrap}
+#modal .mhead .arch-btn:hover{background:#ECE3D2;color:var(--dark)}
+#modal .mhead button:focus{outline:none}
 #modal .mbody{padding:20px 24px 28px;display:flex;flex-direction:column;gap:16px}
 .sec{background:var(--white);border:1px solid var(--cream-dark);border-radius:var(--radius-lg);padding:18px 20px}
 .sec h3{font-size:15px;margin-bottom:12px;color:var(--gray);text-transform:uppercase;letter-spacing:.04em;font-family:'Nunito',sans-serif;font-weight:900;font-size:12px}
@@ -594,7 +598,7 @@ async function openCard(id){
         <h2>${esc(a.full_name)} · <span style="color:var(--purple)">${a.score ?? '—'}</span></h2>
         <div class="sub">${esc(vac?.title||'')} · заявка от ${fmtDate(a.created_at)}</div>
       </div>
-      <button class="x" onclick="archiveApp('${a.id}')" title="${a.archived_at ? 'Вернуть из архива' : 'Убрать в архив'}" style="margin-left:auto;font-size:19px">${a.archived_at ? '♻️' : '🗄️'}</button>
+      <button onclick="archiveApp('${a.id}')" class="arch-btn" style="margin-left:auto">${a.archived_at ? '♻️ Вернуть' : 'В архив'}</button>
       <button class="x" onclick="closeCard()">✕</button>
     </div>
     <div class="mbody">
