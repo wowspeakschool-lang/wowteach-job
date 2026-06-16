@@ -212,6 +212,10 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
 .cal-slot button:hover{background:var(--red-light);color:#B91C1C}
 .cal-hint{font-size:12px;color:var(--gray);margin-top:12px}
 #sec-tasks h2{font-size:19px;margin-bottom:14px}
+.bulk-chips{display:flex;flex-wrap:wrap;gap:7px}
+.bulk-chips span{padding:8px 13px;border:2px solid var(--cream-dark);border-radius:999px;font-weight:800;
+  font-size:13px;cursor:pointer;user-select:none;background:#FDFCF8;transition:all .12s}
+.bulk-chips span.on{background:var(--purple);border-color:var(--purple);color:#fff}
 </style>
 </head>
 <body>
@@ -282,6 +286,7 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
         <input type="date" id="slotDate">
         <input type="time" id="slotTime" step="900">
         <button onclick="addSlot()">＋ Слот 45 мин</button>
+        <button onclick="openBulk()" style="background:var(--orange)">📅 Слоты на период</button>
       </div>
     </div>
     <div id="calGrid" class="cal-grid"><div class="loading">Загружаю…</div></div>
@@ -303,6 +308,38 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
 </div>
 
 <!-- ===== Reject modal ===== -->
+<div id="bulkOverlay" onclick="if(event.target===this)closeBulk()" style="display:none;position:fixed;inset:0;background:rgba(45,45,63,.55);z-index:60;align-items:flex-start;justify-content:center;padding:50px 14px;overflow-y:auto">
+  <div style="background:#fff;border-radius:18px;max-width:480px;width:100%;padding:24px;box-shadow:var(--shadow)">
+    <h3 style="font-size:18px;margin-bottom:4px">📅 Слоты на период</h3>
+    <div style="font-size:12.5px;color:var(--gray);margin-bottom:16px">Выберите дни недели, времена начала (МСК) и период — слоты создадутся разом. Конфликтные пропустятся.</div>
+
+    <div style="font-size:12px;font-weight:900;color:var(--gray);text-transform:uppercase;margin-bottom:6px">Дни недели</div>
+    <div class="bulk-chips" id="bulkDays">
+      <span data-v="1">Пн</span><span data-v="2">Вт</span><span data-v="3">Ср</span><span data-v="4">Чт</span>
+      <span data-v="5">Пт</span><span data-v="6">Сб</span><span data-v="7">Вс</span>
+    </div>
+
+    <div style="font-size:12px;font-weight:900;color:var(--gray);text-transform:uppercase;margin:14px 0 6px">Время начала (МСК)</div>
+    <div class="bulk-chips" id="bulkTimes">
+      <span data-v="09:00">9:00</span><span data-v="10:00">10:00</span><span data-v="11:00">11:00</span>
+      <span data-v="12:00">12:00</span><span data-v="13:00">13:00</span><span data-v="14:00">14:00</span>
+      <span data-v="15:00">15:00</span><span data-v="16:00">16:00</span><span data-v="17:00">17:00</span>
+      <span data-v="18:00">18:00</span><span data-v="19:00">19:00</span><span data-v="20:00">20:00</span>
+    </div>
+
+    <div style="font-size:12px;font-weight:900;color:var(--gray);text-transform:uppercase;margin:14px 0 6px">Период</div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:14px">
+      с <input type="date" id="bulkFrom" style="padding:8px 10px;border:2px solid var(--cream-dark);border-radius:10px;font-size:14px;background:#FDFCF8">
+      по <input type="date" id="bulkUntil" style="padding:8px 10px;border:2px solid var(--cream-dark);border-radius:10px;font-size:14px;background:#FDFCF8">
+    </div>
+
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">
+      <button onclick="closeBulk()" style="border:none;border-radius:999px;padding:10px 18px;font-weight:800;background:var(--cream-dark);color:var(--gray)">Отмена</button>
+      <button id="bulkGo" onclick="confirmBulk()" style="border:none;border-radius:999px;padding:10px 18px;font-weight:800;background:var(--purple);color:#fff">Создать слоты</button>
+    </div>
+  </div>
+</div>
+
 <div id="rejectOverlay" onclick="if(event.target===this)closeReject()">
   <div class="reject-box">
     <h3>Отказ по заявке</h3>
@@ -383,7 +420,7 @@ async function init(){
 function isStaff(u){
   const r = u?.roles;
   const list = Array.isArray(r) ? r : (typeof r === 'string' ? [r] : []);
-  return list.includes('super_admin') || list.includes('assistant');
+  return list.includes('super_admin') || list.includes('assistant') || list.includes('recruiter');
 }
 async function loadMe(authUid){
   const { data } = await sb.from('users').select('id, name, email, roles, is_active').eq('auth_id', authUid).maybeSingle();
@@ -438,6 +475,18 @@ async function loadApps(){
   apps = data || [];
   render();
 }
+async function archiveApp(id){
+  const app = apps.find(a => a.id === id);
+  if (!app) return;
+  const archiving = !app.archived_at;
+  if (archiving && !confirm(`Убрать заявку «${app.full_name}» в архив? Она исчезнет из списка, но сохранится для статистики. Вернуть можно фильтром «Архив».`)) return;
+  const { error } = await sb.from('hr_applications')
+    .update({ archived_at: archiving ? new Date().toISOString() : null }).eq('id', id);
+  if (error) { alert('Не получилось: ' + error.message); return; }
+  app.archived_at = archiving ? new Date().toISOString() : null;
+  closeCard();
+  render();
+}
 
 // ============ Отрисовка: список + канбан ============
 let view = 'list';
@@ -452,9 +501,12 @@ function filteredRows(){
   const fS = document.getElementById('fStatus').value;
   const sort = document.getElementById('fSort').value;
   let rows = apps.slice();
+  // архив: по умолчанию скрыт, показывается только при выборе фильтра "archived"
+  if (fS === 'archived') rows = rows.filter(a => a.archived_at);
+  else rows = rows.filter(a => !a.archived_at);
   if (fV) rows = rows.filter(a => a.vacancy_id === fV);
   if (fS === 'active') rows = rows.filter(a => !['rejected','hired'].includes(a.status));
-  else if (fS) rows = rows.filter(a => a.status === fS);
+  else if (fS && fS !== 'archived') rows = rows.filter(a => a.status === fS);
   const fA = document.getElementById('fAssign').value;
   if (fA === 'mine') rows = rows.filter(a => a.assigned_to === me.id);
   else if (fA === 'none') rows = rows.filter(a => !a.assigned_to);
@@ -469,6 +521,7 @@ function render(){
   const fSel = document.getElementById('fStatus');
   if (fSel.options.length === 2) {
     Object.entries(STATUSES).forEach(([k,s]) => fSel.insertAdjacentHTML('beforeend', `<option value="${k}">${s.label}</option>`));
+    fSel.insertAdjacentHTML('beforeend', '<option value="archived">🗄️ Архив</option>');
   }
 
   document.getElementById('list').style.display  = view === 'list'  ? '' : 'none';
@@ -541,6 +594,7 @@ async function openCard(id){
         <h2>${esc(a.full_name)} · <span style="color:var(--purple)">${a.score ?? '—'}</span></h2>
         <div class="sub">${esc(vac?.title||'')} · заявка от ${fmtDate(a.created_at)}</div>
       </div>
+      <button class="x" onclick="archiveApp('${a.id}')" title="${a.archived_at ? 'Вернуть из архива' : 'Убрать в архив'}" style="margin-left:auto;font-size:19px">${a.archived_at ? '♻️' : '🗄️'}</button>
       <button class="x" onclick="closeCard()">✕</button>
     </div>
     <div class="mbody">
@@ -585,6 +639,9 @@ async function openCard(id){
       </div>
 
       <div class="sec"><h3>Расписание (МСК)</h3>${gridHtml}</div>
+
+      ${ans.cover_letter ? `<div class="sec"><h3>Несколько слов о себе</h3>
+        <div style="white-space:pre-wrap;font-size:14px;line-height:1.6">${esc(ans.cover_letter)}</div></div>` : ''}
 
       <div class="sec"><h3>Документы</h3><div class="docs" id="docsSlot" class="loading">Получаю ссылки…</div></div>
 
@@ -889,6 +946,37 @@ async function loadTimeline(a){
 // ============ Слоты собеседований ============
 const MSK = { timeZone: 'Europe/Moscow' };
 function mskFmt(d){ return new Date(d).toLocaleDateString('ru-RU', { ...MSK, weekday:'short', day:'numeric', month:'short' }) + ', ' + new Date(d).toLocaleTimeString('ru-RU', { ...MSK, hour:'2-digit', minute:'2-digit' }) + ' МСК'; }
+
+// ============ Слоты на период ============
+document.addEventListener('click', e => {
+  if (e.target.parentElement?.classList?.contains('bulk-chips')) e.target.classList.toggle('on');
+});
+function openBulk(){
+  const today = new Date(), in2w = new Date(Date.now() + 13 * 86400000);
+  const iso = d => d.toISOString().slice(0, 10);
+  document.getElementById('bulkFrom').value = iso(today);
+  document.getElementById('bulkUntil').value = iso(in2w);
+  document.getElementById('bulkOverlay').style.display = 'flex';
+}
+function closeBulk(){ document.getElementById('bulkOverlay').style.display = 'none'; }
+async function confirmBulk(){
+  const days  = [...document.querySelectorAll('#bulkDays span.on')].map(s => parseInt(s.dataset.v));
+  const times = [...document.querySelectorAll('#bulkTimes span.on')].map(s => s.dataset.v);
+  const from  = document.getElementById('bulkFrom').value;
+  const until = document.getElementById('bulkUntil').value;
+  if (!days.length)  { alert('Выберите хотя бы один день недели.'); return; }
+  if (!times.length) { alert('Выберите хотя бы одно время.'); return; }
+  if (!from || !until) { alert('Укажите период.'); return; }
+  const btn = document.getElementById('bulkGo');
+  btn.disabled = true; btn.textContent = 'Создаю…';
+  const { data, error } = await sb.rpc('hr_bulk_add_slots',
+    { p_weekdays: days, p_times: times, p_from: from, p_until: until });
+  btn.disabled = false; btn.textContent = 'Создать слоты';
+  if (error) { alert('Не получилось: ' + error.message); return; }
+  closeBulk();
+  alert(`Создано слотов: ${data.created}` + (data.skipped ? `\nПропущено (конфликт со своими слотами): ${data.skipped}` : ''));
+  loadCalendar();
+}
 
 async function addSlot(){
   const d = document.getElementById('slotDate').value;

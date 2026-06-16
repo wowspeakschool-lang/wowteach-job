@@ -55,7 +55,7 @@ label{display:block;font-weight:800;font-size:14px;margin-bottom:6px}
 label .req{color:var(--red)}
 label .opt{color:var(--gray-text);font-weight:600;font-size:12px}
 .hint{font-size:13px;color:var(--gray-text);margin-top:6px}
-input[type=text],input[type=email],input[type=tel],input[type=url],select{
+input[type=text],input[type=email],input[type=tel],input[type=url],select,textarea{
   width:100%;padding:13px 14px;border:2px solid var(--cream-dark);border-radius:var(--radius);
   font-size:16px;background:#FDFCF8;transition:border-color .15s;-webkit-appearance:none;appearance:none}
 select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9'%3E%3Cpath d='M1 1l6 6 6-6' stroke='%235A5A6E' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
@@ -267,6 +267,11 @@ input:focus,select:focus{outline:none;border-color:var(--purple)}
           <div class="chip" data-v="Турецкий">Турецкий</div>
           <div class="chip" data-v="Иной">Иной</div>
         </div>
+      </div>
+
+      <div class="field">
+        <label>Несколько слов о себе <span class="opt">(необязательно)</span></label>
+        <textarea id="cover_letter" rows="4" maxlength="2000" placeholder="Расскажите, почему вам интересна работа в WowSpeak, что вы любите в преподавании, или что-то важное о себе. Это поможет нам познакомиться с вами ближе 🙂"></textarea>
       </div>
 
       <div class="field" id="salesField" style="display:none">
@@ -519,6 +524,7 @@ form.addEventListener('submit', async e => {
       weekly_hours_label: val('weekly_hours'),
       weekly_lessons: hoursMap[val('weekly_hours')] ?? 0,
       extra_languages: chipValues('extraLangs'),
+      cover_letter: (document.getElementById('cover_letter').value || '').trim(),
       schedule_grid: grid,
       slots: summary.slots,
       evening_days: summary.evening_days
