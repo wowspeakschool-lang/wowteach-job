@@ -344,6 +344,28 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
   </div>
 </div>
 
+<div id="offerOverlay" onclick="if(event.target===this)closeOffer()" style="display:none;position:fixed;inset:0;background:rgba(45,45,63,.55);z-index:60;align-items:flex-start;justify-content:center;padding:50px 14px;overflow-y:auto">
+  <div style="background:#fff;border-radius:18px;max-width:440px;width:100%;padding:24px;box-shadow:var(--shadow)">
+    <h3 style="font-size:18px;margin-bottom:4px">📄 Отправить оффер</h3>
+    <div style="font-size:12.5px;color:var(--gray);margin-bottom:16px">Кандидат увидит оффер в кабинете за паролем и получит письмо. Статус станет «Оффер».</div>
+
+    <div style="font-size:12px;font-weight:900;color:var(--gray);text-transform:uppercase;margin-bottom:6px">Язык</div>
+    <div class="bulk-chips" id="offerLang">
+      <span data-v="ru" class="on">🇷🇺 Русский</span><span data-v="en">🇬🇧 English</span>
+    </div>
+
+    <div style="font-size:12px;font-weight:900;color:var(--gray);text-transform:uppercase;margin:14px 0 6px">Грейд (основная таблица ставок)</div>
+    <div class="bulk-chips" id="offerGrade">
+      <span data-v="basic" class="on">🟢 Basic</span><span data-v="expert">🔵 Expert</span><span data-v="pro">🟠 Pro</span>
+    </div>
+
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:22px">
+      <button onclick="closeOffer()" style="border:none;border-radius:999px;padding:10px 18px;font-weight:800;background:var(--cream-dark);color:var(--gray)">Отмена</button>
+      <button id="offerGo" onclick="confirmOffer()" style="border:none;border-radius:999px;padding:10px 18px;font-weight:800;background:var(--purple);color:#fff">Отправить оффер</button>
+    </div>
+  </div>
+</div>
+
 <div id="rejectOverlay" onclick="if(event.target===this)closeReject()">
   <div class="reject-box">
     <h3>Отказ по заявке</h3>
@@ -619,6 +641,11 @@ async function openCard(id){
         </div>
       </div>
 
+      <div class="sec"><h3>Оффер</h3>
+        <div id="offerState" style="font-size:13.5px;color:var(--gray);margin-bottom:10px"></div>
+        <button class="tpl-btn" onclick="openOffer()">📄 Отправить / обновить оффер</button>
+      </div>
+
       <div class="sec"><h3>Письма кандидату</h3>
         <div class="tpl-row" id="tplRow">Загружаю шаблоны…</div>
         <div class="tpl-hint">Письмо уйдёт на ${esc(a.email)} с подстановкой имени и вакансии. Кандидат сможет ответить — ответы придут на wowspeak.school3@yandex.ru.</div>
@@ -670,6 +697,7 @@ async function openCard(id){
       <div class="sec"><h3>История</h3><div class="tl" id="timeline">Загружаю…</div></div>
     </div>`;
   document.getElementById('overlay').style.display = 'block';
+  const os = document.getElementById('offerState'); if (os) os.textContent = offerStateText(a);
   loadMedia(a); loadNotes(a.id); renderTplButtons(); loadTasksFor(a.id); loadTimeline(a); loadInterview(a.id);
 }
 function closeCard(){ document.getElementById('overlay').style.display = 'none'; current = null; }
@@ -953,8 +981,59 @@ function mskFmt(d){ return new Date(d).toLocaleDateString('ru-RU', { ...MSK, wee
 
 // ============ Слоты на период ============
 document.addEventListener('click', e => {
-  if (e.target.parentElement?.classList?.contains('bulk-chips')) e.target.classList.toggle('on');
+  const box = e.target.parentElement;
+  if (!box?.classList?.contains('bulk-chips')) return;
+  // офферные чипсы (язык/грейд) — одиночный выбор; остальные — мультивыбор
+  if (box.id === 'offerLang' || box.id === 'offerGrade') {
+    [...box.children].forEach(c => c.classList.remove('on'));
+    e.target.classList.add('on');
+  } else {
+    e.target.classList.toggle('on');
+  }
 });
+// ============ Оффер ============
+const GRADE_LABEL = { basic:'🟢 Basic', expert:'🔵 Expert', pro:'🟠 Pro' };
+function offerStateText(a){
+  if (!a.offer_sent_at) return 'Оффер ещё не отправлен.';
+  const g = GRADE_LABEL[a.offer_grade] || a.offer_grade;
+  const lang = a.offer_lang === 'en' ? 'EN' : 'RU';
+  let s = `Отправлен: ${g} · ${lang} · ${fmtDate(a.offer_sent_at)}`;
+  if (a.offer_accepted_at) s += ` · ✅ Принят ${fmtDate(a.offer_accepted_at)}`;
+  return s;
+}
+function openOffer(){
+  if (!current) return;
+  // предвыбор: если оффер уже слали — те же значения
+  const setChip = (boxId, val) => {
+    const box = document.getElementById(boxId);
+    [...box.children].forEach(c => c.classList.toggle('on', c.dataset.v === val));
+  };
+  setChip('offerLang', current.offer_lang || 'ru');
+  setChip('offerGrade', current.offer_grade || 'basic');
+  document.getElementById('offerOverlay').style.display = 'flex';
+}
+function closeOffer(){ document.getElementById('offerOverlay').style.display = 'none'; }
+async function confirmOffer(){
+  if (!current) return;
+  const lang  = document.querySelector('#offerLang .on')?.dataset.v || 'ru';
+  const grade = document.querySelector('#offerGrade .on')?.dataset.v || 'basic';
+  const already = current.offer_accepted_at;
+  if (already && !confirm('Кандидат уже принял оффер. Отправить новый? Отметка о принятии сбросится.')) return;
+  const btn = document.getElementById('offerGo');
+  btn.disabled = true; btn.textContent = 'Отправляю…';
+  const { error } = await sb.rpc('hr_send_offer', { p_application_id: current.id, p_lang: lang, p_grade: grade });
+  btn.disabled = false; btn.textContent = 'Отправить оффер';
+  if (error) { alert('Не получилось: ' + error.message); return; }
+  closeOffer();
+  // локально обновим и перерисуем
+  current.offer_lang = lang; current.offer_grade = grade;
+  current.offer_sent_at = new Date().toISOString(); current.offer_accepted_at = null;
+  current.status = 'offer';
+  const i = apps.findIndex(x => x.id === current.id);
+  if (i >= 0) apps[i] = { ...apps[i], ...current };
+  render(); openCard(current.id);
+}
+
 function openBulk(){
   const today = new Date(), in2w = new Date(Date.now() + 13 * 86400000);
   const iso = d => d.toISOString().slice(0, 10);

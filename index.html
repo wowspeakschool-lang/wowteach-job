@@ -232,6 +232,7 @@ async function loadApps(){
       ${isRejected ? '' : `<div class="steps">${steps}</div>`}
       <div class="now ${now.cls}"><b>${now.t}</b>${now.d}</div>
       ${a.status === 'interview' ? bookingBlock(a) : ''}
+      ${a.offer_sent_at ? `<div id="offer-${a.id}" style="margin-top:14px">${a.offer_accepted_at ? '' : ''}<div class="loading" style="padding:20px">Загружаю ваш оффер…</div></div>` : ''}
       ${a.interview_materials ? `<div style="margin-top:14px;background:var(--purple-light);border-radius:var(--radius);padding:16px 18px">
         <b style="font-family:'Fredoka',sans-serif;font-weight:600;display:block;margin-bottom:6px">📚 Материалы к собеседованию</b>
         <div style="font-size:14.5px">${a.interview_materials}</div>
@@ -240,6 +241,33 @@ async function loadApps(){
     </div>`;
   }).join('');
   data.filter(a => a.status === 'interview' && !a.interview_at).forEach(a => loadSlots(a.id));
+  data.filter(a => a.offer_sent_at).forEach(a => loadOffer(a));
+}
+
+// ============ Оффер ============
+async function loadOffer(a){
+  const box = document.getElementById('offer-' + a.id);
+  if (!box) return;
+  const { data, error } = await sb.rpc('hr_my_offer', { p_application_id: a.id });
+  if (error || !data) { box.innerHTML = ''; return; }
+  const accepted = a.offer_accepted_at;
+  box.innerHTML = `
+    <div style="background:#fff;border:2px solid var(--green);border-radius:var(--radius-lg);padding:22px 22px 18px">
+      <div style="font-family:'Fredoka',sans-serif;font-weight:600;font-size:20px;margin-bottom:4px">📄 Ваш оффер WowSpeak</div>
+      <div style="font-size:13px;color:var(--gray);margin-bottom:14px">Пожалуйста, внимательно ознакомьтесь с условиями.</div>
+      <div style="font-size:14.5px;line-height:1.6">${data}</div>
+      <div style="margin-top:20px;text-align:center">
+        ${accepted
+          ? `<div style="background:var(--green-light);color:#15803D;border-radius:999px;padding:12px 20px;font-weight:800;display:inline-block">✅ Оффер принят ${fmtDate(accepted)} — добро пожаловать в команду! 🎉</div>`
+          : `<button onclick="acceptOffer('${a.id}')" style="background:linear-gradient(135deg,var(--green),#16A34A);color:#fff;border:none;border-radius:999px;padding:15px 40px;font-weight:800;font-size:17px;cursor:pointer;box-shadow:var(--shadow)">Принимаю оффер 🎉</button>`}
+      </div>
+    </div>`;
+}
+async function acceptOffer(id){
+  if (!confirm('Подтвердить принятие оффера? Команда WowSpeak получит уведомление.')) return;
+  const { error } = await sb.rpc('hr_accept_offer', { p_application_id: id });
+  if (error) { alert('Не получилось: ' + error.message); return; }
+  loadApps();
 }
 
 // ============ Запись на собеседование ============
