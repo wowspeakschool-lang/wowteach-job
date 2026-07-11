@@ -128,6 +128,14 @@ button{font-family:inherit;cursor:pointer}
       <p style="font-size:15px">По адресу <b id="noappsEmail"></b> заявок не нашлось. Проверьте, что вошли с того же e-mail, который указывали в анкете — или подайте заявку:</p>
       <p style="margin-top:12px"><a href="https://wowteach.ru/#vacancies"><b>Открытые вакансии WowSpeak →</b></a></p>
     </div>
+
+    <div class="card" id="pwCard" style="display:none">
+      <h2 style="font-size:17px;margin-bottom:6px">🔑 Сменить пароль</h2>
+      <p style="font-size:13.5px;color:var(--gray);margin-bottom:14px">Рекомендуем заменить присланный пароль на свой.</p>
+      <input type="password" id="newPass" placeholder="Новый пароль (минимум 8 символов)" style="width:100%;padding:12px 14px;border:2px solid var(--cream-dark);border-radius:var(--radius);font-size:15px;background:#FDFCF8;margin-bottom:10px">
+      <button onclick="changePass()" style="background:var(--purple);color:#fff;border:none;border-radius:999px;padding:12px 22px;font-weight:800;font-size:14px;cursor:pointer">Сохранить пароль</button>
+      <div id="pwMsg" style="margin-top:10px;font-size:13.5px;font-weight:700"></div>
+    </div>
   </div>
 
 </div>
@@ -165,6 +173,7 @@ async function init(){
     `${esc(session.user.email)} · <button onclick="logout()">Выйти</button>`;
   await loadApps();
   show('cab');
+  document.getElementById('pwCard').style.display = 'block';
 }
 function show(id){
   document.getElementById('login').style.display = id === 'login' ? 'block' : 'none';
@@ -200,6 +209,16 @@ async function sendLink(){
   msg.textContent = '✉️ Ссылка отправлена! Откройте письмо на этом устройстве и перейдите по ссылке.';
 }
 async function logout(){ await sb.auth.signOut(); location.reload(); }
+
+async function changePass(){
+  const p = document.getElementById('newPass').value;
+  const msg = document.getElementById('pwMsg');
+  if (!p || p.length < 8) { msg.style.color = 'var(--red)'; msg.textContent = 'Пароль должен быть не короче 8 символов.'; return; }
+  const { error } = await sb.auth.updateUser({ password: p });
+  if (error) { msg.style.color = 'var(--red)'; msg.textContent = 'Не получилось: ' + error.message; return; }
+  document.getElementById('newPass').value = '';
+  msg.style.color = 'var(--green)'; msg.textContent = '✅ Пароль изменён.';
+}
 
 async function loadApps(){
   const { data, error } = await sb.rpc('hr_my_applications');

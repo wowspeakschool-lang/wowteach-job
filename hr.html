@@ -216,6 +216,8 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
 .cal-slot button:hover{background:var(--red-light);color:#B91C1C}
 .cal-hint{font-size:12px;color:var(--gray);margin-top:12px}
 #sec-tasks h2{font-size:19px;margin-bottom:14px}
+.acc-btn{border:none;border-radius:999px;padding:8px 14px;font-size:12.5px;font-weight:800;cursor:pointer;background:var(--cream-dark);color:var(--gray)}
+.acc-btn:hover{filter:brightness(.96)}
 .bulk-chips{display:flex;flex-wrap:wrap;gap:7px}
 .bulk-chips span{padding:8px 13px;border:2px solid var(--cream-dark);border-radius:999px;font-weight:800;
   font-size:13px;cursor:pointer;user-select:none;background:#FDFCF8;transition:all .12s}
@@ -247,6 +249,7 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
     <div class="nav-item on" id="nav-apps" onclick="switchSection('apps')">📋 Заявки</div>
     <div class="nav-item" id="nav-cal" onclick="switchSection('cal')">🗓️ Интервью</div>
     <div class="nav-item" id="nav-tasks" onclick="switchSection('tasks')">⏰ Задачи <span class="nav-badge" id="tasksBadge">0</span></div>
+    <div class="nav-item" id="nav-access" onclick="switchSection('access')">🔑 Доступы</div>
   </nav>
   <div class="main">
 
@@ -300,6 +303,12 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
   <section id="sec-tasks" style="display:none">
     <h2>⏰ Мои открытые задачи</h2>
     <div id="tasksPage"></div>
+  </section>
+
+  <section id="sec-access" style="display:none">
+    <h2 style="font-size:19px;margin-bottom:6px">🔑 Доступы к кабинету кандидата</h2>
+    <p style="font-size:13px;color:var(--gray);margin-bottom:14px">Кому выдан доступ, когда был последний вход, и управление: выдать, сбросить пароль, закрыть или открыть заново.</p>
+    <div id="accessPage">Загружаю…</div>
   </section>
 
   </div><!-- /main -->
@@ -883,12 +892,69 @@ function renderTasksPage(){
 
 // ============ Разделы (левое меню) ============
 function switchSection(s){
-  ['apps','cal','tasks'].forEach(k => {
+  ['apps','cal','tasks','access'].forEach(k => {
     document.getElementById('sec-' + k).style.display = k === s ? '' : 'none';
     document.getElementById('nav-' + k).classList.toggle('on', k === s);
   });
   if (s === 'cal') loadCalendar();
   if (s === 'tasks') renderTasksPage();
+  if (s === 'access') loadAccess();
+}
+
+// ============ Реестр доступов ============
+async function loadAccess(){
+  const el = document.getElementById('accessPage');
+  el.innerHTML = 'Загружаю…';
+  const { data, error } = await sb.rpc('hr_access_list');
+  if (error) { el.innerHTML = 'Ошибка: ' + esc(error.message); return; }
+  if (!data || !data.length) { el.innerHTML = '<div style="color:var(--gray);padding:30px 0">Пока никому не выдан доступ.</div>'; return; }
+  el.innerHTML = data.map(r => {
+    const revoked = !!r.cabinet_revoked_at;
+    const last = r.last_sign_in_at ? fmtDate(r.last_sign_in_at) : 'ни разу';
+    const badge = revoked
+      ? '<span style="background:var(--red-light);color:#B91C1C;font-size:11px;font-weight:800;border-radius:999px;padding:3px 10px">🔒 закрыт</span>'
+      : (r.has_account
+          ? '<span style="background:var(--green-light);color:#15803D;font-size:11px;font-weight:800;border-radius:999px;padding:3px 10px">✅ активен</span>'
+          : '<span style="background:var(--yellow-light);color:#B45309;font-size:11px;font-weight:800;border-radius:999px;padding:3px 10px">⚠ нет аккаунта</span>');
+    return `<div style="background:#fff;border:1px solid var(--cream-dark);border-radius:14px;padding:14px 16px;margin-bottom:10px;display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+      <div style="flex:1;min-width:200px">
+        <div style="font-weight:800">${esc(r.full_name)} ${badge}</div>
+        <div style="font-size:12.5px;color:var(--gray)">${esc(r.email)} · ${esc(r.vacancy_title||'')}</div>
+        <div style="font-size:12px;color:var(--gray);margin-top:2px">выдан ${fmtDate(r.cabinet_invited_at)} · последний вход: ${last}</div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        ${!r.has_account
+          ? `<button class="acc-btn" style="background:var(--purple);color:#fff" onclick="accGrant('${r.id}','${esc(r.full_name)}')">Выдать доступ</button>`
+          : `<button class="acc-btn" onclick="accReset('${r.id}','${esc(r.full_name)}')">🔑 Сбросить пароль</button>`}
+        ${revoked
+          ? `<button class="acc-btn" style="background:var(--green-light);color:#15803D" onclick="accRestore('${r.id}')">Открыть заново</button>`
+          : (r.has_account ? `<button class="acc-btn" style="background:var(--red-light);color:#B91C1C" onclick="accRevoke('${r.id}','${esc(r.full_name)}')">Закрыть доступ</button>` : '')}
+      </div>
+    </div>`;
+  }).join('');
+}
+async function accReset(id, name){
+  if (!confirm(`Сбросить пароль для ${name}? Кандидату придёт письмо с новым паролем.`)) return;
+  const { error } = await sb.rpc('hr_reset_password', { p_application_id: id });
+  alert(error ? 'Не получилось: ' + error.message : 'Готово — новый пароль отправлен.');
+  if (!error) loadAccess();
+}
+async function accRevoke(id, name){
+  if (!confirm(`Закрыть доступ для ${name}? Кандидат не сможет войти в кабинет.`)) return;
+  const { error } = await sb.rpc('hr_revoke_access', { p_application_id: id });
+  if (error) { alert('Не получилось: ' + error.message); return; }
+  loadAccess();
+}
+async function accRestore(id){
+  const { error } = await sb.rpc('hr_restore_access', { p_application_id: id });
+  if (error) { alert('Не получилось: ' + error.message); return; }
+  loadAccess();
+}
+async function accGrant(id, name){
+  if (!confirm(`Выдать доступ ${name}? Будет создан аккаунт, кандидату придёт письмо с логином и паролем.`)) return;
+  const { error } = await sb.rpc('hr_grant_access_manual', { p_application_id: id });
+  alert(error ? 'Не получилось: ' + error.message : 'Готово — доступ выдан, письмо отправлено.');
+  if (!error) setTimeout(loadAccess, 1500);
 }
 
 // ============ Календарь интервью ============
