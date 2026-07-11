@@ -263,6 +263,11 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
       <option value="active">Активные (не отказ/не в команде)</option>
     </select>
     <select id="fTask" onchange="render()" style="display:none"><option value="">Любое ТЗ</option></select>
+    <select id="fSpeaker" onchange="render()">
+      <option value="">Все преподаватели</option>
+      <option value="ru">🇷🇺 Русскоязычные</option>
+      <option value="en">🇬🇧 Англоязычные</option>
+    </select>
     <select id="fSort" onchange="render()">
       <option value="score">По баллам ↓</option>
       <option value="date">По дате ↓</option>
@@ -469,6 +474,7 @@ const EXP = { none:'Отсутствует', lt1:'Меньше 1 года', '1-2
 const HOURS = { lt10:'< 10 ч/нед', '10-15':'10–15 ч/нед', '15-20':'15–20 ч/нед', '20-30':'20–30 ч/нед', fulltime:'Full-time (до 40 ч)' };
 const AGES = { '4-6':'4–6', '7-9':'7–9', '10-12':'10–12', teens:'Подростки', adults:'Взрослые' };
 const LEVEL = { B1:'B1', B2:'B2', C1:'C1', C2:'C2', native:'Носитель' };
+const SPEAKER = { ru:'🇷🇺 Русскоязычный', en:'🇬🇧 Англоязычный' };
 const DAYS = [['mon','Пн'],['tue','Вт'],['wed','Ср'],['thu','Чт'],['fri','Пт'],['sat','Сб'],['sun','Вс']];
 const SLOTS = ['morning','day','evening'];
 
@@ -587,6 +593,8 @@ function filteredRows(){
   }
   if (!showTask) fTaskSel.value = '';
   if (fTaskSel.value) rows = rows.filter(a => a.interview_task_slug === fTaskSel.value);
+  const fSp = document.getElementById('fSpeaker').value;
+  if (fSp) rows = rows.filter(a => (a.speaker_type || 'ru') === fSp);
   if (sort === 'score') rows.sort((a,b) => (b.score ?? -1) - (a.score ?? -1));
   return rows;
 }
@@ -712,6 +720,11 @@ async function openCard(id){
           <div><b>Telegram</b>${esc(a.telegram||'—')}</div>
           <div><b>Город / пояс</b>${esc(a.city_tz||'—')}</div>
           <div><b>Уровень английского</b>${LEVEL[ans.english_level]||'—'}</div>
+          <div><b>Тип преподавателя</b>
+            <select onchange="setSpeaker('${a.id}', this.value)" style="margin-top:2px;padding:5px 8px;border:2px solid var(--cream-dark);border-radius:8px;font-size:13px;font-weight:700;background:#fff">
+              <option value="ru" ${a.speaker_type!=='en'?'selected':''}>🇷🇺 Русскоязычный</option>
+              <option value="en" ${a.speaker_type==='en'?'selected':''}>🇬🇧 Англоязычный</option>
+            </select></div>
           <div><b>Образование</b>${EDU[ans.education]||'—'}</div>
           <div><b>Опыт</b>${EXP[ans.experience]||'—'}</div>
           <div><b>Нагрузка</b>${HOURS[ans.weekly_hours_label]||'—'}</div>
@@ -994,6 +1007,35 @@ async function loadStats(){
       </div>
     </div>
 
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+      <div style="background:#fff;border:1px solid var(--cream-dark);border-radius:16px;padding:20px">
+        <h3 style="font-size:12px;font-weight:900;color:var(--gray);text-transform:uppercase;margin-bottom:12px">По типу преподавателя</h3>
+        ${data.by_speaker?.length ? data.by_speaker.map(s => `
+          <div style="padding:8px 0;border-bottom:1px solid var(--cream)">
+            <div style="display:flex;justify-content:space-between;font-size:13.5px">
+              <span style="font-weight:800">${esc(s.speaker)}</span>
+              <span><b style="color:var(--purple)">${s.conv}%</b></span>
+            </div>
+            <div style="font-size:12px;color:var(--gray);margin-top:2px">
+              ${s.total} заявок → ${s.screening} скрининг → ${s.interview} собес → ${s.offer} оффер → ${s.hired} принят
+            </div>
+          </div>`).join('') : '<div style="color:var(--gray);font-size:13px">Нет данных</div>'}
+      </div>
+      <div style="background:#fff;border:1px solid var(--cream-dark);border-radius:16px;padding:20px">
+        <h3 style="font-size:12px;font-weight:900;color:var(--gray);text-transform:uppercase;margin-bottom:12px">По ТЗ на демо-урок</h3>
+        ${data.by_task?.length ? data.by_task.map(t => `
+          <div style="padding:8px 0;border-bottom:1px solid var(--cream)">
+            <div style="display:flex;justify-content:space-between;font-size:13.5px;gap:8px">
+              <span style="font-weight:800">${esc(t.task)}</span>
+              <span><b style="color:var(--purple)">${t.conv}%</b></span>
+            </div>
+            <div style="font-size:12px;color:var(--gray);margin-top:2px">
+              ${t.total} назначено → ${t.offer} оффер → ${t.hired} принят
+            </div>
+          </div>`).join('') : '<div style="color:var(--gray);font-size:13px">ТЗ ещё не назначались</div>'}
+      </div>
+    </div>
+
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
       <div style="background:#fff;border:1px solid var(--cream-dark);border-radius:16px;padding:20px">
         <h3 style="font-size:12px;font-weight:900;color:var(--gray);text-transform:uppercase;margin-bottom:12px">По рекрутерам</h3>
@@ -1187,7 +1229,7 @@ function openOffer(){
     const box = document.getElementById(boxId);
     [...box.children].forEach(c => c.classList.toggle('on', c.dataset.v === val));
   };
-  setChip('offerLang', current.offer_lang || 'ru');
+  setChip('offerLang', current.offer_lang || (current.speaker_type === 'en' ? 'en' : 'ru'));
   setChip('offerGrade', current.offer_grade || 'basic');
   document.getElementById('offerOverlay').style.display = 'flex';
 }
@@ -1213,6 +1255,14 @@ async function confirmOffer(){
   render(); openCard(current.id);
 }
 
+async function setSpeaker(id, val){
+  const { error } = await sb.from('hr_applications').update({ speaker_type: val }).eq('id', id);
+  if (error) { alert('Не получилось: ' + error.message); return; }
+  const app = apps.find(a => a.id === id);
+  if (app) app.speaker_type = val;
+  render();
+}
+
 // ============ ТЗ и приглашение на собеседование ============
 let itasks = [], inviteFor = null, inviteReopen = false, pickedTask = null;
 async function loadITasks(){
@@ -1225,11 +1275,16 @@ function openTaskModal(id, reopen){
   inviteFor = id; inviteReopen = reopen; pickedTask = null;
   const vac = vacancies.find(v => v.id === app.vacancy_id);
   const list = itasks.filter(t => !t.vacancy_slug || t.vacancy_slug === vac?.slug);
+  // рекомендация по типу преподавателя: англоязычному — вариант «носитель»
+  const rec = app.speaker_type === 'en'
+    ? list.find(t => t.slug.includes('native'))?.slug
+    : list.find(t => !t.slug.includes('native'))?.slug;
   document.getElementById('itaskList').innerHTML = list.length
     ? list.map(t => `<div class="task-pick" data-slug="${t.slug}" onclick="pickTask('${t.slug}', this)"
-        style="border:2px solid var(--cream-dark);border-radius:12px;padding:12px 14px;cursor:pointer;font-weight:800;font-size:14px">
-        ${esc(t.title)}</div>`).join('')
+        style="border:2px solid ${t.slug===rec?'var(--purple)':'var(--cream-dark)'};background:${t.slug===rec?'var(--purple-light)':'#fff'};border-radius:12px;padding:12px 14px;cursor:pointer;font-weight:800;font-size:14px">
+        ${esc(t.title)}${t.slug===rec ? ' <span style="font-size:11px;font-weight:800;color:var(--purple-dark);background:#fff;border-radius:999px;padding:2px 8px;margin-left:6px">рекомендуем</span>' : ''}</div>`).join('')
     : '<div style="color:var(--gray);font-size:13px">Нет активных ТЗ для этой вакансии — добавьте в таблице hr_interview_tasks.</div>';
+  pickedTask = rec || null;
   document.getElementById('taskOverlay').style.display = 'flex';
 }
 function pickTask(slug, el){
