@@ -239,6 +239,7 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
   <h1>Вход для персонала</h1>
   <input type="email" id="loginEmail" placeholder="E-mail">
   <input type="password" id="loginPass" placeholder="Пароль">
+  <div class="cf-turnstile" data-sitekey="0x4AAAAAADz1mfQKn0ofqzfs" data-callback="onCaptcha" data-theme="light" style="margin:0 0 12px;display:flex;justify-content:center"></div>
   <button onclick="doLogin()">Войти</button>
   <div class="err" id="loginErr"></div>
 </div>
@@ -431,6 +432,7 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
   </div>
 </div>
 
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 // ============ Supabase: прокси + shared cookie между поддоменами ============
@@ -506,13 +508,21 @@ async function loadMe(authUid){
   return true;
 }
 function showLogin(){ document.getElementById('login').style.display = 'block'; document.getElementById('app').style.display = 'none'; }
+let captchaToken = null;
+function onCaptcha(token){ captchaToken = token; }
 async function doLogin(){
   const err = document.getElementById('loginErr'); err.style.display = 'none';
+  if (!captchaToken) { err.textContent = 'Подождите секунду — идёт проверка «я не робот».'; err.style.display = 'block'; return; }
   const { error } = await sb.auth.signInWithPassword({
     email: document.getElementById('loginEmail').value.trim(),
-    password: document.getElementById('loginPass').value
+    password: document.getElementById('loginPass').value,
+    options: { captchaToken }
   });
-  if (error) { err.textContent = 'Не получилось войти: ' + error.message; err.style.display = 'block'; return; }
+  if (error) {
+    err.textContent = 'Не получилось войти: ' + error.message; err.style.display = 'block';
+    if (window.turnstile) { turnstile.reset(); captchaToken = null; }   // токен одноразовый
+    return;
+  }
   init();
 }
 async function logout(){ await sb.auth.signOut(); location.reload(); }

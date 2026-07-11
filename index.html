@@ -111,6 +111,7 @@ button{font-family:inherit;cursor:pointer}
       <p>Кабинет открывается при приглашении на собеседование — логин и пароль приходят в письме-приглашении.</p>
       <input type="email" id="email" placeholder="E-mail из анкеты" onkeydown="if(event.key==='Enter')doLogin()">
       <input type="password" id="pass" placeholder="Пароль из письма-приглашения" onkeydown="if(event.key==='Enter')doLogin()">
+      <div class="cf-turnstile" data-sitekey="0x4AAAAAADz1mfQKn0ofqzfs" data-callback="onCaptcha" data-theme="light" style="margin:0 0 12px;display:flex;justify-content:center"></div>
       <button class="go" id="goBtn" onclick="doLogin()">Войти</button>
       <div style="margin-top:12px;font-size:13.5px"><a href="#" onclick="sendLink();return false">Нет пароля или забыли? Прислать ссылку для входа на почту →</a></div>
       <div class="msg" id="loginMsg"></div>
@@ -140,6 +141,7 @@ button{font-family:inherit;cursor:pointer}
 
 </div>
 
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 // Кабинет живёт на localStorage (НЕ общий cookie) — чтобы вход кандидата
@@ -180,6 +182,9 @@ function show(id){
   document.getElementById('cab').style.display   = id === 'cab'   ? 'block' : 'none';
 }
 
+let captchaToken = null;
+function onCaptcha(token){ captchaToken = token; }
+
 async function doLogin(){
   const email = document.getElementById('email').value.trim().toLowerCase();
   const pass  = document.getElementById('pass').value;
@@ -187,11 +192,16 @@ async function doLogin(){
   msg.className = 'msg';
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { msg.className='msg err'; msg.textContent='Проверьте e-mail.'; return; }
   if (!pass) { msg.className='msg err'; msg.textContent='Введите пароль из письма-приглашения (или запросите ссылку ниже).'; return; }
+  if (!captchaToken) { msg.className='msg err'; msg.textContent='Подождите секунду — идёт проверка «я не робот».'; return; }
   const btn = document.getElementById('goBtn');
   btn.disabled = true; btn.textContent = 'Входим…';
-  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+  const { error } = await sb.auth.signInWithPassword({ email, password: pass, options: { captchaToken } });
   btn.disabled = false; btn.textContent = 'Войти';
-  if (error) { msg.className='msg err'; msg.textContent='Не получилось войти: проверьте пароль или запросите ссылку для входа ниже.'; return; }
+  if (error) {
+    msg.className='msg err'; msg.textContent='Не получилось войти: проверьте пароль или запросите ссылку для входа ниже.';
+    if (window.turnstile) { turnstile.reset(); captchaToken = null; }
+    return;
+  }
   init();
 }
 
@@ -200,10 +210,12 @@ async function sendLink(){
   const msg = document.getElementById('loginMsg');
   msg.className = 'msg';
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { msg.className='msg err'; msg.textContent='Сначала введите e-mail.'; return; }
+  if (!captchaToken) { msg.className='msg err'; msg.textContent='Подождите секунду — идёт проверка «я не робот».'; return; }
   const { error } = await sb.auth.signInWithOtp({
     email,
-    options: { emailRedirectTo: 'https://job.wowteach.ru/' }
+    options: { emailRedirectTo: 'https://job.wowteach.ru/', captchaToken }
   });
+  if (window.turnstile) { turnstile.reset(); captchaToken = null; }
   if (error) { msg.className='msg err'; msg.textContent='Не получилось: ' + error.message; return; }
   msg.className='msg ok';
   msg.textContent = '✉️ Ссылка отправлена! Откройте письмо на этом устройстве и перейдите по ссылке.';
