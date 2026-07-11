@@ -218,6 +218,7 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
 #sec-tasks h2{font-size:19px;margin-bottom:14px}
 .acc-btn{border:none;border-radius:999px;padding:8px 14px;font-size:12.5px;font-weight:800;cursor:pointer;background:var(--cream-dark);color:var(--gray)}
 .acc-btn:hover{filter:brightness(.96)}
+@media(max-width:760px){#statsPage > div[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr !important}}
 .bulk-chips{display:flex;flex-wrap:wrap;gap:7px}
 .bulk-chips span{padding:8px 13px;border:2px solid var(--cream-dark);border-radius:999px;font-weight:800;
   font-size:13px;cursor:pointer;user-select:none;background:#FDFCF8;transition:all .12s}
@@ -250,6 +251,7 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
     <div class="nav-item" id="nav-cal" onclick="switchSection('cal')">🗓️ Интервью</div>
     <div class="nav-item" id="nav-tasks" onclick="switchSection('tasks')">⏰ Задачи <span class="nav-badge" id="tasksBadge">0</span></div>
     <div class="nav-item" id="nav-access" onclick="switchSection('access')">🔑 Доступы</div>
+    <div class="nav-item" id="nav-stats" onclick="switchSection('stats')">📊 Аналитика</div>
   </nav>
   <div class="main">
 
@@ -260,6 +262,7 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
       <option value="">Все статусы</option>
       <option value="active">Активные (не отказ/не в команде)</option>
     </select>
+    <select id="fTask" onchange="render()" style="display:none"><option value="">Любое ТЗ</option></select>
     <select id="fSort" onchange="render()">
       <option value="score">По баллам ↓</option>
       <option value="date">По дате ↓</option>
@@ -311,6 +314,22 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
     <div id="accessPage">Загружаю…</div>
   </section>
 
+  <section id="sec-stats" style="display:none">
+    <h2 style="font-size:19px;margin-bottom:6px">📊 Аналитика воронки</h2>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px">
+      <select id="stPeriod" onchange="loadStats()" style="padding:9px 32px 9px 12px;border:2px solid var(--cream-dark);border-radius:999px;font-size:13px;font-weight:700;background:#fff">
+        <option value="30">За 30 дней</option>
+        <option value="90" selected>За 3 месяца</option>
+        <option value="365">За год</option>
+        <option value="3650">За всё время</option>
+      </select>
+      <select id="stVacancy" onchange="loadStats()" style="padding:9px 32px 9px 12px;border:2px solid var(--cream-dark);border-radius:999px;font-size:13px;font-weight:700;background:#fff">
+        <option value="">Все вакансии</option>
+      </select>
+    </div>
+    <div id="statsPage">Загружаю…</div>
+  </section>
+
   </div><!-- /main -->
  </div><!-- /layout -->
 </div>
@@ -349,6 +368,18 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">
       <button onclick="closeBulk()" style="border:none;border-radius:999px;padding:10px 18px;font-weight:800;background:var(--cream-dark);color:var(--gray)">Отмена</button>
       <button id="bulkGo" onclick="confirmBulk()" style="border:none;border-radius:999px;padding:10px 18px;font-weight:800;background:var(--purple);color:#fff">Создать слоты</button>
+    </div>
+  </div>
+</div>
+
+<div id="taskOverlay" onclick="if(event.target===this)closeTaskModal()" style="display:none;position:fixed;inset:0;background:rgba(45,45,63,.55);z-index:60;align-items:flex-start;justify-content:center;padding:50px 14px;overflow-y:auto">
+  <div style="background:#fff;border-radius:18px;max-width:520px;width:100%;padding:24px;box-shadow:var(--shadow)">
+    <h3 style="font-size:18px;margin-bottom:4px">🎤 Пригласить на собеседование</h3>
+    <div style="font-size:12.5px;color:var(--gray);margin-bottom:16px">Выберите ТЗ на демо-урок — оно уйдёт кандидату в письме-приглашении и появится в его кабинете. Там же он выберет удобное время.</div>
+    <div id="taskList" style="display:flex;flex-direction:column;gap:8px"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">
+      <button onclick="closeTaskModal()" style="border:none;border-radius:999px;padding:10px 18px;font-weight:800;background:var(--cream-dark);color:var(--gray)">Отмена</button>
+      <button id="taskGo" onclick="confirmInvite()" style="border:none;border-radius:999px;padding:10px 18px;font-weight:800;background:var(--orange);color:#fff">Отправить приглашение</button>
     </div>
   </div>
 </div>
@@ -484,7 +515,7 @@ async function showApp(){
   document.getElementById('app').style.display = 'block';
   await loadVacancies();
   await loadStaff();
-  await loadTemplates();
+  await loadITasks();
   await loadApps();
   loadMyTasks();
 }
@@ -545,6 +576,17 @@ function filteredRows(){
   const fA = document.getElementById('fAssign').value;
   if (fA === 'mine') rows = rows.filter(a => a.assigned_to === me.id);
   else if (fA === 'none') rows = rows.filter(a => !a.assigned_to);
+  // доп. фильтр по ТЗ (только для вакансии преподавателя)
+  const vacSlug = vacancies.find(v => v.id === fV)?.slug;
+  const fTaskSel = document.getElementById('fTask');
+  const showTask = vacSlug === 'teacher';
+  fTaskSel.style.display = showTask ? '' : 'none';
+  if (showTask && fTaskSel.options.length === 1) {
+    itasks.filter(t => t.vacancy_slug === 'teacher')
+      .forEach(t => fTaskSel.insertAdjacentHTML('beforeend', `<option value="${t.slug}">📄 ${t.title}</option>`));
+  }
+  if (!showTask) fTaskSel.value = '';
+  if (fTaskSel.value) rows = rows.filter(a => a.interview_task_slug === fTaskSel.value);
   if (sort === 'score') rows.sort((a,b) => (b.score ?? -1) - (a.score ?? -1));
   return rows;
 }
@@ -655,10 +697,11 @@ async function openCard(id){
         <button class="tpl-btn" onclick="openOffer()">📄 Отправить / обновить оффер</button>
       </div>
 
-      <div class="sec"><h3>Письма кандидату</h3>
-        <div class="tpl-row" id="tplRow">Загружаю шаблоны…</div>
-        <div class="tpl-hint">Письмо уйдёт на ${esc(a.email)} с подстановкой имени и вакансии. Кандидат сможет ответить — ответы придут на wowspeak.school3@yandex.ru.</div>
-      </div>
+      ${a.interview_task_slug ? `<div class="sec"><h3>ТЗ на демо-урок</h3>
+        <div style="font-size:14px;font-weight:800;color:var(--purple-dark);background:var(--purple-light);border-radius:10px;padding:10px 14px;display:inline-block">
+          📄 ${esc(taskTitleOf(a.interview_task_slug))}</div>
+        <div style="font-size:12.5px;color:var(--gray);margin-top:8px">Отправлено кандидату с приглашением. Чтобы сменить ТЗ — переведите статус в «Собеседование» заново.</div>
+      </div>` : ''}
 
       <div class="sec"><h3>Видео-визитка</h3><div id="videoSlot" class="loading">Получаю видео…</div></div>
 
@@ -707,7 +750,7 @@ async function openCard(id){
     </div>`;
   document.getElementById('overlay').style.display = 'block';
   const os = document.getElementById('offerState'); if (os) os.textContent = offerStateText(a);
-  loadMedia(a); loadNotes(a.id); renderTplButtons(); loadTasksFor(a.id); loadTimeline(a); loadInterview(a.id);
+  loadMedia(a); loadNotes(a.id); loadTasksFor(a.id); loadTimeline(a); loadInterview(a.id);
 }
 function closeCard(){ document.getElementById('overlay').style.display = 'none'; current = null; }
 
@@ -746,6 +789,7 @@ async function updateStatusFor(id, status, reopenModal, extra){
   if (!app) return;
   if (app.status === status && !extra) return;
   if (status === 'rejected' && !extra) { openRejectModal(id, !!reopenModal); return; }
+  if (status === 'interview' && !extra) { openTaskModal(id, !!reopenModal); return; }
 
   const patch = { status, status_changed_at: new Date().toISOString(), ...(extra || {}) };
   // взял новую заявку в работу → автоназначение на себя
@@ -892,13 +936,82 @@ function renderTasksPage(){
 
 // ============ Разделы (левое меню) ============
 function switchSection(s){
-  ['apps','cal','tasks','access'].forEach(k => {
+  ['apps','cal','tasks','access','stats'].forEach(k => {
     document.getElementById('sec-' + k).style.display = k === s ? '' : 'none';
     document.getElementById('nav-' + k).classList.toggle('on', k === s);
   });
   if (s === 'cal') loadCalendar();
   if (s === 'tasks') renderTasksPage();
   if (s === 'access') loadAccess();
+  if (s === 'stats') loadStats();
+}
+
+// ============ Аналитика воронки ============
+async function loadStats(){
+  const el = document.getElementById('statsPage');
+  const vSel = document.getElementById('stVacancy');
+  if (vSel.options.length === 1) {
+    vacancies.forEach(v => vSel.insertAdjacentHTML('beforeend', `<option value="${v.id}">${esc(v.title)}</option>`));
+  }
+  el.innerHTML = 'Загружаю…';
+  const days = parseInt(document.getElementById('stPeriod').value);
+  const from = new Date(Date.now() - days * 86400000).toISOString();
+  const { data, error } = await sb.rpc('hr_funnel_stats',
+    { p_from: from, p_to: new Date().toISOString(), p_vacancy_id: vSel.value || null });
+  if (error) { el.innerHTML = 'Ошибка: ' + esc(error.message); return; }
+  const f = data.funnel, t = data.timing || {};
+
+  const stage = (label, n, conv, days) => `
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+      <div style="flex:0 0 130px;font-weight:800;font-size:13.5px">${label}</div>
+      <div style="flex:1;background:var(--cream-dark);border-radius:999px;height:30px;position:relative;overflow:hidden">
+        <div style="position:absolute;inset:0;width:${f.new ? Math.max(2, n * 100 / f.new) : 0}%;background:linear-gradient(90deg,var(--purple),var(--pink));border-radius:999px"></div>
+        <div style="position:relative;line-height:30px;padding-left:12px;color:#fff;font-weight:800;font-size:13px;text-shadow:0 1px 2px rgba(0,0,0,.2)">${n}</div>
+      </div>
+      <div style="flex:0 0 130px;font-size:12.5px;color:var(--gray)">
+        ${conv !== null ? `<b style="color:var(--dark)">${conv}%</b> с прошлого` : ''}
+        ${days ? `<br>⏱ ${days} дн.` : ''}
+      </div>
+    </div>`;
+
+  el.innerHTML = `
+    <div class="sec" style="background:#fff;border:1px solid var(--cream-dark);border-radius:16px;padding:20px;margin-bottom:14px">
+      <h3 style="font-size:12px;font-weight:900;color:var(--gray);text-transform:uppercase;margin-bottom:14px">Воронка</h3>
+      ${stage('Заявки', f.new, null, null)}
+      ${stage('Скрининг', f.screening, f.conv_screening, t.screening)}
+      ${stage('Собеседование', f.interview, f.conv_interview, t.interview)}
+      ${stage('Оффер', f.offer, f.conv_offer, t.offer)}
+      ${stage('Принят 🎉', f.hired, f.conv_hired, t.hired)}
+      <div style="display:flex;gap:20px;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px solid var(--cream-dark)">
+        <div><div style="font-size:11px;color:var(--gray);font-weight:800;text-transform:uppercase">Общая конверсия</div>
+          <div style="font-family:'Fredoka',sans-serif;font-size:26px;color:var(--purple)">${f.conv_total}%</div>
+          <div style="font-size:11.5px;color:var(--gray)">заявка → принят</div></div>
+        <div><div style="font-size:11px;color:var(--gray);font-weight:800;text-transform:uppercase">Отказов</div>
+          <div style="font-family:'Fredoka',sans-serif;font-size:26px;color:var(--red)">${f.rejected}</div></div>
+        <div><div style="font-size:11px;color:var(--gray);font-weight:800;text-transform:uppercase">Средний балл</div>
+          <div style="font-size:14px;margin-top:6px"><b>${f.avg_score_hired ?? '—'}</b> у принятых<br>
+          <span style="color:var(--gray)">${f.avg_score_rejected ?? '—'} у отказанных</span></div></div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div style="background:#fff;border:1px solid var(--cream-dark);border-radius:16px;padding:20px">
+        <h3 style="font-size:12px;font-weight:900;color:var(--gray);text-transform:uppercase;margin-bottom:12px">По рекрутерам</h3>
+        ${data.by_recruiter.length ? data.by_recruiter.map(r => `
+          <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--cream);font-size:13.5px">
+            <span style="font-weight:800">${esc(r.recruiter)}</span>
+            <span style="color:var(--gray)">${r.total} заявок · ${r.hired} принят · <b style="color:var(--purple)">${r.conv}%</b></span>
+          </div>`).join('') : '<div style="color:var(--gray);font-size:13px">Нет данных</div>'}
+      </div>
+      <div style="background:#fff;border:1px solid var(--cream-dark);border-radius:16px;padding:20px">
+        <h3 style="font-size:12px;font-weight:900;color:var(--gray);text-transform:uppercase;margin-bottom:12px">Причины отказов</h3>
+        ${data.reject_reasons.length ? data.reject_reasons.map(r => `
+          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--cream);font-size:13px">
+            <span>${r.who === 'candidate' ? '🙋 ' : '🏫 '}${esc(r.reason)}</span>
+            <b>${r.n}</b>
+          </div>`).join('') : '<div style="color:var(--gray);font-size:13px">Отказов нет</div>'}
+      </div>
+    </div>`;
 }
 
 // ============ Реестр доступов ============
@@ -1099,6 +1212,49 @@ async function confirmOffer(){
   if (i >= 0) apps[i] = { ...apps[i], ...current };
   render(); openCard(current.id);
 }
+
+// ============ ТЗ и приглашение на собеседование ============
+let itasks = [], inviteFor = null, inviteReopen = false, pickedTask = null;
+async function loadITasks(){
+  const { data } = await sb.from('hr_interview_tasks').select('*').eq('is_active', true).order('sort_order');
+  itasks = data || [];
+}
+function openTaskModal(id, reopen){
+  const app = apps.find(a => a.id === id);
+  if (!app) return;
+  inviteFor = id; inviteReopen = reopen; pickedTask = null;
+  const vac = vacancies.find(v => v.id === app.vacancy_id);
+  const list = itasks.filter(t => !t.vacancy_slug || t.vacancy_slug === vac?.slug);
+  document.getElementById('taskList').innerHTML = list.length
+    ? list.map(t => `<div class="task-pick" data-slug="${t.slug}" onclick="pickTask('${t.slug}', this)"
+        style="border:2px solid var(--cream-dark);border-radius:12px;padding:12px 14px;cursor:pointer;font-weight:800;font-size:14px">
+        ${esc(t.title)}</div>`).join('')
+    : '<div style="color:var(--gray);font-size:13px">Нет активных ТЗ для этой вакансии — добавьте в таблице hr_interview_tasks.</div>';
+  document.getElementById('taskOverlay').style.display = 'flex';
+}
+function pickTask(slug, el){
+  pickedTask = slug;
+  document.querySelectorAll('.task-pick').forEach(d => {
+    const on = d === el;
+    d.style.borderColor = on ? 'var(--purple)' : 'var(--cream-dark)';
+    d.style.background  = on ? 'var(--purple-light)' : '#fff';
+  });
+}
+function closeTaskModal(){ document.getElementById('taskOverlay').style.display = 'none'; inviteFor = null; }
+async function confirmInvite(){
+  if (!inviteFor) return;
+  if (!pickedTask) { alert('Выберите ТЗ — это обязательно.'); return; }
+  const btn = document.getElementById('taskGo');
+  btn.disabled = true; btn.textContent = 'Отправляю…';
+  const { error } = await sb.rpc('hr_invite_interview', { p_application_id: inviteFor, p_task_slug: pickedTask });
+  btn.disabled = false; btn.textContent = 'Отправить приглашение';
+  if (error) { alert('Не получилось: ' + error.message); return; }
+  const id = inviteFor, reopen = inviteReopen;
+  closeTaskModal();
+  await loadApps();
+  if (reopen) openCard(id);
+}
+function taskTitleOf(slug){ return itasks.find(t => t.slug === slug)?.title || slug; }
 
 function openBulk(){
   const today = new Date(), in2w = new Date(Date.now() + 13 * 86400000);
