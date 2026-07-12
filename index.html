@@ -25,16 +25,16 @@ body{font-family:'Nunito',sans-serif;background:var(--cream);color:var(--dark);l
 h1,h2,h3{font-family:'Fredoka',sans-serif;font-weight:600;line-height:1.2}
 a{color:var(--purple);text-decoration:none}
 button{font-family:inherit;cursor:pointer}
-.wrap{max-width:640px;margin:0 auto;padding:0 18px}
+.wrap{max-width:900px;margin:0 auto;padding:0 24px}
 
 .header{position:sticky;top:0;z-index:40;background:rgba(255,251,242,.93);backdrop-filter:blur(10px);border-bottom:1px solid var(--cream-dark)}
-.header .wrap{display:flex;align-items:center;justify-content:space-between;padding:13px 18px;max-width:640px}
+.header .wrap{display:flex;align-items:center;justify-content:space-between;padding:13px 24px;max-width:900px}
 .logo{font-family:'Fredoka',sans-serif;font-size:22px;color:var(--purple);font-weight:600}
 .header .me{font-size:13px;color:var(--gray)}
 .header .me button{background:none;border:none;color:var(--purple);font-weight:800;font-size:13px}
 
 .card{background:var(--white);border:1px solid var(--cream-dark);border-radius:var(--radius-lg);
-  padding:28px 26px;box-shadow:var(--shadow-sm);margin-bottom:18px}
+  padding:32px 34px;box-shadow:var(--shadow-sm);margin-bottom:20px}
 
 /* login */
 #login{display:none;padding:60px 0}
@@ -80,6 +80,11 @@ button{font-family:inherit;cursor:pointer}
 .contact{font-size:13.5px;color:var(--gray);margin-top:14px}
 
 #noapps{display:none}
+@media(max-width:720px){
+  .wrap{padding:0 16px}
+  .card{padding:22px 18px}
+  .pstep .lbl{font-size:9.5px}
+}
 /* запись на собеседование */
 .book{margin-top:14px;background:var(--orange-light);border-radius:var(--radius);padding:16px 18px}
 .book b.h{font-family:'Fredoka',sans-serif;font-weight:600;display:block;margin-bottom:10px}
