@@ -216,6 +216,8 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
 .cal-slot button:hover{background:var(--red-light);color:#B91C1C}
 .cal-hint{font-size:12px;color:var(--gray);margin-top:12px}
 #sec-tasks h2{font-size:19px;margin-bottom:14px}
+.tz-chip{font-size:11px;font-weight:800;background:var(--purple-light);color:var(--purple-dark);
+  border-radius:999px;padding:4px 10px;white-space:nowrap}
 .acc-btn{border:none;border-radius:999px;padding:8px 14px;font-size:12.5px;font-weight:800;cursor:pointer;background:var(--cream-dark);color:var(--gray)}
 .acc-btn:hover{filter:brightness(.96)}
 @media(max-width:760px){#statsPage > div[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr !important}}
@@ -638,6 +640,7 @@ function renderList(rows){
       </div>
       <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
         <span class="status" style="background:${st.bg};color:${st.fg}">${st.label}</span>
+        ${a.interview_task_slug ? `<span class="tz-chip">📄 ${esc(taskShort(a.interview_task_slug))}</span>` : ''}
         ${a.status === 'new' ? `<button class="take" onclick="event.stopPropagation();takeApp('${a.id}')">Взять в работу</button>` : ''}
       </div>
     </div>`;
@@ -654,6 +657,7 @@ function renderBoard(rows){
           <div class="nm"><span>${esc(a.full_name)}</span><span class="sc">${a.score ?? '—'}</span></div>
           <div class="vt">${esc(vac?.title || '')} · ${fmtDate(a.created_at)}</div>
           ${a.assigned_to ? `<div class="vt">👤 ${esc(nameOf(a.assigned_to))}</div>` : ''}
+          ${a.interview_task_slug ? `<div class="vt" style="color:var(--purple-dark);font-weight:800">📄 ${esc(taskShort(a.interview_task_slug))}</div>` : ''}
           ${a.status === 'new' ? `<button class="take sm" onclick="event.stopPropagation();takeApp('${a.id}')">Взять в работу</button>` : ''}
         </div>`;
       }).join('')}
@@ -813,6 +817,14 @@ async function updateStatusFor(id, status, reopenModal, extra){
   if (app.status === status && !extra) return;
   if (status === 'rejected' && !extra) { openRejectModal(id, !!reopenModal); return; }
   if (status === 'interview' && !extra) { openTaskModal(id, !!reopenModal); return; }
+  if (status === 'offer' && !extra) {
+    const app0 = apps.find(a => a.id === id);
+    if (app0 && !app0.offer_sent_at) {   // оффер ещё не отправляли → сначала выбрать язык и грейд
+      current = app0;
+      openOffer();
+      return;
+    }
+  }
 
   const patch = { status, status_changed_at: new Date().toISOString(), ...(extra || {}) };
   // взял новую заявку в работу → автоназначение на себя
@@ -1320,6 +1332,10 @@ async function confirmInvite(){
   if (reopen) openCard(id);
 }
 function taskTitleOf(slug){ return itasks.find(t => t.slug === slug)?.title || slug; }
+function taskShort(slug){
+  const t = taskTitleOf(slug);
+  return t.replace(/^Демо-урок\s*·\s*/i, '').replace(/^возрасты\s*/i, '');
+}
 
 function openBulk(){
   const today = new Date(), in2w = new Date(Date.now() + 13 * 86400000);

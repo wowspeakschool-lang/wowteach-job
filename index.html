@@ -269,7 +269,7 @@ async function loadApps(){
       <div class="now ${now.cls}"><b>${now.t}</b>${now.d}</div>
       ${a.status === 'interview' ? bookingBlock(a) : ''}
       ${a.offer_sent_at ? `<div id="offer-${a.id}" style="margin-top:14px">${a.offer_accepted_at ? '' : ''}<div class="loading" style="padding:20px">Загружаю ваш оффер…</div></div>` : ''}
-      ${a.interview_materials ? `<div style="margin-top:14px;background:var(--purple-light);border-radius:var(--radius);padding:16px 18px">
+      ${a.interview_materials && !a.offer_sent_at ? `<div style="margin-top:14px;background:var(--purple-light);border-radius:var(--radius);padding:16px 18px">
         <b style="font-family:'Fredoka',sans-serif;font-weight:600;display:block;margin-bottom:6px">📚 Материалы к собеседованию</b>
         <div style="font-size:14.5px">${a.interview_materials}</div>
       </div>` : ''}
