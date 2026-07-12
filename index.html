@@ -301,7 +301,10 @@ async function loadOffer(a){
 }
 async function acceptOffer(id){
   if (!confirm('Подтвердить принятие оффера? Команда WowSpeak получит уведомление.')) return;
-  const { error } = await sb.rpc('hr_accept_offer', { p_application_id: id });
+  const { error } = await sb.rpc('hr_accept_offer', {
+    p_application_id: id,
+    p_meta: { user_agent: navigator.userAgent }
+  });
   if (error) { alert('Не получилось: ' + error.message); return; }
   loadApps();
 }
