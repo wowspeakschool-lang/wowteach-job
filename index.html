@@ -268,7 +268,8 @@ async function loadApps(){
       ${isRejected ? '' : `<div class="steps">${steps}</div>`}
       <div class="now ${now.cls}"><b>${now.t}</b>${now.d}</div>
       ${a.status === 'interview' ? bookingBlock(a) : ''}
-      ${a.offer_sent_at ? `<div id="offer-${a.id}" style="margin-top:14px">${a.offer_accepted_at ? '' : ''}<div class="loading" style="padding:20px">Загружаю ваш оффер…</div></div>` : ''}
+      ${a.onboarding_started_at ? `<div id="onb-${a.id}" style="margin-top:14px"><div class="loading" style="padding:20px">Загружаю ваш план…</div></div>` : ''}
+      ${a.offer_sent_at && !a.onboarding_started_at ? `<div id="offer-${a.id}" style="margin-top:14px"><div class="loading" style="padding:20px">Загружаю ваш оффер…</div></div>` : ''}
       ${a.interview_materials && !a.offer_sent_at ? `<div style="margin-top:14px;background:var(--purple-light);border-radius:var(--radius);padding:16px 18px">
         <b style="font-family:'Fredoka',sans-serif;font-weight:600;display:block;margin-bottom:6px">📚 Материалы к собеседованию</b>
         <div style="font-size:14.5px">${a.interview_materials}</div>
@@ -277,7 +278,74 @@ async function loadApps(){
     </div>`;
   }).join('');
   data.filter(a => a.status === 'interview' && !a.interview_at).forEach(a => loadSlots(a.id));
-  data.filter(a => a.offer_sent_at).forEach(a => loadOffer(a));
+  data.filter(a => a.offer_sent_at && !a.onboarding_started_at).forEach(a => loadOffer(a));
+  data.filter(a => a.onboarding_started_at).forEach(a => loadOnboarding(a));
+}
+
+// ============ Онбординг ============
+const OWNER_TXT = { candidate:'ваш шаг', buddy:'наставник', methodist:'методист', assistant:'ассистент' };
+async function loadOnboarding(a){
+  const box = document.getElementById('onb-' + a.id);
+  if (!box) return;
+  const { data, error } = await sb.rpc('hr_my_onboarding', { p_application_id: a.id });
+  if (error || !data) { box.innerHTML = ''; return; }
+  const steps = data.steps || [];
+  const done = steps.filter(s => s.done_at).length;
+  const buddy = data.buddy || {};
+  const tg = (buddy.telegram || '').replace(/^@/, '');
+
+  if (data.stopped_at) {
+    box.innerHTML = `<div class="now sad"><b>Онбординг завершён</b>К сожалению, мы приняли решение не продолжать сотрудничество. Подробности мы отправили вам на почту.</div>`;
+    return;
+  }
+  if (data.done_at) {
+    box.innerHTML = `<div class="now win"><b>Онбординг завершён! 🎉</b>Поздравляем — вы полноценный член команды WowSpeak. Впереди первые ученики!</div>`;
+    return;
+  }
+
+  box.innerHTML = `
+    <div style="background:#fff;border:2px solid var(--purple);border-radius:var(--radius-lg);padding:24px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:6px">
+        <div style="font-family:'Fredoka',sans-serif;font-weight:600;font-size:20px">🎓 Ваш онбординг</div>
+        <div style="font-size:13px;font-weight:800;color:var(--purple)">${done} из ${steps.length} шагов</div>
+      </div>
+      <div style="height:8px;background:var(--cream-dark);border-radius:999px;overflow:hidden;margin-bottom:16px">
+        <div style="height:100%;width:${steps.length ? done*100/steps.length : 0}%;background:linear-gradient(90deg,var(--purple),var(--pink))"></div>
+      </div>
+
+      ${buddy.name ? `<div style="background:var(--purple-light);border-radius:var(--radius);padding:14px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+        <div style="font-size:14px"><b>🧑‍🏫 Ваш наставник: ${esc(buddy.name)}</b><br>
+          <span style="font-size:13px;color:var(--gray)">Поможет освоиться и ответит на вопросы</span></div>
+        ${tg ? `<a href="https://t.me/${esc(tg)}" target="_blank" style="background:var(--purple);color:#fff;border-radius:999px;padding:10px 18px;font-weight:800;font-size:13.5px;white-space:nowrap">Написать в Telegram →</a>` : ''}
+      </div>` : ''}
+
+      <div style="display:flex;flex-direction:column;gap:10px">
+        ${steps.map((s, i) => {
+          const over = !s.done_at && s.due_at && new Date(s.due_at) < new Date();
+          const mine = s.owner === 'candidate' && !s.done_at;
+          return `<div style="border:2px solid ${s.done_at ? 'var(--green)' : over ? 'var(--red)' : 'var(--cream-dark)'};border-radius:var(--radius);padding:14px 16px;background:${s.done_at ? 'var(--green-light)' : '#FDFCF8'}">
+            <div style="display:flex;gap:10px;align-items:flex-start">
+              <div style="width:26px;height:26px;border-radius:50%;background:${s.done_at?'var(--green)':'var(--cream-dark)'};color:${s.done_at?'#fff':'var(--gray)'};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;flex-shrink:0">${s.done_at ? '✓' : i+1}</div>
+              <div style="flex:1">
+                <div style="font-weight:800;font-size:15px">${esc(s.title)}</div>
+                <div style="font-size:12px;color:var(--gray);margin-top:2px">
+                  ${s.owner === 'candidate' ? '👤 ваш шаг' : '👥 отмечает ' + (OWNER_TXT[s.owner]||s.owner)}
+                  ${s.due_at && !s.done_at ? ` · <b style="color:${over?'var(--red)':'var(--gray)'}">${over?'🔥 просрочено':'до ' + new Date(s.due_at).toLocaleDateString('ru-RU',{day:'numeric',month:'long'})}</b>` : ''}
+                  ${s.done_at ? ` · ✅ ${new Date(s.done_at).toLocaleDateString('ru-RU',{day:'numeric',month:'long'})}` : ''}
+                </div>
+                ${s.description && !s.done_at ? `<div style="font-size:13.5px;margin-top:8px;line-height:1.55">${s.description}</div>` : ''}
+                ${mine ? `<button onclick="doneMyStep('${a.id}','${s.slug}')" style="margin-top:10px;background:var(--green);color:#fff;border:none;border-radius:999px;padding:9px 18px;font-weight:800;font-size:13px;cursor:pointer">Готово ✓</button>` : ''}
+              </div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
+async function doneMyStep(appId, slug){
+  const { error } = await sb.rpc('hr_complete_step', { p_application_id: appId, p_step_slug: slug });
+  if (error) { alert('Не получилось: ' + error.message); return; }
+  loadApps();
 }
 
 // ============ Оффер ============

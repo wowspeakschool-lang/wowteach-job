@@ -254,6 +254,7 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
     <div class="nav-item" id="nav-cal" onclick="switchSection('cal')">🗓️ Интервью</div>
     <div class="nav-item" id="nav-tasks" onclick="switchSection('tasks')">⏰ Задачи <span class="nav-badge" id="tasksBadge">0</span></div>
     <div class="nav-item" id="nav-access" onclick="switchSection('access')">🔑 Доступы</div>
+    <div class="nav-item" id="nav-onb" onclick="switchSection('onb')">🎓 Онбординг <span class="nav-badge" id="onbBadge">0</span></div>
     <div class="nav-item" id="nav-stats" onclick="switchSection('stats')">📊 Аналитика</div>
   </nav>
   <div class="main">
@@ -320,6 +321,15 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
     <h2 style="font-size:19px;margin-bottom:6px">🔑 Доступы к кабинету кандидата</h2>
     <p style="font-size:13px;color:var(--gray);margin-bottom:14px">Кому выдан доступ, когда был последний вход, и управление: выдать, сбросить пароль, закрыть или открыть заново.</p>
     <div id="accessPage">Загружаю…</div>
+  </section>
+
+  <section id="sec-onb" style="display:none">
+    <h2 style="font-size:19px;margin-bottom:6px">🎓 Онбординг новичков</h2>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
+      <label style="font-size:13px;font-weight:700;display:flex;gap:6px;align-items:center;cursor:pointer">
+        <input type="checkbox" id="onbMine" onchange="renderOnb()"> только мои подопечные</label>
+    </div>
+    <div id="onbPage">Загружаю…</div>
   </section>
 
   <section id="sec-stats" style="display:none">
@@ -406,6 +416,9 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
     <div class="bulk-chips" id="offerGrade">
       <span data-v="basic" class="on">🟢 Basic</span><span data-v="expert">🔵 Expert</span><span data-v="pro">🟠 Pro</span>
     </div>
+
+    <div style="font-size:12px;font-weight:900;color:var(--gray);text-transform:uppercase;margin:14px 0 6px">Возрастная категория (назначит наставника)</div>
+    <div class="bulk-chips" id="offerAge"></div>
 
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:22px">
       <button onclick="closeOffer()" style="border:none;border-radius:999px;padding:10px 18px;font-weight:800;background:var(--cream-dark);color:var(--gray)">Отмена</button>
@@ -496,7 +509,8 @@ async function init(){
 function isStaff(u){
   const r = u?.roles;
   const list = Array.isArray(r) ? r : (typeof r === 'string' ? [r] : []);
-  return list.includes('super_admin') || list.includes('assistant') || list.includes('recruiter');
+  return list.includes('super_admin') || list.includes('assistant') || list.includes('recruiter')
+      || list.includes('buddy') || list.includes('methodist') || list.includes('curator');
 }
 async function loadMe(authUid){
   const { data } = await sb.from('users').select('id, name, email, roles, is_active').eq('auth_id', authUid).maybeSingle();
@@ -534,6 +548,7 @@ async function showApp(){
   await loadVacancies();
   await loadStaff();
   await loadITasks();
+  await loadAgeGroups();
   await loadApps();
   loadMyTasks();
 }
@@ -718,6 +733,9 @@ async function openCard(id){
         <div id="offerState" style="font-size:13.5px;color:var(--gray);margin-bottom:10px"></div>
         <button class="tpl-btn" onclick="openOffer()">📄 Отправить / обновить оффер</button>
         ${a.offer_accepted_at ? `<button class="tpl-btn" onclick="viewSnapshot('${a.id}')">🔍 Что кандидат принял</button>` : ''}
+        ${a.offer_accepted_at && !a.onboarding_started_at
+          ? `<button class="tpl-btn" style="background:var(--green);color:#fff;border-color:var(--green)" onclick="hireIt('${a.id}','${esc(a.full_name)}')">🎉 Принят → запустить онбординг</button>` : ''}
+        ${a.onboarding_started_at ? `<span style="font-size:12.5px;color:var(--green);font-weight:800">🎓 Онбординг идёт</span>` : ''}
       </div>
 
       ${a.interview_task_slug ? `<div class="sec"><h3>ТЗ на демо-урок</h3>
@@ -972,7 +990,7 @@ function renderTasksPage(){
 
 // ============ Разделы (левое меню) ============
 function switchSection(s){
-  ['apps','cal','tasks','access','stats'].forEach(k => {
+  ['apps','cal','tasks','access','stats','onb'].forEach(k => {
     document.getElementById('sec-' + k).style.display = k === s ? '' : 'none';
     document.getElementById('nav-' + k).classList.toggle('on', k === s);
   });
@@ -980,6 +998,66 @@ function switchSection(s){
   if (s === 'tasks') renderTasksPage();
   if (s === 'access') loadAccess();
   if (s === 'stats') loadStats();
+  if (s === 'onb') loadOnb();
+}
+
+// ============ Онбординг ============
+const OWNER_LABEL = { candidate:'кандидат', buddy:'наставник', methodist:'методист', assistant:'ассистент' };
+let onbData = [];
+async function loadOnb(){
+  const { data, error } = await sb.rpc('hr_onboarding_board');
+  if (error) { document.getElementById('onbPage').innerHTML = 'Ошибка: ' + esc(error.message); return; }
+  onbData = data || [];
+  document.getElementById('onbBadge').textContent = onbData.length;
+  renderOnb();
+}
+function renderOnb(){
+  const mine = document.getElementById('onbMine').checked;
+  const rows = mine ? onbData.filter(o => o.buddy?.id === me.id) : onbData;
+  const el = document.getElementById('onbPage');
+  if (!rows.length) { el.innerHTML = '<div style="color:var(--gray);padding:30px 0">Нет активных онбордингов 🦉</div>'; return; }
+  el.innerHTML = rows.map(o => {
+    const done = (o.steps||[]).filter(s => s.done_at).length;
+    const total = (o.steps||[]).length;
+    const overdue = (o.steps||[]).some(s => !s.done_at && s.due_at && new Date(s.due_at) < new Date());
+    return `<div style="background:#fff;border:1px solid ${overdue?'var(--red)':'var(--cream-dark)'};border-radius:16px;padding:18px 20px;margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+        <div>
+          <div style="font-weight:800;font-size:16px">${esc(o.full_name)} ${overdue?'<span style="color:var(--red);font-size:12px">🔥 просрочка</span>':''}</div>
+          <div style="font-size:12.5px;color:var(--gray)">${esc(o.age_group||'категория не указана')} · наставник: ${esc(o.buddy?.name||'—')} · старт ${fmtDate(o.started_at)}</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span style="font-size:13px;font-weight:800;color:var(--purple)">${done}/${total}</span>
+          <button class="acc-btn" style="background:var(--red-light);color:#B91C1C" onclick="stopOnb('${o.id}','${esc(o.full_name)}')">Прекратить</button>
+        </div>
+      </div>
+      <div style="margin-top:12px;display:flex;flex-direction:column;gap:6px">
+        ${(o.steps||[]).map(s => {
+          const over = !s.done_at && s.due_at && new Date(s.due_at) < new Date();
+          return `<div style="display:flex;gap:10px;align-items:center;font-size:13.5px;padding:6px 0;border-bottom:1px solid var(--cream)">
+            <input type="checkbox" ${s.done_at?'checked disabled':''} onchange="doneStep('${o.id}','${s.slug}')"
+              style="width:17px;height:17px;accent-color:var(--green)">
+            <span style="flex:1;${s.done_at?'opacity:.5;text-decoration:line-through':''}">${esc(s.title)}
+              <span style="font-size:11px;color:var(--gray)">· ${OWNER_LABEL[s.owner]||s.owner}</span></span>
+            ${s.done_at ? `<span style="font-size:11.5px;color:var(--green)">✓ ${fmtDate(s.done_at)}</span>`
+              : (s.due_at ? `<span style="font-size:11.5px;font-weight:800;color:${over?'var(--red)':'var(--gray)'}">${over?'🔥 ':'до '}${fmtDate(s.due_at)}</span>` : '')}
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+async function doneStep(appId, slug){
+  const { error } = await sb.rpc('hr_complete_step', { p_application_id: appId, p_step_slug: slug });
+  if (error) { alert('Не получилось: ' + error.message); loadOnb(); return; }
+  loadOnb();
+}
+async function stopOnb(id, name){
+  const reason = prompt(`Прекратить онбординг ${name}? Укажите причину (кандидату уйдёт корректное письмо):`);
+  if (reason === null) return;
+  const { error } = await sb.rpc('hr_stop_onboarding', { p_application_id: id, p_reason: reason });
+  if (error) { alert('Не получилось: ' + error.message); return; }
+  loadOnb(); loadApps();
 }
 
 // ============ Аналитика воронки ============
@@ -1228,7 +1306,7 @@ document.addEventListener('click', e => {
   const box = e.target.parentElement;
   if (!box?.classList?.contains('bulk-chips')) return;
   // офферные чипсы (язык/грейд) — одиночный выбор; остальные — мультивыбор
-  if (box.id === 'offerLang' || box.id === 'offerGrade') {
+  if (box.id === 'offerLang' || box.id === 'offerGrade' || box.id === 'offerAge') {
     [...box.children].forEach(c => c.classList.remove('on'));
     e.target.classList.add('on');
   } else {
@@ -1245,6 +1323,15 @@ function offerStateText(a){
   if (a.offer_accepted_at) s += ` · ✅ Принят ${fmtDate(a.offer_accepted_at)}`;
   return s;
 }
+async function hireIt(id, name){
+  if (!confirm(`Принять ${name} в команду и запустить онбординг? Кандидату и наставнику уйдут письма.`)) return;
+  const { error } = await sb.rpc('hr_start_onboarding', { p_application_id: id });
+  if (error) { alert('Не получилось: ' + error.message); return; }
+  await loadApps();
+  closeCard();
+  switchSection('onb');
+}
+
 async function viewSnapshot(id){
   const { data, error } = await sb.rpc('hr_get_offer_snapshot', { p_application_id: id });
   if (error) { alert('Не получилось: ' + error.message); return; }
@@ -1277,6 +1364,10 @@ function openOffer(){
   };
   setChip('offerLang', current.offer_lang || (current.speaker_type === 'en' ? 'en' : 'ru'));
   setChip('offerGrade', current.offer_grade || 'basic');
+  const ageBox = document.getElementById('offerAge');
+  ageBox.innerHTML = ageGroups.map(g =>
+    `<span data-v="${g.slug}" class="${current.age_group === g.slug ? 'on' : ''}">${esc(g.title)}</span>`).join('')
+    || '<span style="font-size:12px;color:var(--gray)">Категории не заведены (hr_age_groups)</span>';
   document.getElementById('offerOverlay').style.display = 'flex';
 }
 function closeOffer(){ document.getElementById('offerOverlay').style.display = 'none'; }
@@ -1288,7 +1379,10 @@ async function confirmOffer(){
   if (already && !confirm('Кандидат уже принял оффер. Отправить новый? Отметка о принятии сбросится.')) return;
   const btn = document.getElementById('offerGo');
   btn.disabled = true; btn.textContent = 'Отправляю…';
-  const { error } = await sb.rpc('hr_send_offer', { p_application_id: current.id, p_lang: lang, p_grade: grade });
+  const age = document.querySelector('#offerAge .on')?.dataset.v || null;
+  if (!age) { alert('Выберите возрастную категорию — по ней назначается наставник.'); return; }
+  const { error } = await sb.rpc('hr_send_offer',
+    { p_application_id: current.id, p_lang: lang, p_grade: grade, p_age_group: age });
   btn.disabled = false; btn.textContent = 'Отправить оффер';
   if (error) { alert('Не получилось: ' + error.message); return; }
   closeOffer();
@@ -1311,6 +1405,11 @@ async function setSpeaker(id, val){
 
 // ============ ТЗ и приглашение на собеседование ============
 let itasks = [], inviteFor = null, inviteReopen = false, pickedTask = null;
+let ageGroups = [];
+async function loadAgeGroups(){
+  const { data } = await sb.from('hr_age_groups').select('*').eq('is_active', true).order('sort_order');
+  ageGroups = data || [];
+}
 async function loadITasks(){
   const { data } = await sb.from('hr_interview_tasks').select('*').eq('is_active', true).order('sort_order');
   itasks = data || [];
