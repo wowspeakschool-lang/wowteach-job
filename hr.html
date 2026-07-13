@@ -477,6 +477,8 @@ const STATUSES = {
   screening: { label:'Скрининг',      bg:'var(--blue-light)',   fg:'#1D4ED8',            solid:'var(--blue)' },
   interview: { label:'Собеседование', bg:'var(--orange-light)', fg:'#C2410C',            solid:'var(--orange)' },
   offer:     { label:'Оффер',         bg:'#FCE7F3',             fg:'#BE185D',            solid:'var(--pink)' },
+  onboarding:{ label:'Онбординг 🎓',  bg:'var(--teal-light)',   fg:'#0F766E',            solid:'var(--teal)' },
+  hired:     { label:'Работает 🎉',   bg:'var(--green-light)',  fg:'#15803D',            solid:'var(--green)' },
   rejected:  { label:'Отказ',         bg:'var(--red-light)',    fg:'#B91C1C',            solid:'var(--red)' }
 };
 const REJECT_REASONS = {
@@ -734,8 +736,7 @@ async function openCard(id){
         <button class="tpl-btn" onclick="openOffer()">📄 Отправить / обновить оффер</button>
         ${a.offer_accepted_at ? `<button class="tpl-btn" onclick="viewSnapshot('${a.id}')">🔍 Что кандидат принял</button>` : ''}
         ${a.offer_accepted_at && !a.onboarding_started_at
-          ? `<button class="tpl-btn" style="background:var(--green);color:#fff;border-color:var(--green)" onclick="hireIt('${a.id}','${esc(a.full_name)}')">🎉 Принят → запустить онбординг</button>` : ''}
-        ${a.onboarding_started_at ? `<span style="font-size:12.5px;color:var(--green);font-weight:800">🎓 Онбординг идёт</span>` : ''}
+          ? `<div style="font-size:12.5px;color:var(--gray);margin-top:10px">✅ Оффер принят — переведите кандидата в статус <b>«Онбординг 🎓»</b>, чтобы запустить план адаптации.</div>` : ''}
       </div>
 
       ${a.interview_task_slug ? `<div class="sec"><h3>ТЗ на демо-урок</h3>
@@ -836,6 +837,10 @@ async function updateStatusFor(id, status, reopenModal, extra){
   if (app.status === status && !extra) return;
   if (status === 'rejected' && !extra) { openRejectModal(id, !!reopenModal); return; }
   if (status === 'interview' && !extra) { openTaskModal(id, !!reopenModal); return; }
+  if (status === 'onboarding' && !extra) {
+    const a0 = apps.find(x => x.id === id);
+    if (a0 && !a0.onboarding_started_at) { startOnboardingFor(id, a0.full_name); return; }
+  }
   if (status === 'offer' && !extra) {
     const app0 = apps.find(a => a.id === id);
     if (app0 && !app0.offer_sent_at) {   // оффер ещё не отправляли → сначала выбрать язык и грейд
@@ -1323,8 +1328,8 @@ function offerStateText(a){
   if (a.offer_accepted_at) s += ` · ✅ Принят ${fmtDate(a.offer_accepted_at)}`;
   return s;
 }
-async function hireIt(id, name){
-  if (!confirm(`Принять ${name} в команду и запустить онбординг? Кандидату и наставнику уйдут письма.`)) return;
+async function startOnboardingFor(id, name){
+  if (!confirm(`Запустить онбординг для ${name}? Кандидату и наставнику уйдут письма, создастся план шагов.`)) return;
   const { error } = await sb.rpc('hr_start_onboarding', { p_application_id: id });
   if (error) { alert('Не получилось: ' + error.message); return; }
   await loadApps();
