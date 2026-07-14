@@ -559,6 +559,11 @@ async function loadStaff(){
   staff = (data || []).filter(u => isStaff(u) && u.is_active !== false);
   if (!staff.find(s => s.id === me.id)) staff.unshift(me);
 }
+function isRecruiter(u){
+  const r = u?.roles;
+  const list = Array.isArray(r) ? r : (typeof r === 'string' ? [r] : []);
+  return list.includes('super_admin') || list.includes('assistant') || list.includes('recruiter');
+}
 function nameOf(id){ const u = staff.find(s => s.id === id); return u ? (u.name || u.email) : '…'; }
 
 // ============ Данные ============
@@ -725,7 +730,7 @@ async function openCard(id){
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
           <select id="assignSel" onchange="reassign()" style="padding:9px 32px 9px 12px;border:2px solid var(--cream-dark);border-radius:999px;font-size:13px;font-weight:700;background:#fff">
             <option value="">— не назначен —</option>
-            ${staff.map(s => `<option value="${s.id}" ${a.assigned_to===s.id?'selected':''}>${esc(s.name || s.email)}</option>`).join('')}
+            ${staff.filter(s => isRecruiter(s)).map(s => `<option value="${s.id}" ${a.assigned_to===s.id?'selected':''}>${esc(s.name || s.email)}</option>`).join('')}
           </select>
           ${a.status==='new' ? `<button class="take" onclick="takeApp('${a.id}')">Взять в работу → Скрининг</button>` : ''}
         </div>
@@ -759,6 +764,13 @@ async function openCard(id){
               <option value="ru" ${a.speaker_type!=='en'?'selected':''}>🇷🇺 Русскоязычный</option>
               <option value="en" ${a.speaker_type==='en'?'selected':''}>🇬🇧 Англоязычный</option>
             </select></div>
+          <div><b>Возрастная категория (наставник)</b>
+            <select onchange="setAgeGroup('${a.id}', this.value)" style="margin-top:2px;padding:5px 8px;border:2px solid var(--cream-dark);border-radius:8px;font-size:13px;font-weight:700;background:#fff;max-width:100%">
+              <option value="">— не выбрана —</option>
+              ${ageGroups.map(g => `<option value="${g.slug}" ${a.age_group===g.slug?'selected':''}>${esc(g.title)}</option>`).join('')}
+            </select>
+            <div id="buddyInfo" style="font-size:12px;color:var(--gray);margin-top:3px">${a.buddy_id ? '🧑‍🏫 ' + esc(nameOf(a.buddy_id)) : ''}</div>
+          </div>
           <div><b>Образование</b>${EDU[ans.education]||'—'}</div>
           <div><b>Опыт</b>${EXP[ans.experience]||'—'}</div>
           <div><b>Нагрузка</b>${HOURS[ans.weekly_hours_label]||'—'}</div>
@@ -1043,7 +1055,7 @@ function renderOnb(){
             <input type="checkbox" ${s.done_at?'checked disabled':''} onchange="doneStep('${o.id}','${s.slug}')"
               style="width:17px;height:17px;accent-color:var(--green)">
             <span style="flex:1;${s.done_at?'opacity:.5;text-decoration:line-through':''}">${esc(s.title)}
-              <span style="font-size:11px;color:var(--gray)">· ${OWNER_LABEL[s.owner]||s.owner}</span></span>
+              <span style="font-size:11px;color:var(--gray)">· ${s.auto ? '🤖 авто (обучение)' : (OWNER_LABEL[s.owner]||s.owner)}</span></span>
             ${s.done_at ? `<span style="font-size:11.5px;color:var(--green)">✓ ${fmtDate(s.done_at)}</span>`
               : (s.due_at ? `<span style="font-size:11.5px;font-weight:800;color:${over?'var(--red)':'var(--gray)'}">${over?'🔥 ':'до '}${fmtDate(s.due_at)}</span>` : '')}
           </div>`;
@@ -1398,6 +1410,16 @@ async function confirmOffer(){
   const i = apps.findIndex(x => x.id === current.id);
   if (i >= 0) apps[i] = { ...apps[i], ...current };
   render(); openCard(current.id);
+}
+
+async function setAgeGroup(id, val){
+  const { data, error } = await sb.rpc('hr_set_age_group', { p_application_id: id, p_age_group: val || null });
+  if (error) { alert('Не получилось: ' + error.message); return; }
+  const app = apps.find(a => a.id === id);
+  if (app) { app.age_group = data.age_group; app.buddy_id = data.buddy_id || null; }
+  const info = document.getElementById('buddyInfo');
+  if (info) info.textContent = data.buddy_name ? '🧑‍🏫 ' + data.buddy_name : (val ? '⚠ у категории не задан наставник' : '');
+  render();
 }
 
 async function setSpeaker(id, val){
