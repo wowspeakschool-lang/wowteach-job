@@ -855,7 +855,9 @@ async function loadMedia(a){
 async function updateStatusFor(id, status, reopenModal, extra){
   const app = apps.find(a => a.id === id);
   if (!app) return;
-  if (app.status === status && !extra) return;
+  // повторный клик по «Собеседование» в карточке = переотправить приглашение с ТЗ
+  const reInvite = app.status === status && status === 'interview' && !extra && reopenModal;
+  if (app.status === status && !extra && !reInvite) return;
   if (status === 'rejected' && !extra) { openRejectModal(id, !!reopenModal); return; }
   if (status === 'interview' && !extra) { openTaskModal(id, !!reopenModal); return; }
   if (status === 'onboarding' && !extra) {
@@ -951,7 +953,7 @@ async function loadTemplates(){
 }
 function renderTplButtons(){
   const row = document.getElementById('tplRow');
-  if (!templates.length) { row.innerHTML = '<span style="font-size:13px;color:var(--gray)">Шаблонов нет — прогони 40_hr_crm_tools.sql</span>'; return; }
+  if (!templates.length) { row.innerHTML = '<span style="font-size:13px;color:var(--gray)">Готовых шаблонов писем нет — их можно включить в таблице <code>hr_email_templates</code> (<code>is_active = true</code>).</span>'; return; }
   row.innerHTML = templates.map(t => `<button class="tpl-btn" onclick="sendTpl('${t.slug}')">✉️ ${esc(t.title)}</button>`).join('');
 }
 async function sendTpl(slug){
@@ -1306,12 +1308,28 @@ function tlLabel(ev){
     if (p.kind === 'template') return `✉️ Письмо кандидату: <b>${esc(p.title || p.slug)}</b>` + (p.by ? ` · ${esc(nameOf(p.by))}` : '');
     if (p.kind === 'rejection_to_candidate') return '✉️ Кандидату отправлено письмо-отказ';
     if (p.kind === 'new_application_to_hr') return '✉️ Команде отправлено уведомление о заявке';
+    if (p.kind === 'screening_to_candidate') return '✉️ Кандидату отправлено письмо «заявка на рассмотрении»';
+    if (p.kind === 'offer_to_candidate') return '✉️ Кандидату отправлен оффер';
     return '✉️ Отправлено письмо';
   }
   if (ev.type === 'slot_booked') return '🗓️ Кандидат записался на собеседование';
   if (ev.type === 'slot_cancelled') return `❌ Запись на собеседование отменена (${p.by === 'staff' ? 'нами' : 'кандидатом'})`;
   if (ev.type === 'cabinet_granted') return '🔑 Открыт кабинет кандидата (логин и пароль отправлены)';
   if (ev.type === 'assigned') return `👤 Назначен ответственный: <b>${esc(nameOf(p.to))}</b>`;
+  if (ev.type === 'interview_invited')
+    return '🎤 Приглашение на собеседование отправлено' + (p.task_slug ? ` · ТЗ: <b>${esc(taskTitleOf(p.task_slug))}</b>` : '');
+  if (ev.type === 'offer_sent')
+    return '📄 Оффер отправлен' + (p.grade ? ` · ${esc(GRADE_LABEL[p.grade] || p.grade)}` : '') + (p.lang ? ` · ${p.lang === 'en' ? 'EN' : 'RU'}` : '');
+  if (ev.type === 'offer_accepted') return '✅ <b>Кандидат принял оффер</b> 🎉';
+  if (ev.type === 'onboarding_started') return '🎓 Запущен онбординг' + (p.buddy_id ? ` · наставник ${esc(nameOf(p.buddy_id))}` : '');
+  if (ev.type === 'onboarding_step_done') return `☑️ Шаг онбординга закрыт: <b>${esc(p.title || p.step_slug || p.slug || '')}</b>`;
+  if (ev.type === 'onboarding_stopped') return `⛔ Онбординг прекращён${p.reason ? ' — ' + esc(p.reason) : ''}`;
+  if (ev.type === 'learn_course_assigned')
+    return `📚 Назначен курс: <b>${esc(p.title || p.course || '')}</b>`
+      + (p.deadline ? ` · до ${fmtDate(p.deadline)}` : '');
+  if (ev.type === 'app_access_opened') return '🔓 Открыт доступ к app.wowteach.ru';
+  if (ev.type === 'onboarding_overdue') return `⏰ Просрочен шаг: <b>${esc(p.step || '')}</b>`;
+  if (ev.type === 'onboarding_done') return '🏁 Онбординг завершён';
   return esc(ev.type);
 }
 async function loadTimeline(a){
@@ -1403,10 +1421,10 @@ async function confirmOffer(){
   const grade = document.querySelector('#offerGrade .on')?.dataset.v || 'basic';
   const already = current.offer_accepted_at;
   if (already && !confirm('Кандидат уже принял оффер. Отправить новый? Отметка о принятии сбросится.')) return;
-  const btn = document.getElementById('offerGo');
-  btn.disabled = true; btn.textContent = 'Отправляю…';
   const age = document.querySelector('#offerAge .on')?.dataset.v || null;
   if (!age) { alert('Выберите возрастную категорию — по ней назначается наставник.'); return; }
+  const btn = document.getElementById('offerGo');
+  btn.disabled = true; btn.textContent = 'Отправляю…';
   const { error } = await sb.rpc('hr_send_offer',
     { p_application_id: current.id, p_lang: lang, p_grade: grade, p_age_group: age });
   btn.disabled = false; btn.textContent = 'Отправить оффер';
