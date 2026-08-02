@@ -494,6 +494,13 @@ const HOURS = { lt10:'< 10 ч/нед', '10-15':'10–15 ч/нед', '15-20':'15�
 const AGES = { '4-6':'4–6', '7-9':'7–9', '10-12':'10–12', teens:'Подростки', adults:'Взрослые' };
 const LEVEL = { B1:'B1', B2:'B2', C1:'C1', C2:'C2', native:'Носитель' };
 const SPEAKER = { ru:'🇷🇺 Русскоязычный', en:'🇬🇧 Англоязычный' };
+const SOURCE = { employee_referral:'👥 Рекомендация сотрудника', friend_referral:'🤝 Рекомендация друга / знакомого', hh:'HeadHunter', avito:'Авито Работа', telegram:'Telegram', vk:'ВКонтакте', instagram:'Instagram', youtube:'YouTube', tiktok:'TikTok', search:'Поиск Google / Яндекс', website:'Сайт WowSpeak', other:'Другое' };
+function sourceLabel(ans){
+  if (!ans || !ans.source) return '—';
+  let s = SOURCE[ans.source] || ans.source;
+  if (ans.source === 'other' && ans.source_other) s += ': ' + ans.source_other;
+  return s;
+}
 const DAYS = [['mon','Пн'],['tue','Вт'],['wed','Ср'],['thu','Чт'],['fri','Пт'],['sat','Сб'],['sun','Вс']];
 const SLOTS = ['morning','day','evening'];
 
@@ -777,6 +784,8 @@ async function openCard(id){
           <div><b>Возраст учеников</b>${(ans.ages||[]).map(x=>AGES[x]||x).join(', ')||'—'}</div>
           <div><b>Доп. языки</b>${(ans.extra_languages||[]).join(', ')||'—'}</div>
           ${'sales_exp' in ans ? `<div><b>Опыт онлайн-продаж</b>${ans.sales_exp?'Да':'Нет'}</div>` : ''}
+          <div><b>Откуда узнал(а)</b>${esc(sourceLabel(ans))}</div>
+          ${ans.referral_name ? `<div><b>Порекомендовал(а)</b>${esc(ans.referral_name)}</div>` : ''}
         </div>
       </div>
 
