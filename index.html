@@ -174,6 +174,7 @@ const FLOW = [
   ['screening', 'Рассмотрение'],
   ['interview', 'Собеседование'],
   ['offer',     'Оффер'],
+  ['onboarding','Онбординг'],
   ['hired',     'В команде']
 ];
 const NOW_TEXT = {
@@ -181,7 +182,9 @@ const NOW_TEXT = {
   screening: { cls:'info', t:'Заявка на рассмотрении', d:'Рекрутер изучает вашу анкету и видео-визитку. Следующий шаг — приглашение на собеседование, мы напишем вам.' },
   interview: { cls:'warm', t:'Этап собеседования 🎤', d:'Мы пригласили вас на онлайн-собеседование с демо-уроком. Проверьте почту (и папку «Спам») — там письмо с деталями.' },
   offer:     { cls:'win',  t:'Вам направлен оффер! 🎉', d:'Поздравляем! Проверьте почту — мы свяжемся, чтобы обсудить условия и следующие шаги.' },
+  onboarding:{ cls:'win',  t:'Онбординг 🎓', d:'Добро пожаловать в команду! Ниже — ваш план адаптации: шаги, сроки и наставник. Отмечайте свои шаги по мере выполнения.' },
   hired:     { cls:'win',  t:'Добро пожаловать в команду! 🦉', d:'Скоро здесь появится ваш план онбординга: обучение, наставник и первые ученики.' },
+  hired_done:{ cls:'win',  t:'Вы в команде! 🦉', d:'Онбординг пройден — впереди первые ученики. Любые вопросы: напишите наставнику или ответьте на любое наше письмо.' },
   rejected_school:    { cls:'sad', t:'По заявке принято решение', d:'К сожалению, сейчас мы не готовы предложить сотрудничество — подробности мы отправили вам на почту. Анкета сохранена в кадровом резерве: если появится подходящая вакансия, мы напишем.' },
   rejected_candidate: { cls:'sad', t:'Заявка закрыта', d:'Заявка закрыта по вашей инициативе. Будем рады видеть вас снова — двери WowSpeak открыты!' }
 };
@@ -272,7 +275,9 @@ async function loadApps(){
       }
       return `<div class="pstep ${cls}"><div class="dot">${cls.includes('done') && !cls.includes('cur') ? '✓' : i + 1}</div><div class="lbl">${lbl}</div></div>`;
     }).join('');
-    const nowKey = isRejected ? (a.rejected_by === 'candidate' ? 'rejected_candidate' : 'rejected_school') : a.status;
+    const nowKey = isRejected
+      ? (a.rejected_by === 'candidate' ? 'rejected_candidate' : 'rejected_school')
+      : (a.status === 'hired' && a.onboarding_started_at ? 'hired_done' : a.status);
     const now = NOW_TEXT[nowKey] || NOW_TEXT.new;
     return `<div class="card">
       <div class="app-head">
