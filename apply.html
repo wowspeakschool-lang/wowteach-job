@@ -162,6 +162,36 @@ input:focus,select:focus{outline:none;border-color:var(--purple)}
         <div class="field"><label>Ник в Telegram <span class="req">*</span></label><input type="text" id="telegram" placeholder="@nickname"></div>
         <div class="field"><label>Город и часовой пояс <span class="req">*</span></label><input type="text" id="city_tz" placeholder="Например: Самара, МСК+1"></div>
       </div>
+
+      <div class="field">
+        <label>Откуда вы о нас узнали? <span class="req">*</span></label>
+        <select id="source">
+          <option value="">— выберите —</option>
+          <option value="employee_referral">Рекомендация сотрудника WowSpeak</option>
+          <option value="friend_referral">Рекомендация друга / знакомого</option>
+          <option value="hh">HeadHunter (hh.ru)</option>
+          <option value="avito">Авито Работа</option>
+          <option value="telegram">Telegram</option>
+          <option value="vk">ВКонтакте</option>
+          <option value="instagram">Instagram</option>
+          <option value="youtube">YouTube</option>
+          <option value="tiktok">TikTok</option>
+          <option value="search">Поиск в Google / Яндекс</option>
+          <option value="website">Сайт WowSpeak</option>
+          <option value="other">Другое</option>
+        </select>
+      </div>
+
+      <div class="field" id="referralField" style="display:none">
+        <label>Имя и фамилия сотрудника, который вас порекомендовал <span class="req">*</span></label>
+        <input type="text" id="referral_name" placeholder="Например: Алина Петрова">
+        <div class="hint">Мы скажем ему спасибо 🙌</div>
+      </div>
+
+      <div class="field" id="sourceOtherField" style="display:none">
+        <label>Уточните, откуда именно <span class="req">*</span></label>
+        <input type="text" id="source_other" placeholder="Например: канал в Telegram «...»">
+      </div>
     </div>
 
     <!-- ===== Видео-визитка ===== -->
@@ -376,6 +406,12 @@ let vacancy = null;
   if (slug === 'manager') document.getElementById('salesField').style.display = '';
 })();
 
+// ============ Откуда узнали ============
+document.getElementById('source').addEventListener('change', function(){
+  document.getElementById('referralField').style.display   = this.value === 'employee_referral' ? '' : 'none';
+  document.getElementById('sourceOtherField').style.display = this.value === 'other' ? '' : 'none';
+});
+
 // ============ Чипсы ============
 document.querySelectorAll('.chips').forEach(g =>
   g.addEventListener('click', e => { if (e.target.classList.contains('chip')) e.target.classList.toggle('on'); }));
@@ -492,6 +528,11 @@ form.addEventListener('submit', async e => {
   if (!val('phone')) return fail('Укажите телефон.');
   if (!val('telegram')) return fail('Укажите ник в Telegram.');
   if (!val('city_tz')) return fail('Укажите город и часовой пояс.');
+  if (!val('source')) return fail('Укажите, откуда вы о нас узнали.');
+  if (val('source') === 'employee_referral' && !val('referral_name'))
+    return fail('Укажите имя и фамилию сотрудника, который вас порекомендовал.');
+  if (val('source') === 'other' && !val('source_other'))
+    return fail('Уточните, откуда вы о нас узнали.');
   if (!val('english_level')) return fail('Выберите уровень английского.');
   if (!val('education')) return fail('Выберите образование.');
   if (!val('experience')) return fail('Выберите опыт преподавания.');
@@ -525,6 +566,9 @@ form.addEventListener('submit', async e => {
       weekly_lessons: hoursMap[val('weekly_hours')] ?? 0,
       extra_languages: chipValues('extraLangs'),
       cover_letter: (document.getElementById('cover_letter').value || '').trim(),
+      source: val('source'),
+      source_other: val('source') === 'other' ? val('source_other') : null,
+      referral_name: val('source') === 'employee_referral' ? val('referral_name') : null,
       schedule_grid: grid,
       slots: summary.slots,
       evening_days: summary.evening_days
