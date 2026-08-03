@@ -219,7 +219,7 @@ const NOW_TEXT = {
   offer:     { cls:'win',  t:'Вам направлен оффер! 🎉', d:'Поздравляем! Проверьте почту — мы свяжемся, чтобы обсудить условия и следующие шаги.' },
   onboarding:{ cls:'win',  t:'Онбординг 🎓', d:'Добро пожаловать в команду! Ниже — ваш план адаптации: шаги, сроки и наставник. Отмечайте свои шаги по мере выполнения.' },
   hired:     { cls:'win',  t:'Добро пожаловать в команду! 🦉', d:'Скоро здесь появится ваш план онбординга: обучение, наставник и первые ученики.' },
-  hired_done:{ cls:'win',  t:'Вы в команде! 🦉', d:'Онбординг пройден — впереди первые ученики. Любые вопросы: напишите наставнику или ответьте на любое наше письмо.' },
+  hired_done:{ cls:'win',  t:'Вы в команде! 🦉', d:'Онбординг пройден — впереди первые ученики. Любые вопросы: напишите наставнику или нам в Telegram @wowspeakHR.' },
   rejected_school:    { cls:'sad', t:'По заявке принято решение', d:'К сожалению, сейчас мы не готовы предложить сотрудничество — подробности мы отправили вам на почту. Анкета сохранена в кадровом резерве: если появится подходящая вакансия, мы напишем.' },
   rejected_candidate: { cls:'sad', t:'Заявка закрыта', d:'Заявка закрыта по вашей инициативе. Будем рады видеть вас снова — двери WowSpeak открыты!' }
 };
@@ -328,7 +328,7 @@ async function loadApps(){
         <b style="font-family:'Fredoka',sans-serif;font-weight:600;display:block;margin-bottom:6px">📚 Материалы к собеседованию</b>
         <div style="font-size:14.5px">${a.interview_materials}</div>
       </div>` : ''}
-      <div class="contact">Вопросы? Просто ответьте на любое наше письмо — оно попадёт команде WowSpeak.</div>
+      <div class="contact">Вопросы? Напишите нам в Telegram — <a href="https://t.me/wowspeakHR" target="_blank" rel="noopener">@wowspeakHR</a></div>
     </div>`;
   }).join('');
   data.filter(a => a.status === 'interview' && !a.interview_at).forEach(a => loadSlots(a.id));
@@ -524,7 +524,7 @@ function bookingBlock(a){
         ${canCancel ? `<button onclick="rescheduleBooking('${a.id}')">Перенести</button>
                        <button class="warn" onclick="cancelBooking('${a.id}')">Отменить</button>` : ''}
       </div>
-      ${canCancel ? '' : `<div class="local" style="margin-top:10px">До встречи меньше 12 часов — для переноса ответьте на наше письмо, мы поможем.</div>`}
+      ${canCancel ? '' : `<div class="local" style="margin-top:10px">До встречи меньше 12 часов — для переноса напишите нам в Telegram <a href="https://t.me/wowspeakHR" target="_blank" rel="noopener">@wowspeakHR</a>, поможем.</div>`}
       ${a.interview_materials ? `<div class="prep">
         <b class="h">📚 Что подготовить</b>
         <div>${a.interview_materials}</div>
@@ -558,7 +558,7 @@ async function loadSlots(appId){
   if (!data?.length) {
     box.innerHTML = '<div style="font-size:14.5px;line-height:1.55">Свободных слотов пока нет — мы добавим новые '
       + 'в ближайшие дни, загляните позже 🙏<br><span style="color:var(--gray);font-size:13px">'
-      + 'Если время поджимает, ответьте на наше письмо — подберём вариант вручную.</span></div>';
+      + 'Если время поджимает, напишите нам в Telegram <a href="https://t.me/wowspeakHR" target="_blank" rel="noopener">@wowspeakHR</a> — подберём вариант вручную.</span></div>';
     return;
   }
 

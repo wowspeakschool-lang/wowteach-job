@@ -539,12 +539,35 @@ const STATUSES = {
   hired:     { label:'Работает 🎉',   bg:'var(--green-light)',  fg:'#15803D',            solid:'var(--green)' },
   rejected:  { label:'Отказ',         bg:'var(--red-light)',    fg:'#B91C1C',            solid:'var(--red)' }
 };
+// Причины свои на каждом этапе: до собеседования — по анкете, после — по блокам чек-листа демо-урока.
 const REJECT_REASONS = {
-  school: ['Недостаточный уровень английского','Не подходит график / часовой пояс','Недостаточно опыта',
-           'Не прошёл(а) собеседование / демо-урок','Не выполнил(а) тестовое задание','Слабая видео-визитка','Другое'],
-  candidate: ['Не устроили условия / оплата','Нашёл(ла) другую работу','Передумал(а) / личные обстоятельства',
-              'Пропал(а), не выходит на связь','Другое']
+  school: {
+    screening: ['Уровень английского ниже B2',
+                'Мало опыта работы с детьми',
+                'Не совпал график или часовой пояс',
+                'Некачественный отклик',
+                'Не та возрастная категория — сейчас не набираем',
+                'Нет подходящей нагрузки — вакансия закрыта',
+                'Дубль заявки',
+                'Другое'],
+    interview: ['Техника: связь, звук, не готов к уроку',
+                'Манера: мало энергии, слабый контакт с ребёнком',
+                'Речь: ошибки в английском, не хватает спонтанной речи',
+                'Процесс урока: не держит структуру, слабая методика',
+                'Не пришёл(а) на собеседование',
+                'Другое']
+  },
+  candidate: ['Не устроили условия или оплата',
+              'Не устроил график или объём нагрузки',
+              'Нашёл(ла) другую работу',
+              'Передумал(а), личные обстоятельства',
+              'Не выходит на связь',
+              'Другое']
 };
+function reasonsFor(who, status){
+  if (who === 'candidate') return REJECT_REASONS.candidate;
+  return status === 'interview' ? REJECT_REASONS.school.interview : REJECT_REASONS.school.screening;
+}
 const REJECTED_BY = { school:'Мы отказали', candidate:'Кандидат отказался' };
 const EDU = { pedagogical:'Педагогическое', linguistic:'Профильное лингвистическое', other_higher:'Другое высшее', student:'Студент' };
 const EXP = { none:'Отсутствует', lt1:'Меньше 1 года', '1-2':'1–2 года', '3plus':'3+ лет' };
@@ -853,6 +876,8 @@ async function openCard(id){
         <div id="offerState" style="font-size:13.5px;color:var(--gray);margin-bottom:10px"></div>
         ${a.status === 'rejected' ? '' : `<button class="tpl-btn" onclick="openOffer()">📄 Отправить / обновить оффер</button>`}
         ${a.offer_accepted_at ? `<button class="tpl-btn" onclick="viewSnapshot('${a.id}')">🔍 Что кандидат принял</button>` : ''}
+        <button class="tpl-btn" onclick="openOfferHistory('${a.id}')">🕘 Прошлые офферы</button>
+        <div id="offerHist" style="margin-top:12px"></div>
       </div>` : ''}
 
       ${a.interview_task_slug ? `<div class="sec"><h3>ТЗ на демо-урок</h3>
@@ -1010,31 +1035,36 @@ async function reassign(){
 // ============ Окно отказа ============
 let pendingReject = null;
 function openRejectModal(id, reopen){
-  pendingReject = { id, reopen };
+  const app = apps.find(a => a.id === id);
+  pendingReject = { id, reopen, status: app?.status || 'screening' };
+  // на этапе оффера отказ с нашей стороны не предусмотрен — только уход кандидата
+  const whoSel = document.getElementById('rejWho');
+  const offerStage = pendingReject.status === 'offer';
+  whoSel.querySelector('option[value="school"]').disabled = offerStage;
+  if (offerStage) whoSel.value = 'candidate';
   fillRejectReasons();
   document.getElementById('rejectOverlay').style.display = 'flex';
 }
 function fillRejectReasons(){
   const who = document.getElementById('rejWho').value;
   document.getElementById('rejReason').innerHTML =
-    REJECT_REASONS[who].map(r => `<option>${r}</option>`).join('');
+    reasonsFor(who, pendingReject?.status).map(r => `<option>${r}</option>`).join('');
   updateRejHint();
 }
 // подсказки: что именно уйдёт кандидату при выбранной причине
 const REJ_HINT = {
-  'Не выполнил(а) тестовое задание': 'Письмо предложит прислать задание — заявку можно будет вернуть.',
-  'Слабая видео-визитка': 'Письмо предложит переснять видео и прислать ответом.',
-  'Не прошёл(а) собеседование / демо-урок': 'Письмо поблагодарит за демо-урок и предложит обратную связь.',
-  'Не подходит график / часовой пояс': 'Письмо попросит написать, если график изменится.',
-  'Пропал(а), не выходит на связь': 'Письмо — последняя попытка связаться: «ответьте, и вернём в работу».',
-  'Нашёл(ла) другую работу': 'Письмо поздравит с новой работой.'
+  'Не совпал график или часовой пояс': 'Письмо попросит написать, когда график изменится.',
+  'Не та возрастная категория — сейчас не набираем': 'Письмо мягкое: «дело не в вашей анкете, оставили в резерве».',
+  'Нет подходящей нагрузки — вакансия закрыта': 'Письмо мягкое: «дело не в вашей анкете, оставили в резерве».',
+  'Дубль заявки': '🚫 Письмо НЕ отправляется — это техническая пометка.',
+  'Не пришёл(а) на собеседование': 'Письмо предложит перезаписаться, если человек просто забыл.'
 };
 function updateRejHint(){
-  const who = document.getElementById('rejWho').value;
   const reason = document.getElementById('rejReason').value;
+  const el = document.getElementById('rejHint');
   const extra = REJ_HINT[reason];
-  document.getElementById('rejHint').innerHTML =
-    `✉️ Кандидату уйдёт письмо, подобранное под эту причину${extra ? '. ' + extra : '.'}`;
+  if (reason === 'Дубль заявки') { el.innerHTML = extra; return; }
+  el.innerHTML = `✉️ Кандидату уйдёт короткое письмо${extra ? '. ' + extra : ' — без разбора причины.'}`;
 }
 function closeReject(){ document.getElementById('rejectOverlay').style.display = 'none'; pendingReject = null; }
 async function saveReject(){
@@ -1563,6 +1593,54 @@ async function startOnboardingFor(id, name){
   await loadApps();
   closeCard();
   switchSection('onb');
+}
+
+// ============ История офферов ============
+async function openOfferHistory(appId){
+  const box = document.getElementById('offerHist');
+  if (!box) return;
+  box.innerHTML = '<div style="font-size:13px;color:var(--gray)">Загружаю…</div>';
+  const { data, error } = await sb.from('hr_offer_history').select('*')
+    .eq('application_id', appId).order('superseded_at', { ascending: false });
+  if (error) { box.innerHTML = '<div style="font-size:13px;color:var(--red)">' + esc(error.message) + '</div>'; return; }
+  if (!data?.length) {
+    box.innerHTML = '<div style="font-size:13px;color:var(--gray)">Прошлых офферов нет — этот первый.</div>';
+    return;
+  }
+  box.innerHTML = data.map(h => `
+    <div style="border:1px solid var(--cream-dark);border-radius:12px;padding:10px 13px;margin-bottom:8px;
+                display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13px">
+      <b>${esc(GRADE_LABEL[h.grade] || h.grade || '—')}</b>
+      <span style="color:var(--gray)">${h.lang === 'en' ? 'EN' : 'RU'} · отправлен ${fmtDate(h.sent_at)}</span>
+      ${h.accepted_at
+        ? `<span style="background:var(--green-light);color:#15803D;font-size:11.5px;font-weight:800;border-radius:999px;padding:3px 10px">был принят ${fmtDate(h.accepted_at)}</span>`
+        : `<span style="background:var(--cream);color:var(--gray);font-size:11.5px;font-weight:800;border-radius:999px;padding:3px 10px">не был принят</span>`}
+      <span style="color:var(--gray);margin-left:auto">заменён ${fmtDate(h.superseded_at)}</span>
+      ${h.snapshot ? `<button class="tpl-btn" onclick="viewHistSnapshot('${h.id}')">🔍 Снимок</button>` : ''}
+    </div>`).join('');
+  window.__offerHist = data;
+}
+function viewHistSnapshot(id){
+  const h = (window.__offerHist || []).find(x => x.id === id);
+  if (!h) return;
+  const m = h.accept_meta || {};
+  const w = window.open('', '_blank');
+  w.document.write(`<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8">
+    <title>Прошлый оффер</title>
+    <style>body{font-family:sans-serif;max-width:820px;margin:0 auto;padding:34px 24px;color:#2D2D3F;line-height:1.6}
+    .meta{background:#F5EFE2;border-radius:12px;padding:14px 18px;margin-bottom:24px;font-size:13.5px}
+    h1{font-size:23px;margin:0 0 14px}</style></head><body>
+    <h1>📄 Оффер, заменённый ${new Date(h.superseded_at).toLocaleString('ru-RU')}</h1>
+    <div class="meta">
+      <b>Грейд:</b> ${h.grade || '—'} · <b>Язык:</b> ${h.lang || '—'}<br>
+      <b>Отправлен:</b> ${h.sent_at ? new Date(h.sent_at).toLocaleString('ru-RU') : '—'}<br>
+      <b>Принят:</b> ${h.accepted_at ? new Date(h.accepted_at).toLocaleString('ru-RU') : 'не был принят'}
+      ${m.ip ? `<br><b>IP:</b> ${m.ip}` : ''}
+      ${m.user_agent ? `<br><b>Устройство:</b> <span style="font-size:12px">${m.user_agent}</span>` : ''}
+    </div>
+    ${h.snapshot || '<p>Снимок не сохранён.</p>'}
+  </body></html>`);
+  w.document.close();
 }
 
 async function viewSnapshot(id){
