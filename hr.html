@@ -129,7 +129,20 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
 .mini-grid th{font-size:10px;color:var(--gray);padding:2px 4px;font-weight:800}
 .mini-grid td{width:34px;height:22px;border-radius:6px;background:var(--cream-dark)}
 .mini-grid td.on{background:var(--green)}
-.status-row{display:flex;flex-wrap:wrap;gap:7px}
+.stage-now{display:flex;align-items:center;gap:11px;flex-wrap:wrap;margin-bottom:14px}
+.stage-hint{font-size:13px;color:var(--gray);font-weight:700}
+.stage-acts{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+.stage-next{border:none;border-radius:999px;padding:12px 24px;font-weight:800;font-size:14.5px;
+  background:linear-gradient(135deg,var(--purple),var(--purple-dark));color:#fff;box-shadow:var(--shadow-sm);
+  cursor:pointer;font-family:inherit}
+.stage-next.soft{background:#fff;color:var(--purple);border:2px solid var(--purple-light);box-shadow:none}
+.stage-rej{border:2px solid var(--cream-dark);background:#fff;border-radius:999px;padding:11px 20px;
+  font-weight:800;font-size:13.5px;color:var(--gray);cursor:pointer;font-family:inherit}
+.stage-rej:hover{border-color:var(--red);color:#B91C1C;background:var(--red-light)}
+.stage-more{background:none;border:none;color:var(--gray);font-weight:800;font-size:12.5px;
+  cursor:pointer;padding:12px 0 0;font-family:inherit}
+.stage-more:hover{color:var(--purple)}
+.status-row{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
 .status-btn{border:2px solid var(--cream-dark);background:#fff;border-radius:999px;padding:7px 13px;font-size:12.5px;font-weight:800;color:var(--gray)}
 .status-btn.on{border-color:transparent;color:#fff}
 .notes-list{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
@@ -611,10 +624,13 @@ async function loadStaff(){
   staff = (data || []).filter(u => isStaff(u) && u.is_active !== false);
   if (!staff.find(s => s.id === me.id)) staff.unshift(me);
 }
+// Кто может вести заявку: брать в работу, быть ответственным, проводить собеседования.
+// Методист здесь наравне с рекрутером — он же проводит демо-урок и ассесмент.
 function isRecruiter(u){
   const r = u?.roles;
   const list = Array.isArray(r) ? r : (typeof r === 'string' ? [r] : []);
-  return list.includes('super_admin') || list.includes('assistant') || list.includes('recruiter');
+  return list.includes('super_admin') || list.includes('assistant')
+      || list.includes('recruiter') || list.includes('methodist');
 }
 function nameOf(id){ const u = staff.find(s => s.id === id); return u ? (u.name || u.email) : '…'; }
 
@@ -748,6 +764,57 @@ async function dropCard(e){
   await updateStatusFor(id, e.currentTarget.dataset.status, false);
 }
 
+// ============ Следующий шаг по заявке ============
+// Один очевидный переход вместо семи кнопок. Полный список — под «Другой статус».
+const STAGE_HINT = {
+  new:        'Заявка ещё не в работе',
+  screening:  'Рекрутер изучает анкету и видео-визитку',
+  interview:  'Кандидат приглашён на собеседование',
+  onboarding: 'Идёт онбординг',
+  hired:      'Работает в команде 🎉'
+};
+function nextStep(a){
+  switch (a.status) {
+    case 'new':        return { label: '▶︎ Взять в работу', fn: `takeApp('${a.id}')` };
+    case 'screening':  return { label: '🎤 Пригласить на собеседование', fn: `setStatus('interview')` };
+    case 'interview':  return { label: '📄 Отправить оффер', fn: `setStatus('offer')` };
+    case 'offer':      return a.offer_accepted_at
+                         ? { label: '🎓 Запустить онбординг', fn: `setStatus('onboarding')` }
+                         : { label: '📄 Отправить оффер заново', fn: 'openOffer()', soft: true };
+    case 'onboarding': return { label: '🎓 Открыть план онбординга', fn: `closeCard();switchSection('onb')`, soft: true };
+    case 'rejected':   return { label: '↩︎ Вернуть в работу', fn: `setStatus('screening')`, soft: true };
+    default:           return null;
+  }
+}
+function stageBlock(a){
+  const st = STATUSES[a.status] || STATUSES.new;
+  const next = nextStep(a);
+  const hint = a.status === 'rejected'
+    ? `<b>${REJECTED_BY[a.rejected_by] || 'Отказ'}:</b> ${esc(a.rejection_reason || '—')}`
+    : (a.status === 'offer'
+        ? (a.offer_accepted_at ? '✅ Оффер принят — можно запускать онбординг' : 'Оффер отправлен, ждём ответа кандидата')
+        : (STAGE_HINT[a.status] || ''));
+
+  return `<div class="sec"><h3>Этап</h3>
+    <div class="stage-now">
+      <span class="status" style="background:${st.bg};color:${st.fg}">${st.label}</span>
+      <span class="stage-hint">${hint}</span>
+    </div>
+    <div class="stage-acts">
+      ${next ? `<button class="stage-next ${next.soft ? 'soft' : ''}" onclick="${next.fn}">${next.label}</button>` : ''}
+      ${['rejected','hired'].includes(a.status) ? '' : `<button class="stage-rej" onclick="setStatus('rejected')">Отказ</button>`}
+    </div>
+    <button class="stage-more" onclick="toggleStatusAll()">Другой статус ▾</button>
+    <div class="status-row" id="statusAll" style="display:none">${Object.entries(STATUSES).map(([k,s]) =>
+      `<button class="status-btn ${a.status===k?'on':''}" style="${a.status===k?`background:${s.solid}`:''}" onclick="setStatus('${k}')">${s.label}</button>`).join('')}</div>
+    <div id="ivInfo"></div>
+  </div>`;
+}
+function toggleStatusAll(){
+  const b = document.getElementById('statusAll');
+  b.style.display = b.style.display === 'none' ? 'flex' : 'none';
+}
+
 // ============ Карточка ============
 let current = null;
 async function openCard(id){
@@ -771,12 +838,7 @@ async function openCard(id){
       <button class="x" onclick="closeCard()">✕</button>
     </div>
     <div class="mbody">
-      <div class="sec"><h3>Статус</h3>
-        <div class="status-row">${Object.entries(STATUSES).map(([k,s]) =>
-          `<button class="status-btn ${a.status===k?'on':''}" style="${a.status===k?`background:${s.solid}`:''}" onclick="setStatus('${k}')">${s.label}</button>`).join('')}</div>
-        ${a.status==='rejected' ? `<div style="margin-top:10px;font-size:13px;color:var(--gray)"><b>${REJECTED_BY[a.rejected_by] || 'Отказ'}:</b> ${esc(a.rejection_reason || '—')}</div>` : ''}
-        <div id="ivInfo"></div>
-      </div>
+      ${stageBlock(a)}
 
       <div class="sec"><h3>Ответственный</h3>
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
@@ -784,17 +846,14 @@ async function openCard(id){
             <option value="">— не назначен —</option>
             ${staff.filter(s => isRecruiter(s)).map(s => `<option value="${s.id}" ${a.assigned_to===s.id?'selected':''}>${esc(s.name || s.email)}</option>`).join('')}
           </select>
-          ${a.status==='new' ? `<button class="take" onclick="takeApp('${a.id}')">Взять в работу → Скрининг</button>` : ''}
         </div>
       </div>
 
-      <div class="sec"><h3>Оффер</h3>
+      ${(a.offer_sent_at || ['interview','offer','onboarding','hired'].includes(a.status)) ? `<div class="sec"><h3>Оффер</h3>
         <div id="offerState" style="font-size:13.5px;color:var(--gray);margin-bottom:10px"></div>
-        <button class="tpl-btn" onclick="openOffer()">📄 Отправить / обновить оффер</button>
+        ${a.status === 'rejected' ? '' : `<button class="tpl-btn" onclick="openOffer()">📄 Отправить / обновить оффер</button>`}
         ${a.offer_accepted_at ? `<button class="tpl-btn" onclick="viewSnapshot('${a.id}')">🔍 Что кандидат принял</button>` : ''}
-        ${a.offer_accepted_at && !a.onboarding_started_at
-          ? `<div style="font-size:12.5px;color:var(--gray);margin-top:10px">✅ Оффер принят — переведите кандидата в статус <b>«Онбординг 🎓»</b>, чтобы запустить план адаптации.</div>` : ''}
-      </div>
+      </div>` : ''}
 
       ${a.interview_task_slug ? `<div class="sec"><h3>ТЗ на демо-урок</h3>
         <div style="font-size:14px;font-weight:800;color:var(--purple-dark);background:var(--purple-light);border-radius:10px;padding:10px 14px;display:inline-block">
