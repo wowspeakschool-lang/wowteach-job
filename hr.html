@@ -197,6 +197,25 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
 .cal-add{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-left:auto}
 .cal-add input{padding:9px 10px;border:2px solid var(--cream-dark);border-radius:10px;font-size:13.5px;background:#FDFCF8}
 .cal-add button{background:var(--purple);color:#fff;border:none;border-radius:10px;padding:9px 16px;font-weight:800;font-size:13px}
+.cal-link{display:flex;gap:9px;align-items:center;flex-wrap:wrap;background:#fff;border:1px solid var(--cream-dark);
+  border-radius:14px;padding:11px 15px;margin-bottom:12px;font-size:13px;font-weight:800;color:var(--gray)}
+.cal-link input{flex:1;min-width:230px;padding:8px 11px;border:2px solid var(--cream-dark);border-radius:10px;
+  font-size:13px;background:#FDFCF8;font-family:inherit}
+.cal-link button{background:var(--purple);color:#fff;border:none;border-radius:10px;padding:8px 15px;
+  font-weight:800;font-size:12.5px;cursor:pointer;font-family:inherit}
+.cal-link em{font-style:normal;font-size:12.5px;font-weight:800}
+.cal-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:14px}
+.cal-stat{background:#fff;border:1px solid var(--cream-dark);border-radius:14px;padding:12px 15px;
+  display:flex;gap:12px;align-items:center}
+.cal-stat .ic{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;
+  font-size:18px;flex-shrink:0;background:var(--purple-light)}
+.cal-stat .v{font-family:'Fredoka',sans-serif;font-weight:600;font-size:19px;line-height:1.15}
+.cal-stat .l{font-size:12px;color:var(--gray);font-weight:700;margin-top:1px}
+.cal-stat.warn{border-color:var(--orange);background:var(--orange-light)}
+.cal-stat.warn .ic{background:#fff}
+.cal-stat.ok .ic{background:var(--green-light)}
+.cal-alert{background:var(--red-light);border-radius:12px;padding:11px 15px;font-size:13.5px;font-weight:700;
+  color:#B91C1C;margin-bottom:14px}
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
 @media(max-width:860px){.cal-grid{grid-template-columns:1fr 1fr;}}
 .cal-day{background:var(--white);border:1px solid var(--cream-dark);border-radius:14px;padding:8px;min-height:90px}
@@ -204,11 +223,23 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
 .cal-dhead{font-size:11.5px;font-weight:900;color:var(--gray);text-transform:uppercase;letter-spacing:.03em;
   text-align:center;padding-bottom:7px}
 .cal-day.today .cal-dhead{color:var(--purple-dark)}
+.cal-dhead{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.cal-dhead .add{border:none;background:var(--cream);color:var(--purple);border-radius:8px;width:22px;height:22px;
+  font-weight:900;font-size:15px;line-height:1;cursor:pointer;padding:0;flex-shrink:0}
+.cal-dhead .add:hover{background:var(--purple);color:#fff}
+.cal-times{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:7px;padding-bottom:7px;border-bottom:1px dashed var(--cream-dark)}
+.cal-times button{border:1px solid var(--cream-dark);background:#fff;border-radius:7px;padding:3px 6px;
+  font-size:11px;font-weight:800;color:var(--gray);cursor:pointer}
+.cal-times button:hover{background:var(--purple);color:#fff;border-color:var(--purple)}
 .cal-empty{text-align:center;color:var(--cream-dark);font-weight:900;padding:8px 0}
-.cal-slot{border-radius:10px;padding:7px 9px;margin-bottom:6px;font-size:12px}
-.cal-slot.free{background:var(--purple-light)}
-.cal-slot.booked{background:var(--green-light);cursor:pointer}
-.cal-slot.other{opacity:.65}
+.cal-slot{border-radius:10px;padding:7px 9px;margin-bottom:6px;font-size:12px;border-left:3px solid transparent}
+.cal-slot.free{background:var(--purple-light);border-left-color:var(--purple)}
+.cal-slot.booked{background:var(--green-light);border-left-color:var(--green);cursor:pointer}
+.cal-slot.booked:hover{box-shadow:var(--shadow-sm)}
+.cal-slot.other{opacity:.6}
+.cal-slot.past{opacity:.35;filter:grayscale(.5)}
+.cal-legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--gray);font-weight:700;margin-top:14px}
+.cal-legend i{width:11px;height:11px;border-radius:4px;display:inline-block;margin-right:6px;vertical-align:-1px}
 .cal-slot .cs-time{font-weight:900;font-size:13px}
 .cal-slot .cs-who{color:var(--gray);font-weight:700;margin:1px 0 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cal-slot button{border:none;background:rgba(45,45,63,.08);border-radius:999px;padding:3px 9px;
@@ -308,8 +339,22 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
         <button onclick="openBulk()" style="background:var(--orange)">📅 Слоты на период</button>
       </div>
     </div>
+    <div class="cal-link">
+      <span>🔗 Моя ссылка для собеседований</span>
+      <input type="url" id="myMeetUrl" placeholder="https://us05web.zoom.us/j/...">
+      <button onclick="saveMeetUrl()">Сохранить</button>
+      <em id="meetUrlMsg"></em>
+    </div>
+    <div id="calAlert"></div>
+    <div id="calStats" class="cal-stats"></div>
     <div id="calGrid" class="cal-grid"><div class="loading">Загружаю…</div></div>
-    <div class="cal-hint">Время — московское (МСК). Слот всегда 45 минут; между вашими слотами минимум 15 минут — база не даст поставить ближе. Занятые слоты кликабельны — откроется карточка кандидата.</div>
+    <div class="cal-legend">
+      <span><i style="background:var(--purple)"></i>свободен</span>
+      <span><i style="background:var(--green)"></i>занят — клик откроет карточку</span>
+      <span><i style="background:var(--cream-dark)"></i>чужой или прошедший</span>
+      <span>＋ в шапке дня — быстро добавить слот</span>
+    </div>
+    <div class="cal-hint">Время — московское (МСК). Слот всегда 45 минут; между вашими слотами минимум 15 минут — база не даст поставить ближе.</div>
   </section>
 
   <section id="sec-tasks" style="display:none">
@@ -522,7 +567,7 @@ function isStaff(u){
       || list.includes('buddy') || list.includes('methodist') || list.includes('curator');
 }
 async function loadMe(authUid){
-  const { data } = await sb.from('users').select('id, name, email, roles, is_active').eq('auth_id', authUid).maybeSingle();
+  const { data } = await sb.from('users').select('id, name, email, roles, is_active, meeting_url').eq('auth_id', authUid).maybeSingle();
   if (!data || data.is_active === false || !isStaff(data)) {
     alert('Нет доступа: HR-раздел доступен персоналу школы.');
     await sb.auth.signOut();
@@ -1253,14 +1298,25 @@ function calToday(){ calStart = mondayOf(new Date()); loadCalendar(); }
 const mskDayKey = d => new Date(d).toLocaleDateString('ru-RU', { timeZone: 'Europe/Moscow' });
 
 async function loadCalendar(){
+  const mineOnly = document.getElementById('calMine').checked;
   const from = new Date(calStart); from.setHours(0,0,0,0);
   const to = new Date(from); to.setDate(to.getDate() + 7);
   let q = sb.from('hr_slots').select('*')
     .gte('start_at', from.toISOString()).lt('start_at', to.toISOString())
     .order('start_at');
-  if (document.getElementById('calMine').checked) q = q.eq('recruiter_id', me.id);
-  const { data, error } = await q;
+  if (mineOnly) q = q.eq('recruiter_id', me.id);
+
+  const [week, future] = await Promise.all([
+    q,
+    sb.from('hr_slots').select('id,start_at,application_id,recruiter_id')
+      .gte('start_at', new Date().toISOString()).order('start_at')
+  ]);
+  const { data, error } = week;
   if (error) { document.getElementById('calGrid').innerHTML = '<div class="loading">Ошибка: ' + esc(error.message) + '</div>'; return; }
+  renderCalStats(future.data || [], mineOnly);
+  const urlInput = document.getElementById('myMeetUrl');
+  if (urlInput && document.activeElement !== urlInput) urlInput.value = me.meeting_url || '';
+  renderMeetUrlMsg();
 
   const byDay = {};
   (data || []).forEach(s => { const k = mskDayKey(s.start_at); (byDay[k] = byDay[k] || []).push(s); });
@@ -1272,28 +1328,85 @@ async function loadCalendar(){
     days[6].toLocaleDateString('ru-RU', { day:'numeric', month:'short' });
 
   const todayKey = mskDayKey(new Date());
-  document.getElementById('calGrid').innerHTML = days.map(d => {
+  document.getElementById('calGrid').innerHTML = days.map((d, i) => {
     const key = mskDayKey(d);
     const slots = byDay[key] || [];
+    const iso = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
     return `<div class="cal-day ${key === todayKey ? 'today' : ''}">
-      <div class="cal-dhead">${d.toLocaleDateString('ru-RU', { weekday:'short', day:'numeric' })}</div>
+      <div class="cal-dhead">
+        <span>${d.toLocaleDateString('ru-RU', { weekday:'short', day:'numeric' })}</span>
+        <button class="add" title="Добавить слот" onclick="toggleQuickAdd(${i})">＋</button>
+      </div>
+      <div class="cal-times" id="qa-${i}" style="display:none">
+        ${CAL_HOURS.map(t => `<button onclick="quickSlot('${iso}','${t}')">${t}</button>`).join('')}
+      </div>
       ${slots.map(calSlotHtml).join('') || '<div class="cal-empty">·</div>'}
     </div>`;
   }).join('');
 }
+function renderMeetUrlMsg(){
+  const el = document.getElementById('meetUrlMsg');
+  if (!el) return;
+  el.textContent = me.meeting_url ? '' : '⚠️ не заполнена — кандидат не получит ссылку';
+  el.style.color = 'var(--orange)';
+}
+async function saveMeetUrl(){
+  const el = document.getElementById('meetUrlMsg');
+  const v = document.getElementById('myMeetUrl').value.trim();
+  const { data, error } = await sb.rpc('hr_set_my_meeting_url', { p_url: v || null });
+  if (error) { el.textContent = error.message; el.style.color = 'var(--red)'; return; }
+  me.meeting_url = data || null;
+  if (me.meeting_url) { el.textContent = '✓ сохранено'; el.style.color = 'var(--green)'; setTimeout(renderMeetUrlMsg, 2500); }
+  else renderMeetUrlMsg();
+}
+
+const CAL_HOURS = ['09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00'];
+function toggleQuickAdd(i){
+  const box = document.getElementById('qa-' + i);
+  const open = box.style.display !== 'none';
+  document.querySelectorAll('.cal-times').forEach(b => b.style.display = 'none');
+  box.style.display = open ? 'none' : 'flex';
+}
+async function quickSlot(dateStr, timeStr){ if (await createSlot(dateStr, timeStr)) loadCalendar(); }
+
+function renderCalStats(future, mineOnly){
+  const mySlots = future.filter(s => !mineOnly || s.recruiter_id === me.id);
+  const free = mySlots.filter(s => !s.application_id).length;
+  const nextBooked = future.filter(s => s.application_id)[0];
+  const bookedIds = new Set(future.filter(s => s.application_id).map(s => s.application_id));
+  const waiting = apps.filter(a => a.status === 'interview' && !a.archived_at && !bookedIds.has(a.id)).length;
+
+  const nextApp = nextBooked ? apps.find(a => a.id === nextBooked.application_id) : null;
+  const tile = (cls, ic, v, l) => `<div class="cal-stat ${cls}"><div class="ic">${ic}</div>
+    <div><div class="v">${v}</div><div class="l">${l}</div></div></div>`;
+
+  document.getElementById('calStats').innerHTML =
+      tile(free === 0 ? 'warn' : '', '🕓', free, mineOnly ? 'свободных слотов у вас' : 'свободных слотов вперёд')
+    + tile(nextBooked ? 'ok' : '', '🗓️',
+        nextBooked ? mskFmt(nextBooked.start_at).replace(' МСК','') : '—',
+        nextBooked ? 'ближайшее: ' + esc(nextApp?.full_name || 'кандидат') : 'записей пока нет')
+    + tile(waiting > 0 && free === 0 ? 'warn' : '', '⏳', waiting, 'приглашены, но не выбрали время');
+
+  document.getElementById('calAlert').innerHTML = (waiting > 0 && free === 0)
+    ? `⚠️ ${waiting} ${waiting === 1 ? 'кандидат ждёт' : 'кандидата(ов) ждут'} записи, а свободных слотов нет — их некуда записать. Добавьте слоты.`
+    : '';
+  document.getElementById('calAlert').className = (waiting > 0 && free === 0) ? 'cal-alert' : '';
+}
+
 function calSlotHtml(s){
   const mine = s.recruiter_id === me.id;
   const booked = !!s.application_id;
+  const past = new Date(s.start_at) < new Date();
   const app = apps.find(a => a.id === s.application_id);
   const time = new Date(s.start_at).toLocaleTimeString('ru-RU', { timeZone:'Europe/Moscow', hour:'2-digit', minute:'2-digit' });
   const who = mine
     ? (booked ? esc(app?.full_name || 'кандидат') : 'свободен')
     : esc((nameOf(s.recruiter_id) || '').split(' ')[0]) + (booked ? ' · занят' : '');
-  return `<div class="cal-slot ${booked ? 'booked' : 'free'} ${mine ? '' : 'other'}"
+  return `<div class="cal-slot ${booked ? 'booked' : 'free'} ${mine ? '' : 'other'} ${past ? 'past' : ''}"
       ${booked && app ? `onclick="openCard('${app.id}')"` : ''}>
     <div class="cs-time">${time}</div>
     <div class="cs-who">${who}</div>
-    ${mine ? (booked
+    ${mine && !past ? (booked
       ? `<button onclick="event.stopPropagation();staffCancelSlot('${s.id}')">снять бронь</button>`
       : `<button onclick="event.stopPropagation();delSlot('${s.id}')">удалить</button>`) : ''}
   </div>`;
@@ -1545,21 +1658,27 @@ async function addSlot(){
   const d = document.getElementById('slotDate').value;
   const t = document.getElementById('slotTime').value;
   if (!d || !t) { alert('Выберите дату и время (по МСК).'); return; }
-  // время вводится по МСК (UTC+3) независимо от часового пояса браузера
-  const startISO = new Date(d + 'T' + t + ':00+03:00').toISOString();
-  if (new Date(startISO) < new Date()) { alert('Это время уже в прошлом.'); return; }
+  if (await createSlot(d, t)) {
+    document.getElementById('slotTime').value = '';
+    calStart = mondayOf(new Date(d + 'T' + t + ':00+03:00'));   // показываем неделю нового слота
+    loadCalendar();
+  }
+}
+// время вводится по МСК (UTC+3) независимо от часового пояса браузера
+async function createSlot(dateStr, timeStr){
+  const startISO = new Date(dateStr + 'T' + timeStr + ':00+03:00').toISOString();
+  if (new Date(startISO) < new Date()) { alert('Это время уже в прошлом.'); return false; }
   const { error } = await sb.from('hr_slots').insert({ recruiter_id: me.id, start_at: startISO, duration_min: 45 });
   if (error) {
     alert(error.message.includes('hr_slots_no_overlap')
       ? 'Слишком близко к другому вашему слоту: между слотами нужно минимум 15 минут.'
       : 'Не получилось: ' + error.message);
-    return;
+    return false;
   }
-  document.getElementById('slotTime').value = '';
-  calStart = mondayOf(new Date(startISO));   // показываем неделю нового слота
-  loadCalendar();
+  return true;
 }
 async function delSlot(id){
+  if (!confirm('Удалить свободный слот?')) return;
   await sb.from('hr_slots').delete().eq('id', id).is('application_id', null);
   loadCalendar();
 }
