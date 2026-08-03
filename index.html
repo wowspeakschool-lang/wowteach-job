@@ -88,14 +88,33 @@ button{font-family:inherit;cursor:pointer}
 /* запись на собеседование */
 .book{margin-top:14px;background:var(--orange-light);border-radius:var(--radius);padding:16px 18px}
 .book b.h{font-family:'Fredoka',sans-serif;font-weight:600;display:block;margin-bottom:10px}
-.slot-day{font-size:12px;font-weight:900;color:var(--gray);text-transform:uppercase;letter-spacing:.04em;margin:10px 0 6px}
+.book .tzhint{font-size:12.5px;color:var(--gray);font-weight:700;margin:-4px 0 12px}
+.slot-day{font-size:12px;font-weight:900;color:var(--gray);text-transform:uppercase;letter-spacing:.04em;margin:12px 0 7px}
 .slot-row{display:flex;flex-wrap:wrap;gap:8px}
-.slot-btn{border:2px solid #fff;background:#fff;border-radius:999px;padding:8px 14px;font-size:13.5px;font-weight:800;box-shadow:var(--shadow-sm)}
+.slot-btn{border:2px solid #fff;background:#fff;border-radius:14px;padding:8px 14px;box-shadow:var(--shadow-sm);
+  display:flex;flex-direction:column;align-items:center;gap:1px;line-height:1.2;cursor:pointer;min-width:74px}
+.slot-btn b{font-size:15px;font-weight:800}
+.slot-btn span{font-size:11px;color:var(--gray);font-weight:700;white-space:nowrap}
 .slot-btn:hover{border-color:var(--purple);color:var(--purple)}
+.slot-btn:hover span{color:var(--purple)}
+.slot-more{margin-top:12px;background:none;border:none;color:var(--purple);font-weight:800;font-size:13.5px;cursor:pointer;padding:0}
 .booked{margin-top:14px;background:var(--green-light);border-radius:var(--radius);padding:16px 18px;font-size:15px}
 .booked b.h{font-family:'Fredoka',sans-serif;font-weight:600;display:block;margin-bottom:4px}
 .booked .local{font-size:12.5px;color:var(--gray)}
-.booked .cancel{font-size:13px;margin-top:8px;display:inline-block}
+.booked .acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.booked .acts a,.booked .acts button{border:2px solid rgba(45,45,63,.12);background:#fff;border-radius:999px;
+  padding:8px 15px;font-size:13px;font-weight:800;color:var(--dark);text-decoration:none;cursor:pointer;font-family:inherit}
+.booked .acts a:hover,.booked .acts button:hover{border-color:var(--purple);color:var(--purple)}
+.booked .acts .warn:hover{border-color:var(--red);color:var(--red)}
+#cmWrap{display:none;position:fixed;inset:0;background:rgba(45,45,63,.55);z-index:70;
+  align-items:center;justify-content:center;padding:20px}
+#cmWrap .box{background:#fff;border-radius:20px;max-width:420px;width:100%;padding:26px 28px;box-shadow:var(--shadow);text-align:center}
+#cmWrap .t{font-family:'Fredoka',sans-serif;font-weight:600;font-size:20px;margin-bottom:8px}
+#cmWrap .d{font-size:14.5px;color:var(--gray);line-height:1.5}
+#cmWrap .a{display:flex;gap:10px;justify-content:center;margin-top:22px;flex-wrap:wrap}
+#cmWrap button{border:none;border-radius:999px;padding:12px 24px;font-weight:800;font-size:14.5px;cursor:pointer;font-family:inherit}
+#cmWrap .no{background:var(--cream-dark);color:var(--gray)}
+#cmWrap .yes{background:var(--purple);color:#fff}
 </style>
 </head>
 <body>
@@ -144,6 +163,17 @@ button{font-family:inherit;cursor:pointer}
     </div>
   </div>
 
+</div>
+
+<div id="cmWrap" onclick="if(event.target===this)cmResolve(false)">
+  <div class="box">
+    <div class="t" id="cmTitle"></div>
+    <div class="d" id="cmText"></div>
+    <div class="a">
+      <button class="no" onclick="cmResolve(false)">Отмена</button>
+      <button class="yes" id="cmYes" onclick="cmResolve(true)">Подтвердить</button>
+    </div>
+  </div>
 </div>
 
 <div id="offerModal" onclick="if(event.target===this)closeOfferModal()" style="display:none;position:fixed;inset:0;background:rgba(45,45,63,.55);z-index:60;align-items:flex-start;justify-content:center;padding:40px 14px;overflow-y:auto">
@@ -441,53 +471,127 @@ function localNote(d){
   return local !== mskTime(d) ? ` · у вас: ${local}` : '';
 }
 
+// ============ Своё окно подтверждения вместо системного confirm ============
+let _cmResolve = null;
+function askConfirm(title, text, okLabel){
+  document.getElementById('cmTitle').textContent = title;
+  document.getElementById('cmText').innerHTML = text;
+  document.getElementById('cmYes').textContent = okLabel || 'Подтвердить';
+  document.getElementById('cmWrap').style.display = 'flex';
+  return new Promise(res => { _cmResolve = res; });
+}
+function cmResolve(v){
+  document.getElementById('cmWrap').style.display = 'none';
+  if (_cmResolve) { _cmResolve(v); _cmResolve = null; }
+}
+
+// ============ Файл для календаря ============
+function icsHref(a){
+  const start = new Date(a.interview_at);
+  const end = new Date(start.getTime() + (a.interview_duration || 45) * 60000);
+  const z = d => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+  const body = [
+    'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//WowSpeak//HR//RU','CALSCALE:GREGORIAN',
+    'BEGIN:VEVENT',
+    'UID:' + a.id + '@wowteach.ru',
+    'DTSTAMP:' + z(new Date()),
+    'DTSTART:' + z(start),
+    'DTEND:' + z(end),
+    'SUMMARY:Собеседование в WowSpeak 🦉',
+    'DESCRIPTION:Онлайн-собеседование с демо-уроком. Ссылку на встречу пришлём на почту перед началом.',
+    'URL:https://job.wowteach.ru',
+    'END:VEVENT','END:VCALENDAR'
+  ].join('\r\n');
+  return 'data:text/calendar;charset=utf-8,' + encodeURIComponent(body);
+}
+
 function bookingBlock(a){
   if (a.interview_at) {
     const canCancel = new Date(a.interview_at) - Date.now() > 12 * 3600 * 1000;
     return `<div class="booked">
       <b class="h">🗓️ Собеседование назначено</b>
       ${mskDate(a.interview_at)}, <b>${mskTime(a.interview_at)} МСК</b> · ${a.interview_duration || 45} минут · ${esc(a.interview_with || 'команда WowSpeak')}
-      <div class="local">Время московское${localNote(a.interview_at)}. Ссылка на Zoom придёт на почту перед встречей.</div>
-      ${canCancel ? `<a class="cancel" href="#" onclick="cancelBooking('${a.id}');return false">Отменить запись и выбрать другое время</a>`
-                  : `<div class="local" style="margin-top:6px">До встречи меньше 12 часов — для переноса ответьте на наше письмо.</div>`}
+      <div class="local">Время московское${localNote(a.interview_at)}. Ссылка на встречу придёт на почту перед началом.</div>
+      <div class="acts">
+        <a href="${icsHref(a)}" download="wowspeak-interview.ics">📅 Добавить в календарь</a>
+        ${canCancel ? `<button onclick="rescheduleBooking('${a.id}')">Перенести</button>
+                       <button class="warn" onclick="cancelBooking('${a.id}')">Отменить</button>` : ''}
+      </div>
+      ${canCancel ? '' : `<div class="local" style="margin-top:10px">До встречи меньше 12 часов — для переноса ответьте на наше письмо, мы поможем.</div>`}
     </div>`;
   }
   return `<div class="book"><b class="h">🗓️ Выберите время собеседования</b>
+    <div class="tzhint">Время московское. Если ваш часовой пояс другой — под каждым вариантом подписано ваше местное время.</div>
     <div id="slots-${a.id}">Загружаю свободные слоты…</div>
   </div>`;
 }
 
+const _slotState = {};   // appId → показывать ли все дни
 async function loadSlots(appId){
   const box = document.getElementById('slots-' + appId);
   if (!box) return;
   const { data, error } = await sb.rpc('hr_free_slots', { p_application_id: appId });
   if (error) { box.textContent = 'Не получилось загрузить: ' + error.message; return; }
-  if (!data?.length) { box.innerHTML = 'Свободных слотов пока нет — мы добавим новые в ближайшее время, загляните позже 🙏'; return; }
-  let html = '', lastDay = '';
+  if (!data?.length) {
+    box.innerHTML = '<div style="font-size:14.5px;line-height:1.55">Свободных слотов пока нет — мы добавим новые '
+      + 'в ближайшие дни, загляните позже 🙏<br><span style="color:var(--gray);font-size:13px">'
+      + 'Если время поджимает, ответьте на наше письмо — подберём вариант вручную.</span></div>';
+    return;
+  }
+
+  // группируем по дням
+  const days = [];
   data.forEach(s => {
-    const day = mskDate(s.start_at);
-    if (day !== lastDay) {
-      if (lastDay) html += '</div>';
-      html += `<div class="slot-day">${day}</div><div class="slot-row">`;
-      lastDay = day;
-    }
-    html += `<button class="slot-btn" onclick="bookSlot('${appId}','${s.id}','${day}, ${mskTime(s.start_at)} МСК')">${mskTime(s.start_at)}</button>`;
+    const key = mskDate(s.start_at);
+    let d = days.find(x => x.key === key);
+    if (!d) { d = { key, slots: [] }; days.push(d); }
+    d.slots.push(s);
   });
-  html += '</div>';
-  box.innerHTML = html;
+
+  const showAll = !!_slotState[appId];
+  const LIMIT = 3;
+  const shown = showAll ? days : days.slice(0, LIMIT);
+  const hidden = days.length - shown.length;
+
+  box.innerHTML = shown.map(d => `<div class="slot-day">${d.key}</div><div class="slot-row">`
+    + d.slots.map(s => {
+        const msk = mskTime(s.start_at);
+        const loc = new Date(s.start_at).toLocaleTimeString('ru-RU', { hour:'2-digit', minute:'2-digit' });
+        return `<button class="slot-btn" onclick="bookSlot('${appId}','${s.id}','${d.key}, ${msk} МСК')">`
+          + `<b>${msk}</b>${loc !== msk ? `<span>у вас ${loc}</span>` : ''}</button>`;
+      }).join('')
+    + '</div>').join('')
+    + (hidden > 0
+        ? `<button class="slot-more" onclick="_slotState['${appId}']=true;loadSlots('${appId}')">Показать ещё ${hidden} ${hidden === 1 ? 'день' : 'дн.'} →</button>`
+        : '');
 }
 
 async function bookSlot(appId, slotId, label){
-  if (!confirm('Записаться на собеседование: ' + label + '?')) return;
+  const ok = await askConfirm('Записаться на собеседование?',
+    '<b>' + label + '</b><br>45 минут, онлайн. Время можно будет поменять не позднее чем за 12 часов.',
+    'Записаться');
+  if (!ok) return;
   const { error } = await sb.rpc('hr_book_slot', { p_application_id: appId, p_slot_id: slotId });
   if (error) { alert(error.message); loadSlots(appId); return; }
   await loadApps();
 }
 
 async function cancelBooking(appId){
-  if (!confirm('Отменить текущую запись? После этого можно будет выбрать новое время.')) return;
+  const ok = await askConfirm('Отменить запись?',
+    'Время освободится, и вы сможете выбрать новое.', 'Отменить запись');
+  if (!ok) return;
   const { error } = await sb.rpc('hr_cancel_booking', { p_application_id: appId });
   if (error) { alert(error.message); return; }
+  await loadApps();
+}
+
+async function rescheduleBooking(appId){
+  const ok = await askConfirm('Перенести собеседование?',
+    'Текущее время освободится, и сразу откроется список свободных вариантов.', 'Выбрать другое время');
+  if (!ok) return;
+  const { error } = await sb.rpc('hr_cancel_booking', { p_application_id: appId });
+  if (error) { alert(error.message); return; }
+  _slotState[appId] = true;
   await loadApps();
 }
 
