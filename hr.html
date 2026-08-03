@@ -210,6 +210,42 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
 .cal-add{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-left:auto}
 .cal-add input{padding:9px 10px;border:2px solid var(--cream-dark);border-radius:10px;font-size:13.5px;background:#FDFCF8}
 .cal-add button{background:var(--purple);color:#fff;border:none;border-radius:10px;padding:9px 16px;font-weight:800;font-size:13px}
+/* ---------- аналитика ---------- */
+.st-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px}
+.st-tile{background:#fff;border:1px solid var(--cream-dark);border-radius:16px;padding:16px 18px}
+.st-tile .v{font-family:'Fredoka',sans-serif;font-weight:600;font-size:30px;line-height:1.05;color:var(--purple-dark)}
+.st-tile .l{font-size:13px;color:var(--gray);font-weight:700;margin-top:3px}
+.st-tile .s{font-size:12px;color:var(--gray);margin-top:2px;opacity:.85}
+.st-card{background:#fff;border:1px solid var(--cream-dark);border-radius:16px;padding:20px 22px;margin-bottom:16px}
+.st-card h3{font-size:12px;font-weight:900;color:var(--gray);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px}
+.st-hint{font-size:12.5px;color:var(--gray);margin-bottom:14px;line-height:1.5}
+.st-empty{font-size:13px;color:var(--gray);padding:6px 0}
+.st-grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:900px){.st-grid2{grid-template-columns:1fr}}
+.st-scroll{overflow-x:auto}
+.st-table{width:100%;border-collapse:collapse;font-size:13.5px}
+.st-table th{text-align:left;font-size:11px;font-weight:900;color:var(--gray);text-transform:uppercase;
+  letter-spacing:.03em;padding:0 10px 8px 0;white-space:nowrap}
+.st-table th.num,.st-table td.num{text-align:right;padding-right:0;padding-left:14px}
+.st-table td{padding:8px 10px 8px 0;border-top:1px solid var(--cream);white-space:nowrap}
+.st-table td:first-child{white-space:normal;min-width:130px}
+.st-table td.num{font-variant-numeric:tabular-nums;font-weight:800}
+.st-table td.zero{color:#DCD6C8;font-weight:700}
+.st-table td.strong{color:#15803D;font-weight:900}
+.st-table td .sub{font-weight:700;color:var(--gray);font-size:12px}
+.fn-row{display:flex;align-items:center;gap:12px;margin-bottom:7px}
+.fn-lbl{flex:0 0 128px;font-weight:800;font-size:13.5px}
+.fn-track{flex:1;background:var(--cream);border-radius:6px;height:28px;position:relative;min-width:60px}
+.fn-fill{position:absolute;left:0;top:0;bottom:0;background:var(--purple);border-radius:6px}
+.fn-val{position:relative;line-height:28px;padding-left:11px;color:#fff;font-weight:800;font-size:13px;
+  font-variant-numeric:tabular-nums}
+.fn-meta{flex:0 0 118px;font-size:12.5px;color:var(--gray);text-align:right}
+.fn-meta b{color:var(--dark)}
+.rs-row{display:flex;align-items:center;gap:10px;margin-bottom:9px;font-size:13px}
+.rs-lbl{flex:0 0 52%;white-space:normal;line-height:1.35}
+.rs-track{flex:1;background:var(--cream);border-radius:5px;height:14px;min-width:40px}
+.rs-fill{height:14px;background:var(--purple);border-radius:5px}
+.rs-row b{font-variant-numeric:tabular-nums;min-width:24px;text-align:right}
 .cal-link{display:flex;gap:9px;align-items:center;flex-wrap:wrap;background:#fff;border:1px solid var(--cream-dark);
   border-radius:14px;padding:11px 15px;margin-bottom:12px;font-size:13px;font-weight:800;color:var(--gray)}
 .cal-link input{flex:1;min-width:230px;padding:8px 11px;border:2px solid var(--cream-dark);border-radius:10px;
@@ -456,6 +492,29 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">
       <button onclick="closeTaskModal()" style="border:none;border-radius:999px;padding:10px 18px;font-weight:800;background:var(--cream-dark);color:var(--gray)">Отмена</button>
       <button id="taskGo" onclick="confirmInvite()" style="border:none;border-radius:999px;padding:10px 18px;font-weight:800;background:var(--orange);color:#fff">Отправить приглашение</button>
+    </div>
+  </div>
+</div>
+
+<div id="checkOverlay" onclick="if(event.target===this)closeCheck()" style="display:none;position:fixed;inset:0;background:rgba(45,45,63,.55);z-index:65;align-items:flex-start;justify-content:center;padding:40px 14px;overflow-y:auto">
+  <div style="background:#fff;border-radius:20px;max-width:720px;width:100%;padding:26px 28px;box-shadow:var(--shadow)">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:4px">
+      <h3 id="chkTitle" style="font-size:20px">Чек-лист демо-урока</h3>
+      <button onclick="closeCheck()" style="background:none;border:none;font-size:24px;color:var(--gray)">✕</button>
+    </div>
+    <div id="chkWho" style="font-size:13px;color:var(--gray);margin-bottom:16px"></div>
+    <div id="chkBody"></div>
+    <div class="field" style="margin-top:18px">
+      <label style="font-size:12px;font-weight:900;color:var(--gray);text-transform:uppercase;letter-spacing:.03em">Комментарий по уроку</label>
+      <textarea id="chkComment" rows="3" style="width:100%;margin-top:6px;padding:11px 13px;border:2px solid var(--cream-dark);border-radius:12px;font-size:14px;background:#FDFCF8;font-family:inherit" placeholder="Что запомнилось, что стоит учесть…"></textarea>
+    </div>
+    <div style="position:sticky;bottom:0;background:#fff;padding-top:16px;margin-top:6px;border-top:1px solid var(--cream-dark);display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+      <div id="chkScore" style="font-family:'Fredoka',sans-serif;font-weight:600;font-size:22px"></div>
+      <div id="chkVerdict" style="font-size:13px;font-weight:800"></div>
+      <div style="margin-left:auto;display:flex;gap:10px">
+        <button onclick="closeCheck()" style="border:2px solid var(--cream-dark);background:#fff;border-radius:999px;padding:10px 18px;font-weight:800">Отмена</button>
+        <button id="chkSave" onclick="saveCheck()" style="border:none;border-radius:999px;padding:10px 22px;font-weight:800;background:var(--purple);color:#fff">Сохранить</button>
+      </div>
     </div>
   </div>
 </div>
@@ -872,6 +931,10 @@ async function openCard(id){
         </div>
       </div>
 
+      ${['interview','offer','onboarding','hired','rejected'].includes(a.status) ? `<div class="sec"><h3>Чек-лист демо-урока</h3>
+        <div id="checkBox"><div style="font-size:13px;color:var(--gray)">Загружаю…</div></div>
+      </div>` : ''}
+
       ${(a.offer_sent_at || ['interview','offer','onboarding','hired'].includes(a.status)) ? `<div class="sec"><h3>Оффер</h3>
         <div id="offerState" style="font-size:13.5px;color:var(--gray);margin-bottom:10px"></div>
         ${a.status === 'rejected' ? '' : `<button class="tpl-btn" onclick="openOffer()">📄 Отправить / обновить оффер</button>`}
@@ -947,7 +1010,7 @@ async function openCard(id){
     </div>`;
   document.getElementById('overlay').style.display = 'block';
   const os = document.getElementById('offerState'); if (os) os.textContent = offerStateText(a);
-  loadMedia(a); loadNotes(a.id); loadTasksFor(a.id); loadTimeline(a); loadInterview(a.id);
+  loadMedia(a); loadNotes(a.id); loadTasksFor(a.id); loadTimeline(a); loadInterview(a.id); loadCheck(a);
 }
 function closeCard(){ document.getElementById('overlay').style.display = 'none'; current = null; }
 
@@ -1246,93 +1309,135 @@ async function loadStats(){
   if (vSel.options.length === 1) {
     vacancies.forEach(v => vSel.insertAdjacentHTML('beforeend', `<option value="${v.id}">${esc(v.title)}</option>`));
   }
-  el.innerHTML = 'Загружаю…';
+  el.innerHTML = '<div class="loading">Загружаю…</div>';
   const days = parseInt(document.getElementById('stPeriod').value);
   const from = new Date(Date.now() - days * 86400000).toISOString();
   const { data, error } = await sb.rpc('hr_funnel_stats',
     { p_from: from, p_to: new Date().toISOString(), p_vacancy_id: vSel.value || null });
-  if (error) { el.innerHTML = 'Ошибка: ' + esc(error.message); return; }
-  const f = data.funnel, t = data.timing || {};
+  if (error) { el.innerHTML = '<div class="empty">Ошибка: ' + esc(error.message) + '</div>'; return; }
+  const f = data.funnel || {}, t = data.timing || {};
 
-  const stage = (label, n, conv, days) => `
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
-      <div style="flex:0 0 130px;font-weight:800;font-size:13.5px">${label}</div>
-      <div style="flex:1;background:var(--cream-dark);border-radius:999px;height:30px;position:relative;overflow:hidden">
-        <div style="position:absolute;inset:0;width:${f.new ? Math.max(2, n * 100 / f.new) : 0}%;background:linear-gradient(90deg,var(--purple),var(--pink));border-radius:999px"></div>
-        <div style="position:relative;line-height:30px;padding-left:12px;color:#fff;font-weight:800;font-size:13px;text-shadow:0 1px 2px rgba(0,0,0,.2)">${n}</div>
-      </div>
-      <div style="flex:0 0 130px;font-size:12.5px;color:var(--gray)">
-        ${conv !== null ? `<b style="color:var(--dark)">${conv}%</b> с прошлого` : ''}
-        ${days ? `<br>⏱ ${days} дн.` : ''}
-      </div>
+  // ---------- плитки ----------
+  const tile = (v, l, sub) => `<div class="st-tile"><div class="v">${v}</div>
+    <div class="l">${l}</div>${sub ? `<div class="s">${sub}</div>` : ''}</div>`;
+  const daysToHire = t.hired != null ? t.hired : null;
+
+  // ---------- воронка: один цвет, длина = величина ----------
+  const row = (label, n, conv, avgDays) => {
+    const pct = f.new ? Math.max(1.5, n * 100 / f.new) : 0;
+    return `<div class="fn-row" title="${label}: ${n}">
+      <div class="fn-lbl">${label}</div>
+      <div class="fn-track"><div class="fn-fill" style="width:${pct}%"></div>
+        <span class="fn-val">${n}</span></div>
+      <div class="fn-meta">${conv != null ? `<b>${conv}%</b>` : ''}${avgDays != null ? `<span> · ${avgDays} дн.</span>` : ''}</div>
     </div>`;
+  };
+
+  // ---------- таблицы ----------
+  const table = (cols, rows, empty) => rows.length
+    ? `<div class="st-scroll"><table class="st-table">
+        <thead><tr>${cols.map((c,i) => `<th${i ? ' class="num"' : ''}>${c}</th>`).join('')}</tr></thead>
+        <tbody>${rows.join('')}</tbody></table></div>`
+    : `<div class="st-empty">${empty}</div>`;
+  const td = (v, muted) => `<td class="num${muted && !v ? ' zero' : ''}">${v ?? '—'}</td>`;
+
+  const recRows = (data.by_recruiter || []).map(r => `<tr>
+      <td>${esc(r.recruiter)}</td>
+      ${td(r.screened, true)}${td(r.interviews, true)}
+      <td class="num${r.checks ? '' : ' zero'}">${r.checks || 0}${r.checks_avg_pct != null ? `<span class="sub"> · ${r.checks_avg_pct}%</span>` : ''}</td>
+      ${td(r.offers, true)}<td class="num strong">${r.hired || 0}</td>${td(r.rejected, true)}
+    </tr>`);
+
+  const srcRows = (data.by_source || []).map(r => `<tr>
+      <td>${esc(SOURCE[r.source] || r.source)}</td>
+      ${td(r.total)}${td(r.interview, true)}${td(r.offer, true)}
+      <td class="num strong">${r.hired || 0}</td>
+      <td class="num">${r.conv}%</td></tr>`);
+
+  const refRows = (data.by_referrer || []).map(r => `<tr>
+      <td>${esc(r.who)}</td>${td(r.total)}<td class="num strong">${r.hired || 0}</td></tr>`);
+
+  const taskRows = (data.by_task || []).map(r => `<tr>
+      <td>${esc(r.task)}</td>${td(r.total)}${td(r.interview, true)}${td(r.offer, true)}
+      <td class="num strong">${r.hired || 0}</td><td class="num">${r.conv}%</td></tr>`);
+
+  const spkRows = (data.by_speaker || []).map(r => `<tr>
+      <td>${esc(r.speaker)}</td>${td(r.total)}${td(r.screening, true)}${td(r.interview, true)}
+      ${td(r.offer, true)}<td class="num strong">${r.hired || 0}</td><td class="num">${r.conv}%</td></tr>`);
+
+  const maxReason = Math.max(1, ...(data.reject_reasons || []).map(r => r.n));
+  const reasonRows = (data.reject_reasons || []).map(r => `
+    <div class="rs-row" title="${esc(r.reason)}: ${r.n}">
+      <div class="rs-lbl">${r.who === 'candidate' ? '🙋' : '🏫'} ${esc(r.reason)}</div>
+      <div class="rs-track"><div class="rs-fill" style="width:${r.n * 100 / maxReason}%"></div></div>
+      <b>${r.n}</b>
+    </div>`).join('');
+
+  const STAGE_RU = { new:'Новая', screening:'Скрининг', interview:'Собеседование',
+                     offer:'Оффер', onboarding:'Онбординг' };
+  const stageRows = (data.reject_stage || []).map(r => `<tr>
+      <td>${esc(STAGE_RU[r.stage] || r.stage)}</td><td class="num">${r.n}</td></tr>`);
 
   el.innerHTML = `
-    <div class="sec" style="background:#fff;border:1px solid var(--cream-dark);border-radius:16px;padding:20px;margin-bottom:14px">
-      <h3 style="font-size:12px;font-weight:900;color:var(--gray);text-transform:uppercase;margin-bottom:14px">Воронка</h3>
-      ${stage('Заявки', f.new, null, null)}
-      ${stage('Скрининг', f.screening, f.conv_screening, t.screening)}
-      ${stage('Собеседование', f.interview, f.conv_interview, t.interview)}
-      ${stage('Оффер', f.offer, f.conv_offer, t.offer)}
-      ${stage('Принят 🎉', f.hired, f.conv_hired, t.hired)}
-      <div style="display:flex;gap:20px;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px solid var(--cream-dark)">
-        <div><div style="font-size:11px;color:var(--gray);font-weight:800;text-transform:uppercase">Общая конверсия</div>
-          <div style="font-family:'Fredoka',sans-serif;font-size:26px;color:var(--purple)">${f.conv_total}%</div>
-          <div style="font-size:11.5px;color:var(--gray)">заявка → принят</div></div>
-        <div><div style="font-size:11px;color:var(--gray);font-weight:800;text-transform:uppercase">Отказов</div>
-          <div style="font-family:'Fredoka',sans-serif;font-size:26px;color:var(--red)">${f.rejected}</div></div>
-        <div><div style="font-size:11px;color:var(--gray);font-weight:800;text-transform:uppercase">Средний балл</div>
-          <div style="font-size:14px;margin-top:6px"><b>${f.avg_score_hired ?? '—'}</b> у принятых<br>
-          <span style="color:var(--gray)">${f.avg_score_rejected ?? '—'} у отказанных</span></div></div>
+    <div class="st-tiles">
+      ${tile(f.new ?? 0, 'заявок за период')}
+      ${tile((f.conv_total ?? 0) + '%', 'доходят до найма', `${f.hired ?? 0} из ${f.new ?? 0}`)}
+      ${tile(daysToHire != null ? daysToHire : '—', 'дней до найма', 'в среднем от подачи')}
+      ${tile(f.rejected ?? 0, 'отказов', f.avg_score_rejected != null ? `средний балл ${f.avg_score_rejected}` : '')}
+    </div>
+
+    <div class="st-card">
+      <h3>Воронка</h3>
+      <div class="st-hint">Справа — конверсия с прошлого этапа и среднее время от подачи заявки.</div>
+      ${row('Заявки', f.new ?? 0, null, null)}
+      ${row('Скрининг', f.screening ?? 0, f.conv_screening, t.screening)}
+      ${row('Собеседование', f.interview ?? 0, f.conv_interview, t.interview)}
+      ${row('Оффер', f.offer ?? 0, f.conv_offer, t.offer)}
+      ${row('Онбординг', f.onboarding ?? 0, f.conv_onboarding, t.onboarding)}
+      ${row('В команде', f.hired ?? 0, f.conv_hired, t.hired)}
+      ${f.avg_score_hired != null ? `<div class="st-hint" style="margin-top:14px">
+        Средний балл анкеты: у нанятых <b>${f.avg_score_hired}</b>, у отказанных <b>${f.avg_score_rejected ?? '—'}</b>.</div>` : ''}
+    </div>
+
+    <div class="st-card">
+      <h3>По рекрутерам</h3>
+      <div class="st-hint">Скрининги и собеседования — по факту: кто перевёл заявку и к кому записался кандидат.
+        Офферы, найм и отказы — по текущему ответственному.</div>
+      ${table(['Кто','Отскринил','Собеседований','Чек-листов','Офферов','Нанято','Отказов'], recRows,
+              'За период никто не вёл заявки.')}
+    </div>
+
+    <div class="st-grid2">
+      <div class="st-card">
+        <h3>Откуда приходят</h3>
+        ${table(['Источник','Заявок','Собесед.','Офферов','Нанято','Конверсия'], srcRows,
+                'Поле «откуда узнали» появилось недавно — данные накопятся.')}
+      </div>
+      <div class="st-card">
+        <h3>Рекомендации сотрудников</h3>
+        ${table(['Кого указали','Привёл','Нанято'], refRows, 'Рекомендаций пока нет.')}
       </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
-      <div style="background:#fff;border:1px solid var(--cream-dark);border-radius:16px;padding:20px">
-        <h3 style="font-size:12px;font-weight:900;color:var(--gray);text-transform:uppercase;margin-bottom:12px">По типу преподавателя</h3>
-        ${data.by_speaker?.length ? data.by_speaker.map(s => `
-          <div style="padding:8px 0;border-bottom:1px solid var(--cream)">
-            <div style="display:flex;justify-content:space-between;font-size:13.5px">
-              <span style="font-weight:800">${esc(s.speaker)}</span>
-              <span><b style="color:var(--purple)">${s.conv}%</b></span>
-            </div>
-            <div style="font-size:12px;color:var(--gray);margin-top:2px">
-              ${s.total} заявок → ${s.screening} скрининг → ${s.interview} собес → ${s.offer} оффер → ${s.hired} принят
-            </div>
-          </div>`).join('') : '<div style="color:var(--gray);font-size:13px">Нет данных</div>'}
+    <div class="st-grid2">
+      <div class="st-card">
+        <h3>Причины отказов</h3>
+        ${reasonRows || '<div class="st-empty">Отказов нет.</div>'}
       </div>
-      <div style="background:#fff;border:1px solid var(--cream-dark);border-radius:16px;padding:20px">
-        <h3 style="font-size:12px;font-weight:900;color:var(--gray);text-transform:uppercase;margin-bottom:12px">По ТЗ на демо-урок</h3>
-        ${data.by_task?.length ? data.by_task.map(t => `
-          <div style="padding:8px 0;border-bottom:1px solid var(--cream)">
-            <div style="display:flex;justify-content:space-between;font-size:13.5px;gap:8px">
-              <span style="font-weight:800">${esc(t.task)}</span>
-              <span><b style="color:var(--purple)">${t.conv}%</b></span>
-            </div>
-            <div style="font-size:12px;color:var(--gray);margin-top:2px">
-              ${t.total} назначено → ${t.offer} оффер → ${t.hired} принят
-            </div>
-          </div>`).join('') : '<div style="color:var(--gray);font-size:13px">ТЗ ещё не назначались</div>'}
+      <div class="st-card">
+        <h3>На каком этапе отказали</h3>
+        ${table(['Этап','Отказов'], stageRows, 'Отказов нет.')}
       </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-      <div style="background:#fff;border:1px solid var(--cream-dark);border-radius:16px;padding:20px">
-        <h3 style="font-size:12px;font-weight:900;color:var(--gray);text-transform:uppercase;margin-bottom:12px">По рекрутерам</h3>
-        ${data.by_recruiter.length ? data.by_recruiter.map(r => `
-          <div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--cream);font-size:13.5px">
-            <span style="font-weight:800">${esc(r.recruiter)}</span>
-            <span style="color:var(--gray)">${r.total} заявок · ${r.hired} принят · <b style="color:var(--purple)">${r.conv}%</b></span>
-          </div>`).join('') : '<div style="color:var(--gray);font-size:13px">Нет данных</div>'}
-      </div>
-      <div style="background:#fff;border:1px solid var(--cream-dark);border-radius:16px;padding:20px">
-        <h3 style="font-size:12px;font-weight:900;color:var(--gray);text-transform:uppercase;margin-bottom:12px">Причины отказов</h3>
-        ${data.reject_reasons.length ? data.reject_reasons.map(r => `
-          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--cream);font-size:13px">
-            <span>${r.who === 'candidate' ? '🙋 ' : '🏫 '}${esc(r.reason)}</span>
-            <b>${r.n}</b>
-          </div>`).join('') : '<div style="color:var(--gray);font-size:13px">Отказов нет</div>'}
-      </div>
+    <div class="st-card">
+      <h3>По ТЗ на демо-урок</h3>
+      ${table(['ТЗ','Всего','Собесед.','Офферов','Нанято','Конверсия'], taskRows, 'ТЗ ещё не назначались.')}
+    </div>
+
+    <div class="st-card">
+      <h3>По типу преподавателя</h3>
+      ${table(['Тип','Заявок','Скрининг','Собесед.','Офферов','Нанято','Конверсия'], spkRows, 'Нет данных.')}
     </div>`;
 }
 
@@ -1543,10 +1648,18 @@ function tlLabel(ev){
   if (ev.type === 'onboarding_started') return '🎓 Запущен онбординг' + (p.buddy_id ? ` · наставник ${esc(nameOf(p.buddy_id))}` : '');
   if (ev.type === 'onboarding_step_done') return `☑️ Шаг онбординга закрыт: <b>${esc(p.title || p.step_slug || p.slug || '')}</b>`;
   if (ev.type === 'onboarding_stopped') return `⛔ Онбординг прекращён${p.reason ? ' — ' + esc(p.reason) : ''}`;
+  if (ev.type === 'interview_check_saved')
+    return `📝 Чек-лист демо-урока: <b>${p.score}/${p.max}</b>`
+      + (p.pass ? (p.score >= p.pass ? ' · выше порога' : ' · ниже порога') : '')
+      + (p.by ? ` · ${esc(nameOf(p.by))}` : '');
+  if (ev.type === 'offer_superseded')
+    return `📄 Оффер заменён новым${p.was_accepted ? ' (прежний был принят — снимок сохранён в истории)' : ''}`;
+  if (ev.type === 'interview_reminded') return '🔔 Напоминание о собеседовании отправлено';
+  if (ev.type === 'rejected_no_email') return `🚫 Отказ без письма — ${esc(p.reason || 'дубль')}`;
+  if (ev.type === 'app_access_opened') return '🔓 Открыт доступ к app.wowteach.ru';
   if (ev.type === 'learn_course_assigned')
     return `📚 Назначен курс: <b>${esc(p.title || p.course || '')}</b>`
       + (p.deadline ? ` · до ${fmtDate(p.deadline)}` : '');
-  if (ev.type === 'app_access_opened') return '🔓 Открыт доступ к app.wowteach.ru';
   if (ev.type === 'onboarding_overdue') return `⏰ Просрочен шаг: <b>${esc(p.step || '')}</b>`;
   if (ev.type === 'onboarding_done') return '🏁 Онбординг завершён';
   return esc(ev.type);
@@ -1593,6 +1706,143 @@ async function startOnboardingFor(id, name){
   await loadApps();
   closeCard();
   switchSection('onb');
+}
+
+// ============ Чек-лист демо-урока ============
+// Какой чек-лист показывать — зависит от вакансии.
+function checkCodeFor(a){
+  const vac = vacancies.find(v => v.id === a.vacancy_id);
+  return vac?.slug === 'manager' ? 'interview_mvu' : 'interview_teacher';
+}
+const _chkCache = {};
+let chkState = null;   // { appId, code, cfg, answers }
+
+async function loadCheck(a){
+  const box = document.getElementById('checkBox');
+  if (!box) return;
+  const { data } = await sb.from('hr_interview_checks').select('*')
+    .eq('application_id', a.id).maybeSingle();
+  if (!data) {
+    box.innerHTML = `<div style="font-size:13px;color:var(--gray);margin-bottom:10px">Ещё не заполнен.</div>
+      <button class="tpl-btn" onclick="openCheck('${a.id}')">📝 Заполнить чек-лист</button>`;
+    return;
+  }
+  const pct = data.max_score ? Math.round(data.total_score * 100 / data.max_score) : 0;
+  const cfg = _chkCache[data.checklist_code];
+  const pass = cfg?.pass_score;
+  const good = pass ? data.total_score >= pass : pct >= 80;
+  const answers = data.details?.answers || {};
+  box.innerHTML = `
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:10px">
+      <div style="font-family:'Fredoka',sans-serif;font-weight:600;font-size:26px;color:${good?'var(--green)':'var(--orange)'}">
+        ${data.total_score}<span style="font-size:16px;color:var(--gray)">/${data.max_score}</span></div>
+      <div style="font-size:13px;color:var(--gray)">
+        ${pct}% · ${data.author_id ? esc(nameOf(data.author_id)) : '—'} · ${fmtDate(data.updated_at)}
+        ${pass ? `<br>рекомендуемый порог — ${pass}` : ''}
+      </div>
+      <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="tpl-btn" onclick="openCheck('${a.id}')">✏️ Изменить</button>
+        <button class="tpl-btn" onclick="toggleCheckDetails()">📋 Ответы</button>
+      </div>
+    </div>
+    ${data.comment ? `<div style="background:var(--cream);border-radius:10px;padding:10px 13px;font-size:13.5px;white-space:pre-wrap">${esc(data.comment)}</div>` : ''}
+    <div id="chkDetails" style="display:none;margin-top:12px"></div>`;
+  window.__chkSaved = { data, answers };
+}
+async function toggleCheckDetails(){
+  const el = document.getElementById('chkDetails');
+  if (!el) return;
+  if (el.style.display !== 'none') { el.style.display = 'none'; return; }
+  const { data, answers } = window.__chkSaved || {};
+  if (!data) return;
+  const cfg = await loadChecklistCfg(data.checklist_code);
+  let lastGroup = null, html = '';
+  cfg.criteria.forEach(c => {
+    if (c.group !== lastGroup) { html += `<div style="font-weight:900;font-size:12px;color:var(--gray);text-transform:uppercase;letter-spacing:.03em;margin:12px 0 5px">${esc(c.group)}</div>`; lastGroup = c.group; }
+    const ok = Number(answers[c.id] || 0) > 0;
+    html += `<div style="display:flex;gap:9px;font-size:13.5px;padding:4px 0;align-items:flex-start">
+      <span style="flex-shrink:0">${ok ? '✅' : '⬜'}</span>
+      <span style="${ok ? '' : 'color:var(--gray)'}">${esc(c.title)}</span></div>`;
+  });
+  el.innerHTML = html;
+  el.style.display = 'block';
+}
+async function loadChecklistCfg(code){
+  if (_chkCache[code]) return _chkCache[code];
+  const { data, error } = await sb.rpc('hr_interview_checklist', { p_code: code });
+  if (error) throw new Error(error.message);
+  _chkCache[code] = data;
+  return data;
+}
+
+async function openCheck(appId){
+  const a = apps.find(x => x.id === appId);
+  if (!a) return;
+  const code = checkCodeFor(a);
+  let cfg;
+  try { cfg = await loadChecklistCfg(code); }
+  catch (e) { alert('Не получилось загрузить чек-лист: ' + e.message + '\nПрогнан ли патч 14?'); return; }
+
+  const { data: saved } = await sb.from('hr_interview_checks').select('*')
+    .eq('application_id', appId).eq('checklist_code', code).maybeSingle();
+  const answers = saved?.details?.answers || {};
+
+  chkState = { appId, code, cfg, answers: { ...answers } };
+  document.getElementById('chkTitle').textContent = cfg.label;
+  document.getElementById('chkWho').textContent =
+    a.full_name + (saved ? ' · заполнен ' + fmtDate(saved.updated_at) : '');
+  document.getElementById('chkComment').value = saved?.comment || '';
+
+  let lastGroup = null, html = '';
+  cfg.criteria.forEach(c => {
+    if (c.group !== lastGroup) {
+      html += `<div style="font-weight:900;font-size:12px;color:var(--purple-dark);text-transform:uppercase;letter-spacing:.03em;margin:18px 0 6px">${esc(c.group)}</div>`;
+      lastGroup = c.group;
+    }
+    const on = Number(answers[c.id] || 0) > 0;
+    html += `<label style="display:flex;gap:11px;align-items:flex-start;padding:9px 11px;border-radius:10px;cursor:pointer;font-size:14px;border:1px solid transparent" class="chk-row" data-id="${c.id}">
+      <input type="checkbox" ${on ? 'checked' : ''} onchange="toggleCrit('${c.id}', this.checked)"
+        style="width:19px;height:19px;accent-color:var(--green);flex-shrink:0;margin-top:1px">
+      <span>${esc(c.title)}</span></label>`;
+  });
+  document.getElementById('chkBody').innerHTML = html;
+  renderChkScore();
+  document.getElementById('checkOverlay').style.display = 'flex';
+}
+function toggleCrit(id, on){
+  if (!chkState) return;
+  chkState.answers[id] = on ? 1 : 0;
+  renderChkScore();
+}
+function renderChkScore(){
+  if (!chkState) return;
+  const max = chkState.cfg.max_score;
+  const total = chkState.cfg.criteria.reduce((s, c) => s + Number(chkState.answers[c.id] || 0), 0);
+  const pass = chkState.cfg.pass_score;
+  document.getElementById('chkScore').textContent = `${total} / ${max}`;
+  const v = document.getElementById('chkVerdict');
+  if (!pass) { v.textContent = ''; return; }
+  const good = total >= pass;
+  v.textContent = good ? '✅ выше рекомендуемого порога' : `⚠️ ниже порога (${pass})`;
+  v.style.color = good ? 'var(--green)' : 'var(--orange)';
+}
+function closeCheck(){ document.getElementById('checkOverlay').style.display = 'none'; chkState = null; }
+async function saveCheck(){
+  if (!chkState) return;
+  const btn = document.getElementById('chkSave');
+  btn.disabled = true; btn.textContent = 'Сохраняю…';
+  const { error } = await sb.rpc('hr_save_interview_check', {
+    p_application_id: chkState.appId,
+    p_code: chkState.code,
+    p_answers: chkState.answers,
+    p_comment: document.getElementById('chkComment').value
+  });
+  btn.disabled = false; btn.textContent = 'Сохранить';
+  if (error) { alert('Не получилось: ' + error.message); return; }
+  const appId = chkState.appId;
+  closeCheck();
+  const a = apps.find(x => x.id === appId);
+  if (a) { loadCheck(a); loadTimeline(a); }
 }
 
 // ============ История офферов ============
