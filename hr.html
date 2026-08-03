@@ -494,10 +494,10 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
       <option value="candidate">Кандидат отказался</option>
     </select>
     <label>Причина</label>
-    <select id="rejReason"></select>
+    <select id="rejReason" onchange="updateRejHint()"></select>
     <label>Комментарий (необязательно)</label>
     <input id="rejComment" placeholder="Детали для команды…">
-    <div class="hint-mail" id="rejHint">Кандидату автоматически уйдёт вежливое письмо (только при отказе с нашей стороны).</div>
+    <div class="hint-mail" id="rejHint"></div>
     <div class="reject-actions">
       <button class="rcancel" onclick="closeReject()">Отмена</button>
       <button class="rsave" onclick="saveReject()">Подтвердить отказ</button>
@@ -1018,6 +1018,23 @@ function fillRejectReasons(){
   const who = document.getElementById('rejWho').value;
   document.getElementById('rejReason').innerHTML =
     REJECT_REASONS[who].map(r => `<option>${r}</option>`).join('');
+  updateRejHint();
+}
+// подсказки: что именно уйдёт кандидату при выбранной причине
+const REJ_HINT = {
+  'Не выполнил(а) тестовое задание': 'Письмо предложит прислать задание — заявку можно будет вернуть.',
+  'Слабая видео-визитка': 'Письмо предложит переснять видео и прислать ответом.',
+  'Не прошёл(а) собеседование / демо-урок': 'Письмо поблагодарит за демо-урок и предложит обратную связь.',
+  'Не подходит график / часовой пояс': 'Письмо попросит написать, если график изменится.',
+  'Пропал(а), не выходит на связь': 'Письмо — последняя попытка связаться: «ответьте, и вернём в работу».',
+  'Нашёл(ла) другую работу': 'Письмо поздравит с новой работой.'
+};
+function updateRejHint(){
+  const who = document.getElementById('rejWho').value;
+  const reason = document.getElementById('rejReason').value;
+  const extra = REJ_HINT[reason];
+  document.getElementById('rejHint').innerHTML =
+    `✉️ Кандидату уйдёт письмо, подобранное под эту причину${extra ? '. ' + extra : '.'}`;
 }
 function closeReject(){ document.getElementById('rejectOverlay').style.display = 'none'; pendingReject = null; }
 async function saveReject(){
