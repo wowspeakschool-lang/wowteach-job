@@ -58,6 +58,8 @@ button{font-family:inherit;cursor:pointer}
 .app-card{background:var(--white);border:1px solid var(--cream-dark);border-radius:var(--radius-lg);
   padding:16px 18px;box-shadow:var(--shadow-sm);margin-bottom:12px;cursor:pointer;transition:transform .12s, box-shadow .12s;
   display:grid;grid-template-columns:64px 1fr auto;gap:16px;align-items:center}
+.app-card.closed{opacity:.55}
+.app-card.closed:hover{opacity:1}
 .app-card:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
 .score-pill{width:64px;height:64px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;
   font-family:'Fredoka',sans-serif;color:#fff;background:linear-gradient(135deg,var(--purple),var(--purple-dark))}
@@ -210,6 +212,44 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
 .cal-add{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-left:auto}
 .cal-add input{padding:9px 10px;border:2px solid var(--cream-dark);border-radius:10px;font-size:13.5px;background:#FDFCF8}
 .cal-add button{background:var(--purple);color:#fff;border:none;border-radius:10px;padding:9px 16px;font-weight:800;font-size:13px}
+/* ---------- задачи ---------- */
+.tk-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.tk-seg{display:flex;background:var(--cream-dark);border-radius:999px;padding:3px}
+.tk-seg button{border:none;background:none;border-radius:999px;padding:7px 15px;font-weight:800;font-size:13px;
+  color:var(--gray);cursor:pointer;font-family:inherit}
+.tk-seg button.on{background:#fff;color:var(--purple-dark);box-shadow:var(--shadow-sm)}
+.tk-add-btn{margin-left:auto;border:none;border-radius:999px;padding:10px 18px;font-weight:800;font-size:13px;
+  background:var(--purple);color:#fff;cursor:pointer;font-family:inherit}
+.tk-form{background:#fff;border:1px solid var(--cream-dark);border-radius:16px;padding:14px 16px;margin-bottom:16px;
+  display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.tk-form input[type=text]{flex:1;min-width:220px;padding:10px 12px;border:2px solid var(--cream-dark);
+  border-radius:10px;font-size:14px;background:#FDFCF8;font-family:inherit}
+.tk-form select,.tk-form input[type=date]{padding:9px 11px;border:2px solid var(--cream-dark);border-radius:10px;
+  font-size:13px;background:#fff;font-family:inherit;font-weight:700}
+.tk-due{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.tk-due button{border:2px solid var(--cream-dark);background:#fff;border-radius:999px;padding:7px 12px;
+  font-size:12px;font-weight:800;color:var(--gray);cursor:pointer;font-family:inherit}
+.tk-due button:hover{border-color:var(--purple);color:var(--purple)}
+.tk-save{border:none;border-radius:10px;padding:10px 18px;font-weight:800;font-size:13px;
+  background:var(--green);color:#fff;cursor:pointer;font-family:inherit}
+.tk-group{margin-bottom:22px}
+.tk-group h3{font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;margin-bottom:9px;
+  display:flex;align-items:center;gap:8px}
+.tk-group h3 .n{background:var(--cream-dark);color:var(--gray);border-radius:999px;padding:1px 9px;font-size:11px}
+.tk-group.over h3{color:#B91C1C}
+.tk-group.over h3 .n{background:var(--red-light);color:#B91C1C}
+.tk-item{background:#fff;border:1px solid var(--cream-dark);border-radius:12px;padding:11px 14px;margin-bottom:8px;
+  display:flex;gap:11px;align-items:flex-start}
+.tk-item.over{border-color:var(--red)}
+.tk-item input[type=checkbox]{width:19px;height:19px;accent-color:var(--green);flex-shrink:0;margin-top:1px}
+.tk-item .body{flex:1;min-width:0}
+.tk-item .t{font-size:14.5px;font-weight:700}
+.tk-item .m{font-size:12.5px;color:var(--gray);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.tk-item .m a{font-weight:800;cursor:pointer}
+.tk-item .bot{background:var(--purple-light);color:var(--purple-dark);border-radius:999px;padding:1px 8px;
+  font-size:11px;font-weight:800}
+.tk-item .del{border:none;background:none;color:var(--cream-dark);font-size:17px;cursor:pointer;padding:0 2px;line-height:1}
+.tk-item .del:hover{color:var(--red)}
 /* ---------- аналитика ---------- */
 .st-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px}
 .st-tile{background:#fff;border:1px solid var(--cream-dark);border-radius:16px;padding:16px 18px}
@@ -343,8 +383,8 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
   <div class="toolbar">
     <select id="fVacancy" onchange="render()"><option value="">Все вакансии</option></select>
     <select id="fStatus" onchange="render()">
+      <option value="active" selected>⚡ В работе</option>
       <option value="">Все статусы</option>
-      <option value="active">Активные (не отказ/не в команде)</option>
     </select>
     <select id="fTask" onchange="render()" style="display:none"><option value="">Любое ТЗ</option></select>
     <select id="fSpeaker" onchange="render()">
@@ -407,7 +447,25 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
   </section>
 
   <section id="sec-tasks" style="display:none">
-    <h2>⏰ Мои открытые задачи</h2>
+    <div class="tk-top">
+      <h2 style="margin:0">⏰ Задачи</h2>
+      <div class="tk-seg">
+        <button id="tkMine" class="on" onclick="setTaskScope('mine')">Мои</button>
+        <button id="tkAll" onclick="setTaskScope('all')">Вся команда</button>
+      </div>
+      <button class="tk-add-btn" onclick="toggleTaskForm()">＋ Задача</button>
+    </div>
+    <div class="tk-form" id="tkForm" style="display:none">
+      <input type="text" id="tkTitle" placeholder="Что нужно сделать" onkeydown="if(event.key==='Enter')createTask()">
+      <select id="tkWho"></select>
+      <div class="tk-due">
+        <button type="button" onclick="setTkDue(0)">сегодня</button>
+        <button type="button" onclick="setTkDue(1)">завтра</button>
+        <button type="button" onclick="setTkDue(7)">неделя</button>
+        <input type="date" id="tkDue">
+      </div>
+      <button class="tk-save" onclick="createTask()">Добавить</button>
+    </div>
     <div id="tasksPage"></div>
   </section>
 
@@ -784,7 +842,10 @@ function filteredRows(){
 }
 function render(){
   const rows = filteredRows();
-  document.getElementById('count').textContent = rows.length + ' из ' + apps.length;
+  const fS = document.getElementById('fStatus').value;
+  document.getElementById('count').textContent = fS === 'active'
+    ? `${rows.length} в работе · всего ${apps.filter(a => !a.archived_at).length}`
+    : `${rows.length} из ${apps.filter(a => !a.archived_at).length}`;
 
   // дозаполняем фильтр статусов реальными значениями (один раз)
   const fSel = document.getElementById('fStatus');
@@ -803,7 +864,8 @@ function renderList(rows){
     const st = STATUSES[a.status] || STATUSES.new;
     const vac = vacancies.find(v => v.id === a.vacancy_id);
     const badges = (a.score_breakdown || []).map(b => `<span class="badge">${esc(b.label)} +${b.points}</span>`).join('');
-    return `<div class="app-card" onclick="openCard('${a.id}')">
+    const closed = ['rejected','hired'].includes(a.status);
+    return `<div class="app-card ${closed ? 'closed' : ''}" onclick="openCard('${a.id}')">
       <div class="score-pill"><span class="n">${a.score ?? '—'}</span><span class="l">баллов</span></div>
       <div class="mid">
         <div class="name">${esc(a.full_name)}</div>
@@ -1180,20 +1242,33 @@ async function sendTpl(slug){
 }
 
 // ============ Задачи ============
-let myTasks = [];
+let myTasks = [], allTasks = [], taskScope = 'mine';
+
 async function loadTasksFor(appId){
-  const { data } = await sb.from('hr_tasks').select('*').eq('application_id', appId).order('done_at', { nullsFirst: true }).order('due_at');
+  const { data } = await sb.from('hr_tasks').select('*').eq('application_id', appId)
+    .order('done_at', { nullsFirst: true }).order('due_at');
   const el = document.getElementById('taskList');
+  if (!el) return;
   if (!data?.length) { el.innerHTML = '<div style="color:var(--gray);font-size:13px">Задач нет</div>'; return; }
   el.innerHTML = data.map(t => taskHtml(t, false)).join('');
 }
-function taskHtml(t, clickable){
+function taskHtml(t, showApp){
   const over = !t.done_at && t.due_at && new Date(t.due_at) < new Date();
   const app = apps.find(a => a.id === t.application_id);
-  return `<div class="task ${t.done_at ? 'done':''}" ${clickable ? `onclick="openCard('${t.application_id}')"` : ''}>
-    <input type="checkbox" ${t.done_at ? 'checked':''} onclick="event.stopPropagation();toggleTask('${t.id}', this.checked)">
-    <div><div>${esc(t.title)}${clickable && app ? ' · <b>' + esc(app.full_name) + '</b>' : ''}</div>
-    ${t.due_at ? `<div class="due ${over?'over':''}">${over ? '🔥 просрочено · ' : 'до '}${new Date(t.due_at).toLocaleDateString('ru-RU',{day:'numeric',month:'short'})}</div>` : ''}</div>
+  return `<div class="tk-item ${over ? 'over' : ''}" style="${t.done_at ? 'opacity:.5' : ''}">
+    <input type="checkbox" ${t.done_at ? 'checked' : ''} onchange="toggleTask('${t.id}', this.checked)">
+    <div class="body">
+      <div class="t" style="${t.done_at ? 'text-decoration:line-through' : ''}">${esc(t.title)}</div>
+      <div class="m">
+        ${t.auto_key ? '<span class="bot">🤖 система</span>' : ''}
+        ${showApp && app ? `<a onclick="openCard('${app.id}')">${esc(app.full_name)}</a>` : ''}
+        ${showApp && !app && t.application_id ? '<span>кандидат в архиве</span>' : ''}
+        ${t.assigned_to ? `<span>👤 ${esc(nameOf(t.assigned_to))}</span>` : '<span>👤 не назначена</span>'}
+        ${t.due_at ? `<span style="${over ? 'color:var(--red);font-weight:800' : ''}">
+          ${over ? '🔥 просрочено · ' : 'до '}${new Date(t.due_at).toLocaleDateString('ru-RU',{day:'numeric',month:'short'})}</span>` : ''}
+      </div>
+    </div>
+    ${t.auto_key ? '' : `<button class="del" title="Удалить" onclick="deleteTask('${t.id}')">✕</button>`}
   </div>`;
 }
 async function addTask(){
@@ -1215,19 +1290,113 @@ async function toggleTask(id, done){
   if (current) loadTasksFor(current.id);
   loadMyTasks();
 }
+async function deleteTask(id){
+  if (!confirm('Удалить задачу?')) return;
+  await sb.from('hr_tasks').delete().eq('id', id);
+  if (current) loadTasksFor(current.id);
+  loadMyTasks();
+}
+
 async function loadMyTasks(){
-  const { data } = await sb.from('hr_tasks').select('*').eq('assigned_to', me.id).is('done_at', null).order('due_at', { nullsFirst: false });
-  myTasks = data || [];
+  const { data } = await sb.from('hr_tasks').select('*').is('done_at', null)
+    .order('due_at', { nullsFirst: false });
+  allTasks = data || [];
+  myTasks = allTasks.filter(t => t.assigned_to === me.id);
   const over = myTasks.filter(t => t.due_at && new Date(t.due_at) < new Date()).length;
   const badge = document.getElementById('tasksBadge');
   badge.textContent = over ? `${myTasks.length} · 🔥${over}` : myTasks.length;
   badge.classList.toggle('over', over > 0);
   if (document.getElementById('sec-tasks').style.display !== 'none') renderTasksPage();
 }
+
+function setTaskScope(s){
+  taskScope = s;
+  document.getElementById('tkMine').classList.toggle('on', s === 'mine');
+  document.getElementById('tkAll').classList.toggle('on', s === 'all');
+  renderTasksPage();
+}
+function toggleTaskForm(){
+  const f = document.getElementById('tkForm');
+  const open = f.style.display !== 'none';
+  f.style.display = open ? 'none' : 'flex';
+  if (!open) {
+    const sel = document.getElementById('tkWho');
+    sel.innerHTML = '<option value="">— без исполнителя —</option>' +
+      staff.filter(s => isRecruiter(s)).map(s =>
+        `<option value="${s.id}" ${s.id === me.id ? 'selected' : ''}>${esc(s.name || s.email)}</option>`).join('');
+    document.getElementById('tkTitle').focus();
+  }
+}
+function setTkDue(days){
+  const d = new Date(); d.setDate(d.getDate() + days);
+  document.getElementById('tkDue').value =
+    d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+async function createTask(){
+  const title = document.getElementById('tkTitle').value.trim();
+  if (!title) { alert('Напишите, что нужно сделать.'); return; }
+  const due = document.getElementById('tkDue').value;
+  const who = document.getElementById('tkWho').value || null;
+  const { error } = await sb.from('hr_tasks').insert({
+    application_id: null, title,
+    due_at: due ? new Date(due + 'T18:00:00').toISOString() : null,
+    assigned_to: who, created_by: me.id
+  });
+  if (error) { alert('Не получилось: ' + error.message); return; }
+  document.getElementById('tkTitle').value = ''; document.getElementById('tkDue').value = '';
+  document.getElementById('tkForm').style.display = 'none';
+  loadMyTasks();
+}
+
 function renderTasksPage(){
-  document.getElementById('tasksPage').innerHTML = myTasks.length
-    ? myTasks.map(t => taskHtml(t, true)).join('')
-    : '<div style="color:var(--gray);font-size:14px">Открытых задач нет 🎉</div>';
+  const rows = taskScope === 'mine' ? myTasks : allTasks;
+  const el = document.getElementById('tasksPage');
+  if (!rows.length) {
+    el.innerHTML = `<div class="empty">${taskScope === 'mine' ? 'Открытых задач нет 🎉' : 'У команды открытых задач нет 🎉'}</div>`;
+    return;
+  }
+  const now = new Date();
+  const endOfToday = new Date(now); endOfToday.setHours(23,59,59,999);
+  const endOfWeek = new Date(endOfToday); endOfWeek.setDate(endOfWeek.getDate() + 7);
+  const groups = [
+    { key:'over',  title:'Просрочено',  cls:'over', items: [] },
+    { key:'today', title:'Сегодня',     cls:'',     items: [] },
+    { key:'week',  title:'На неделе',   cls:'',     items: [] },
+    { key:'later', title:'Позже',       cls:'',     items: [] },
+    { key:'none',  title:'Без срока',   cls:'',     items: [] }
+  ];
+  rows.forEach(t => {
+    if (!t.due_at) return groups[4].items.push(t);
+    const d = new Date(t.due_at);
+    if (d < now) groups[0].items.push(t);
+    else if (d <= endOfToday) groups[1].items.push(t);
+    else if (d <= endOfWeek) groups[2].items.push(t);
+    else groups[3].items.push(t);
+  });
+
+  // в режиме «вся команда» — сводка по людям
+  let head = '';
+  if (taskScope === 'all') {
+    const byWho = {};
+    rows.forEach(t => {
+      const k = t.assigned_to || '—';
+      byWho[k] = byWho[k] || { n: 0, over: 0 };
+      byWho[k].n++;
+      if (t.due_at && new Date(t.due_at) < now) byWho[k].over++;
+    });
+    head = `<div class="st-tiles">` + Object.entries(byWho)
+      .sort((a,b) => b[1].n - a[1].n)
+      .map(([k, v]) => `<div class="st-tile"><div class="v">${v.n}</div>
+        <div class="l">${k === '—' ? 'не назначены' : esc(nameOf(k))}</div>
+        ${v.over ? `<div class="s" style="color:var(--red);font-weight:800">🔥 просрочено ${v.over}</div>` : ''}</div>`)
+      .join('') + `</div>`;
+  }
+
+  el.innerHTML = head + groups.filter(g => g.items.length).map(g => `
+    <div class="tk-group ${g.cls}">
+      <h3>${g.title} <span class="n">${g.items.length}</span></h3>
+      ${g.items.map(t => taskHtml(t, true)).join('')}
+    </div>`).join('');
 }
 
 // ============ Разделы (левое меню) ============
