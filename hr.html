@@ -383,7 +383,7 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
   <div class="toolbar">
     <select id="fVacancy" onchange="render()"><option value="">Все вакансии</option></select>
     <select id="fStatus" onchange="render()">
-      <option value="active" selected>⚡ В работе</option>
+      <option value="active" selected>⚡ В работе у рекрутера</option>
       <option value="">Все статусы</option>
     </select>
     <select id="fTask" onchange="render()" style="display:none"><option value="">Любое ТЗ</option></select>
@@ -819,7 +819,9 @@ function filteredRows(){
   if (fS === 'archived') rows = rows.filter(a => a.archived_at);
   else rows = rows.filter(a => !a.archived_at);
   if (fV) rows = rows.filter(a => a.vacancy_id === fV);
-  if (fS === 'active') rows = rows.filter(a => !['rejected','hired'].includes(a.status));
+  // «В работе» — только то, что требует действий рекрутера.
+  // Онбординг живёт в своём разделе, там ответственный — наставник.
+  if (fS === 'active') rows = rows.filter(a => !['rejected','hired','onboarding'].includes(a.status));
   else if (fS && fS !== 'archived') rows = rows.filter(a => a.status === fS);
   const fA = document.getElementById('fAssign').value;
   if (fA === 'mine') rows = rows.filter(a => a.assigned_to === me.id);
