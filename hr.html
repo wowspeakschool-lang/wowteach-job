@@ -338,6 +338,19 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
 #sec-tasks h2{font-size:19px;margin-bottom:14px}
 .tz-chip{font-size:11px;font-weight:800;background:var(--purple-light);color:var(--purple-dark);
   border-radius:999px;padding:4px 10px;white-space:nowrap}
+.iv-chip{font-size:11px;font-weight:800;border-radius:999px;padding:4px 10px;white-space:nowrap}
+.iv-funnel{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:14px 0 4px}
+.iv-col{background:#fff;border:2px solid var(--cream-dark);border-radius:16px;padding:12px 13px 10px}
+.iv-col h5{margin:0 0 2px;font-size:13px;font-weight:900;display:flex;justify-content:space-between;align-items:center}
+.iv-col h5 span.n{font-family:'Fredoka',sans-serif;font-weight:600;font-size:20px;color:var(--purple)}
+.iv-col .hint{font-size:11px;color:var(--gray);margin-bottom:8px}
+.iv-row{display:flex;justify-content:space-between;gap:8px;align-items:baseline;padding:6px 8px;border-radius:9px;
+  cursor:pointer;font-size:13px;font-weight:700}
+.iv-row:hover{background:var(--cream)}
+.iv-row em{font-style:normal;font-size:11.5px;font-weight:700;color:var(--gray);white-space:nowrap}
+.iv-row.late em{color:#B91C1C}
+.iv-col .none{font-size:12px;color:var(--gray);padding:6px 8px}
+@media(max-width:760px){.iv-funnel{grid-template-columns:1fr}}
 .acc-btn{border:none;border-radius:999px;padding:8px 14px;font-size:12.5px;font-weight:800;cursor:pointer;background:var(--cream-dark);color:var(--gray)}
 .acc-btn:hover{filter:brightness(.96)}
 @media(max-width:760px){#statsPage > div[style*="grid-template-columns:1fr 1fr"]{grid-template-columns:1fr !important}}
@@ -436,6 +449,7 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
     </div>
     <div id="calAlert"></div>
     <div id="calStats" class="cal-stats"></div>
+    <div id="ivFunnel"></div>
     <div id="calGrid" class="cal-grid"><div class="loading">Загружаю…</div></div>
     <div class="cal-legend">
       <span><i style="background:var(--purple)"></i>свободен</span>
@@ -782,11 +796,50 @@ async function loadVacancies(){
   sel.innerHTML = '<option value="">Все вакансии</option>' +
     vacancies.map(v => `<option value="${v.id}">${esc(v.title)}</option>`).join('');
 }
+// ============ Подэтап собеседования ============
+// Приглашён → записан → прошёл → оценён. Отдельных полей в базе не нужно:
+// запись живёт в hr_slots, факт оценки — в hr_interview_checks.
+let ivSlots = {};    // application_id → слот
+let ivChecks = {};   // application_id → заполненный чек-лист
+async function loadInterviewState(){
+  const [sl, ch] = await Promise.all([
+    sb.from('hr_slots').select('id,start_at,duration_min,application_id,recruiter_id')
+      .not('application_id','is',null),
+    sb.from('hr_interview_checks').select('application_id,total_score,max_score,updated_at')
+  ]);
+  ivSlots = {}; ivChecks = {};
+  (sl.data || []).forEach(x => { ivSlots[x.application_id] = x; });
+  (ch.data || []).forEach(x => { ivChecks[x.application_id] = x; });
+}
+const ivWhen = t => new Date(t).toLocaleString('ru-RU',
+  { timeZone:'Europe/Moscow', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
+function ivStage(a){
+  const chk = ivChecks[a.id], slot = ivSlots[a.id], now = Date.now();
+  if (chk) return { key:'scored', short:'✅ оценён',
+    label:`✅ оценён · ${chk.total_score}/${chk.max_score}`,
+    bg:'var(--green-light)', fg:'#15803D' };
+  if (slot) {
+    const end = new Date(slot.start_at).getTime() + (slot.duration_min || 45) * 60000;
+    if (end < now) return { key:'passed', short:'⏳ прошёл',
+      label:'⏳ прошёл ' + ivWhen(slot.start_at) + ' · чек-листа нет',
+      bg:'var(--red-light)', fg:'#B91C1C', days: Math.floor((now - end) / 864e5) };
+    return { key:'booked', short:'🗓️ записан',
+      label:'🗓️ ' + ivWhen(slot.start_at) + (slot.recruiter_id ? ' · ' + esc((nameOf(slot.recruiter_id)||'').split(' ')[0]) : ''),
+      bg:'var(--blue-light)', fg:'#1D4ED8', when: slot.start_at };
+  }
+  const days = a.status_changed_at ? Math.floor((now - new Date(a.status_changed_at)) / 864e5) : 0;
+  return { key:'invited', short:'🎤 приглашён', days,
+    label: days >= 5 ? `🎤 приглашён · ${days} дн. без записи` : '🎤 приглашён, время не выбрано',
+    bg: days >= 5 ? 'var(--red-light)' : 'var(--orange-light)',
+    fg: days >= 5 ? '#B91C1C' : '#C2410C' };
+}
+
 async function loadApps(){
   const { data, error } = await sb.from('hr_applications')
     .select('*').order('created_at', { ascending:false });
   if (error) { document.getElementById('list').innerHTML = '<div class="empty">Ошибка загрузки: '+esc(error.message)+'</div>'; return; }
   apps = data || [];
+  await loadInterviewState();
   render();
 }
 async function archiveApp(id){
@@ -822,6 +875,11 @@ function filteredRows(){
   // «В работе» — только то, что требует действий рекрутера.
   // Онбординг живёт в своём разделе, там ответственный — наставник.
   if (fS === 'active') rows = rows.filter(a => !['rejected','hired','onboarding'].includes(a.status));
+  else if (fS.startsWith('iv:')) {
+    const want = fS.slice(3);
+    rows = rows.filter(a => a.status === 'interview' &&
+      (want === 'passed' ? ['passed','scored'].includes(ivStage(a).key) : ivStage(a).key === want));
+  }
   else if (fS && fS !== 'archived') rows = rows.filter(a => a.status === fS);
   const fA = document.getElementById('fAssign').value;
   if (fA === 'mine') rows = rows.filter(a => a.assigned_to === me.id);
@@ -852,7 +910,14 @@ function render(){
   // дозаполняем фильтр статусов реальными значениями (один раз)
   const fSel = document.getElementById('fStatus');
   if (fSel.options.length === 2) {
-    Object.entries(STATUSES).forEach(([k,s]) => fSel.insertAdjacentHTML('beforeend', `<option value="${k}">${s.label}</option>`));
+    Object.entries(STATUSES).forEach(([k,s]) => {
+      fSel.insertAdjacentHTML('beforeend', `<option value="${k}">${s.label}</option>`);
+      // подэтапы собеседования — сразу под своим статусом
+      if (k === 'interview') fSel.insertAdjacentHTML('beforeend',
+          '<option value="iv:invited">&nbsp;&nbsp;🎤 приглашён — время не выбрал</option>'
+        + '<option value="iv:booked">&nbsp;&nbsp;🗓️ записан на дату</option>'
+        + '<option value="iv:passed">&nbsp;&nbsp;⏳ уже прошёл</option>');
+    });
     fSel.insertAdjacentHTML('beforeend', '<option value="archived">🗄️ Архив</option>');
   }
 
@@ -876,6 +941,7 @@ function renderList(rows){
       </div>
       <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
         <span class="status" style="background:${st.bg};color:${st.fg}">${st.label}</span>
+        ${a.status === 'interview' ? (iv => `<span class="iv-chip" style="background:${iv.bg};color:${iv.fg}">${iv.label}</span>`)(ivStage(a)) : ''}
         ${a.interview_task_slug ? `<span class="tz-chip">📄 ${esc(taskShort(a.interview_task_slug))}</span>` : ''}
         ${a.status === 'new' ? `<button class="take" onclick="event.stopPropagation();takeApp('${a.id}')">Взять в работу</button>` : ''}
       </div>
@@ -893,6 +959,7 @@ function renderBoard(rows){
           <div class="nm"><span>${esc(a.full_name)}</span><span class="sc">${a.score ?? '—'}</span></div>
           <div class="vt">${esc(vac?.title || '')} · ${fmtDate(a.created_at)}</div>
           ${a.assigned_to ? `<div class="vt">👤 ${esc(nameOf(a.assigned_to))}</div>` : ''}
+          ${a.status === 'interview' ? (iv => `<div class="vt" style="color:${iv.fg};font-weight:800">${iv.label}</div>`)(ivStage(a)) : ''}
           ${a.interview_task_slug ? `<div class="vt" style="color:var(--purple-dark);font-weight:800">📄 ${esc(taskShort(a.interview_task_slug))}</div>` : ''}
           ${a.status === 'new' ? `<button class="take sm" onclick="event.stopPropagation();takeApp('${a.id}')">Взять в работу</button>` : ''}
         </div>`;
@@ -939,7 +1006,7 @@ function stageBlock(a){
     ? `<b>${REJECTED_BY[a.rejected_by] || 'Отказ'}:</b> ${esc(a.rejection_reason || '—')}`
     : (a.status === 'offer'
         ? (a.offer_accepted_at ? '✅ Оффер принят — можно запускать онбординг' : 'Оффер отправлен, ждём ответа кандидата')
-        : (STAGE_HINT[a.status] || ''));
+        : (a.status === 'interview' ? ivHint(a) : (STAGE_HINT[a.status] || '')));
 
   return `<div class="sec"><h3>Этап</h3>
     <div class="stage-now">
@@ -955,6 +1022,15 @@ function stageBlock(a){
       `<button class="status-btn ${a.status===k?'on':''}" style="${a.status===k?`background:${s.solid}`:''}" onclick="setStatus('${k}')">${s.label}</button>`).join('')}</div>
     <div id="ivInfo"></div>
   </div>`;
+}
+function ivHint(a){
+  const iv = ivStage(a);
+  if (iv.key === 'scored') return 'Демо-урок проведён и оценён — решаем по офферу';
+  if (iv.key === 'passed') return `Демо-урок прошёл${iv.days > 0 ? ` ${iv.days} дн. назад` : ''} — <b>заполните чек-лист</b>`;
+  if (iv.key === 'booked') return 'Записан на ' + ivWhen(ivSlots[a.id].start_at) + ' (МСК)';
+  return iv.days >= 5
+    ? `Приглашён ${iv.days} дн. назад, время так и не выбрал — стоит напомнить`
+    : 'Приглашён, ждём, когда выберет время';
 }
 function toggleStatusAll(){
   const b = document.getElementById('statusAll');
@@ -1695,7 +1771,10 @@ async function loadCalendar(){
   ]);
   const { data, error } = week;
   if (error) { document.getElementById('calGrid').innerHTML = '<div class="loading">Ошибка: ' + esc(error.message) + '</div>'; return; }
+  await loadInterviewState();
   renderCalStats(future.data || [], mineOnly);
+  renderIvFunnel();
+  if (apps.length) render();          // чипы подэтапа в списке — тоже свежие
   const urlInput = document.getElementById('myMeetUrl');
   if (urlInput && document.activeElement !== urlInput) urlInput.value = me.meeting_url || '';
   renderMeetUrlMsg();
@@ -1755,8 +1834,8 @@ function renderCalStats(future, mineOnly){
   const mySlots = future.filter(s => !mineOnly || s.recruiter_id === me.id);
   const free = mySlots.filter(s => !s.application_id).length;
   const nextBooked = future.filter(s => s.application_id)[0];
-  const bookedIds = new Set(future.filter(s => s.application_id).map(s => s.application_id));
-  const waiting = apps.filter(a => a.status === 'interview' && !a.archived_at && !bookedIds.has(a.id)).length;
+  // ждут записи — те, у кого слота нет вовсе (прошедшие встречи сюда не попадают)
+  const waiting = apps.filter(a => a.status === 'interview' && !a.archived_at && !ivSlots[a.id]).length;
 
   const nextApp = nextBooked ? apps.find(a => a.id === nextBooked.application_id) : null;
   const tile = (cls, ic, v, l) => `<div class="cal-stat ${cls}"><div class="ic">${ic}</div>
@@ -1773,6 +1852,44 @@ function renderCalStats(future, mineOnly){
     ? `⚠️ ${waiting} ${waiting === 1 ? 'кандидат ждёт' : 'кандидата(ов) ждут'} записи, а свободных слотов нет — их некуда записать. Добавьте слоты.`
     : '';
   document.getElementById('calAlert').className = (waiting > 0 && free === 0) ? 'cal-alert' : '';
+}
+
+// Кто на каком подэтапе собеседования — три колонки, клик открывает карточку.
+function renderIvFunnel(){
+  const box = document.getElementById('ivFunnel');
+  if (!box) return;
+  const b = { invited:[], booked:[], passed:[] };
+  apps.filter(a => a.status === 'interview' && !a.archived_at)
+      .forEach(a => { const iv = ivStage(a); b[iv.key === 'scored' ? 'passed' : iv.key].push({ a, iv }); });
+
+  b.invited.sort((x,y) => y.iv.days - x.iv.days);
+  b.booked.sort((x,y) => new Date(x.iv.when) - new Date(y.iv.when));
+  b.passed.sort((x,y) => (ivSlots[y.a.id]?.start_at || '').localeCompare(ivSlots[x.a.id]?.start_at || ''));
+
+  const total = b.invited.length + b.booked.length + b.passed.length;
+  if (!total) { box.innerHTML = ''; box.className = ''; return; }
+
+  const col = (key, title, hint, note) => {
+    const list = b[key];
+    return `<div class="iv-col">
+      <h5><span>${title}</span><span class="n">${list.length}</span></h5>
+      <div class="hint">${hint}</div>
+      ${list.length ? list.map(({a, iv}) => `<div class="iv-row ${iv.fg === '#B91C1C' ? 'late' : ''}" onclick="openCard('${a.id}')">
+          <span>${esc(a.full_name)}</span><em>${note(a, iv)}</em></div>`).join('')
+        : `<div class="none">никого</div>`}
+    </div>`;
+  };
+
+  box.className = 'iv-funnel';
+  box.innerHTML =
+      col('invited', '🎤 Приглашены', 'время ещё не выбрали',
+          (a, iv) => iv.days >= 5 ? `${iv.days} дн.` : (iv.days ? `${iv.days} дн.` : 'сегодня'))
+    + col('booked', '🗓️ Записаны', 'встреча впереди',
+          (a, iv) => ivWhen(iv.when))
+    + col('passed', '✅ Прошли', 'демо-урок позади',
+          (a) => ivChecks[a.id]
+            ? `${ivChecks[a.id].total_score}/${ivChecks[a.id].max_score}`
+            : 'нужен чек-лист');
 }
 
 function calSlotHtml(s){
@@ -2014,6 +2131,9 @@ async function saveCheck(){
   closeCheck();
   const a = apps.find(x => x.id === appId);
   if (a) { loadCheck(a); loadTimeline(a); }
+  // чек-лист заполнен → кандидат переезжает в «прошли и оценены»
+  await loadInterviewState();
+  render(); renderIvFunnel();
 }
 
 // ============ История офферов ============
