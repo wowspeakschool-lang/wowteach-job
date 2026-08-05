@@ -341,6 +341,15 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
 .tz-chip{font-size:11px;font-weight:800;background:var(--purple-light);color:var(--purple-dark);
   border-radius:999px;padding:4px 10px;white-space:nowrap}
 .iv-chip{font-size:11px;font-weight:800;border-radius:999px;padding:4px 10px;white-space:nowrap}
+.rej-pool{display:flex!important;gap:9px;align-items:flex-start;cursor:pointer;font-size:13.5px;
+  font-weight:600!important;text-transform:none!important;letter-spacing:0!important;color:var(--ink)!important;
+  background:var(--cream);border-radius:10px;padding:10px 12px;margin:12px 0 8px!important}
+.rej-pool input{width:18px;height:18px;accent-color:var(--purple);flex-shrink:0;margin-top:1px}
+.pool-chip{font-size:11px;font-weight:800;background:#FEF3C7;color:#92400E;border-radius:999px;
+  padding:4px 10px;white-space:nowrap}
+.f-search{padding:9px 15px;border:2px solid var(--cream-dark);border-radius:999px;font-size:13px;
+  font-weight:600;background:#fff;font-family:inherit;min-width:210px}
+.f-search:focus{outline:none;border-color:var(--purple)}
 .hp-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
 .hp-tabs button{border:2px solid var(--cream-dark);background:#fff;border-radius:999px;padding:8px 15px;
   font-size:13px;font-weight:800;cursor:pointer;color:var(--gray)}
@@ -446,6 +455,8 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
 
   <section id="sec-apps">
   <div class="toolbar">
+    <input type="search" id="fSearch" class="f-search" placeholder="🔍 Имя, почта, телеграм…"
+           oninput="render()" autocomplete="off">
     <select id="fVacancy" onchange="render()"><option value="">Все вакансии</option></select>
     <select id="fStatus" onchange="render()">
       <option value="active" selected>⚡ В работе у рекрутера</option>
@@ -714,6 +725,9 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
     <select id="rejReason" onchange="updateRejHint()"></select>
     <label>Комментарий (необязательно)</label>
     <input id="rejComment" placeholder="Детали для команды…">
+    <label class="rej-pool"><input type="checkbox" id="rejPool" onchange="togglePoolNote()">
+      <span><b>💼 В кадровый резерв</b> — сейчас не берём, но вернуться стоит</span></label>
+    <input id="rejPoolNote" placeholder="К чему вернуться: «когда откроем 13+», «через 3 месяца»…" style="display:none">
     <div class="hint-mail" id="rejHint"></div>
     <div class="reject-actions">
       <button class="rcancel" onclick="closeReject()">Отмена</button>
@@ -949,10 +963,25 @@ function setView(v){
   document.getElementById('vBoard').classList.toggle('on', v === 'board');
   render();
 }
+// Поиск нарочно игнорирует остальные фильтры: человека ищут, когда не помнят,
+// в каком он статусе. Архив тоже включён — иначе «не нахожу» при существующей заявке.
+function searchQuery(){
+  return (document.getElementById('fSearch')?.value || '').trim().toLowerCase();
+}
+function matchesQuery(a, q){
+  return [a.full_name, a.email, a.telegram, a.phone, a.city_tz, a.rejection_reason, a.talent_pool_note]
+    .some(v => v && String(v).toLowerCase().includes(q));
+}
 function filteredRows(){
   const fV = document.getElementById('fVacancy').value;
   const fS = document.getElementById('fStatus').value;
   const sort = document.getElementById('fSort').value;
+  const q = searchQuery();
+  if (q) {
+    const found = apps.filter(a => matchesQuery(a, q));
+    found.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+    return found;
+  }
   let rows = apps.slice();
   // архив: по умолчанию скрыт, показывается только при выборе фильтра "archived"
   if (fS === 'archived') rows = rows.filter(a => a.archived_at);
@@ -966,6 +995,7 @@ function filteredRows(){
     rows = rows.filter(a => a.status === 'interview' &&
       (want === 'passed' ? ['passed','scored'].includes(ivStage(a).key) : ivStage(a).key === want));
   }
+  else if (fS === 'pool') rows = rows.filter(a => a.talent_pool);
   else if (fS && fS !== 'archived') rows = rows.filter(a => a.status === fS);
   const fA = document.getElementById('fAssign').value;
   if (fA === 'mine') rows = rows.filter(a => a.assigned_to === me.id);
@@ -993,9 +1023,12 @@ function filteredRows(){
 function render(){
   const rows = filteredRows();
   const fS = document.getElementById('fStatus').value;
-  document.getElementById('count').textContent = fS === 'active'
-    ? `${rows.length} в работе · всего ${apps.filter(a => !a.archived_at).length}`
-    : `${rows.length} из ${apps.filter(a => !a.archived_at).length}`;
+  const q = searchQuery();
+  document.getElementById('count').textContent = q
+    ? `🔍 найдено ${rows.length} — поиск по всем заявкам, включая архив`
+    : (fS === 'active'
+        ? `${rows.length} в работе · всего ${apps.filter(a => !a.archived_at).length}`
+        : `${rows.length} из ${apps.filter(a => !a.archived_at).length}`);
 
   // дозаполняем фильтр статусов реальными значениями (один раз)
   const fSel = document.getElementById('fStatus');
@@ -1008,6 +1041,7 @@ function render(){
         + '<option value="iv:booked">&nbsp;&nbsp;🗓️ записан на дату</option>'
         + '<option value="iv:passed">&nbsp;&nbsp;⏳ уже прошёл</option>');
     });
+    fSel.insertAdjacentHTML('beforeend', '<option value="pool">💼 Кадровый резерв</option>');
     fSel.insertAdjacentHTML('beforeend', '<option value="archived">🗄️ Архив</option>');
   }
 
@@ -1016,7 +1050,12 @@ function render(){
   if (view === 'list') renderList(rows); else renderBoard(rows);
 }
 function renderList(rows){
-  if (!rows.length) { document.getElementById('list').innerHTML = '<div class="empty">Заявок нет 🦉</div>'; return; }
+  if (!rows.length) {
+    document.getElementById('list').innerHTML = searchQuery()
+      ? '<div class="empty">Никого не нашли. Попробуйте часть имени или почту 🦉</div>'
+      : '<div class="empty">Заявок нет 🦉</div>';
+    return;
+  }
   document.getElementById('list').innerHTML = rows.map(a => {
     const st = STATUSES[a.status] || STATUSES.new;
     const vac = vacancies.find(v => v.id === a.vacancy_id);
@@ -1031,6 +1070,7 @@ function renderList(rows){
       </div>
       <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
         <span class="status" style="background:${st.bg};color:${st.fg}">${st.label}</span>
+        ${a.talent_pool ? `<span class="pool-chip" title="${esc(a.talent_pool_note || '')}">💼 в резерве</span>` : ''}
         ${a.status === 'interview' ? (iv => `<span class="iv-chip" style="background:${iv.bg};color:${iv.fg}">${iv.label}</span>`)(ivStage(a)) : ''}
         ${a.interview_task_slug ? `<span class="tz-chip">📄 ${esc(taskShort(a.interview_task_slug))}</span>` : ''}
         ${a.status === 'new' ? `<button class="take" onclick="event.stopPropagation();takeApp('${a.id}')">Взять в работу</button>` : ''}
@@ -1049,6 +1089,7 @@ function renderBoard(rows){
           <div class="nm"><span>${esc(a.full_name)}</span><span class="sc">${a.score ?? '—'}</span></div>
           <div class="vt">${esc(vac?.title || '')} · ${fmtDate(a.created_at)}</div>
           ${a.assigned_to ? `<div class="vt">👤 ${esc(nameOf(a.assigned_to))}</div>` : ''}
+          ${a.talent_pool ? '<div class="vt" style="color:#92400E;font-weight:800">💼 в резерве</div>' : ''}
           ${a.status === 'interview' ? (iv => `<div class="vt" style="color:${iv.fg};font-weight:800">${iv.label}</div>`)(ivStage(a)) : ''}
           ${a.interview_task_slug ? `<div class="vt" style="color:var(--purple-dark);font-weight:800">📄 ${esc(taskShort(a.interview_task_slug))}</div>` : ''}
           ${a.status === 'new' ? `<button class="take sm" onclick="event.stopPropagation();takeApp('${a.id}')">Взять в работу</button>` : ''}
@@ -1094,6 +1135,7 @@ function stageBlock(a){
   const next = nextStep(a);
   const hint = a.status === 'rejected'
     ? `<b>${REJECTED_BY[a.rejected_by] || 'Отказ'}:</b> ${esc(a.rejection_reason || '—')}`
+      + (a.talent_pool ? `<br><b style="color:#92400E">💼 В кадровом резерве</b>${a.talent_pool_note ? ' — ' + esc(a.talent_pool_note) : ''}` : '')
     : (a.status === 'offer'
         ? (a.offer_accepted_at ? '✅ Оффер принят — можно запускать онбординг' : 'Оффер отправлен, ждём ответа кандидата')
         : (a.status === 'interview' ? ivHint(a) : (STAGE_HINT[a.status] || '')));
@@ -1106,6 +1148,7 @@ function stageBlock(a){
     <div class="stage-acts">
       ${next ? `<button class="stage-next ${next.soft ? 'soft' : ''}" onclick="${next.fn}">${next.label}</button>` : ''}
       ${['rejected','hired'].includes(a.status) ? '' : `<button class="stage-rej" onclick="setStatus('rejected')">Отказ</button>`}
+      ${a.status === 'rejected' ? `<button class="stage-next soft" onclick="togglePool('${a.id}')">${a.talent_pool ? '💼 Убрать из резерва' : '💼 В резерв'}</button>` : ''}
     </div>
     <button class="stage-more" onclick="toggleStatusAll()">Другой статус ▾</button>
     <div class="status-row" id="statusAll" style="display:none">${Object.entries(STATUSES).map(([k,s]) =>
@@ -1335,6 +1378,9 @@ function openRejectModal(id, reopen){
   const offerStage = pendingReject.status === 'offer';
   whoSel.querySelector('option[value="school"]').disabled = offerStage;
   if (offerStage) whoSel.value = 'candidate';
+  document.getElementById('rejPool').checked = !!app?.talent_pool;
+  document.getElementById('rejPoolNote').value = app?.talent_pool_note || '';
+  togglePoolNote();
   fillRejectReasons();
   document.getElementById('rejectOverlay').style.display = 'flex';
 }
@@ -1357,7 +1403,14 @@ function updateRejHint(){
   const el = document.getElementById('rejHint');
   const extra = REJ_HINT[reason];
   if (reason === 'Дубль заявки') { el.innerHTML = extra; return; }
-  el.innerHTML = `✉️ Кандидату уйдёт короткое письмо${extra ? '. ' + extra : ' — без разбора причины.'}`;
+  const pool = document.getElementById('rejPool')?.checked;
+  el.innerHTML = `✉️ Кандидату уйдёт короткое письмо${extra ? '. ' + extra : ' — без разбора причины.'}`
+    + (pool ? '<br>💼 Заявка останется в резерве — её видно по фильтру «Кадровый резерв».' : '');
+}
+function togglePoolNote(){
+  const on = document.getElementById('rejPool').checked;
+  document.getElementById('rejPoolNote').style.display = on ? '' : 'none';
+  updateRejHint();
 }
 function closeReject(){ document.getElementById('rejectOverlay').style.display = 'none'; pendingReject = null; }
 async function saveReject(){
@@ -1365,11 +1418,37 @@ async function saveReject(){
   const who = document.getElementById('rejWho').value;
   const reason = document.getElementById('rejReason').value;
   const comment = document.getElementById('rejComment').value.trim();
+  const pool = document.getElementById('rejPool').checked;
+  const poolNote = document.getElementById('rejPoolNote').value.trim();
   const p = pendingReject; closeReject();
   await updateStatusFor(p.id, 'rejected', p.reopen, {
     rejected_by: who,
-    rejection_reason: reason + (comment ? ' — ' + comment : '')
+    rejection_reason: reason + (comment ? ' — ' + comment : ''),
+    talent_pool: pool,
+    talent_pool_at: pool ? new Date().toISOString() : null,
+    talent_pool_note: pool ? (poolNote || null) : null
   });
+}
+
+// Резерв можно поставить и снять позже — не только в момент отказа.
+async function togglePool(id){
+  const a = apps.find(x => x.id === id);
+  if (!a) return;
+  const on = !a.talent_pool;
+  let note = a.talent_pool_note || null;
+  if (on) {
+    note = prompt('К чему возвращаться? Например: «когда откроем 13+» или «через 3 месяца».', note || '');
+    if (note === null) return;
+    note = note.trim() || null;
+  }
+  const { error } = await sb.from('hr_applications').update({
+    talent_pool: on,
+    talent_pool_at: on ? new Date().toISOString() : null,
+    talent_pool_note: on ? note : null
+  }).eq('id', id);
+  if (error) { alert('Не получилось: ' + error.message); return; }
+  a.talent_pool = on; a.talent_pool_at = on ? new Date().toISOString() : null; a.talent_pool_note = on ? note : null;
+  render(); openCard(id);
 }
 
 // ============ Заметки ============
