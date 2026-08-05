@@ -155,7 +155,7 @@ input:focus,select:focus{outline:none;border-color:var(--purple)}
         <div class="field"><label>Фамилия <span class="req">*</span></label><input type="text" id="last_name" autocomplete="family-name"></div>
       </div>
       <div class="row2">
-        <div class="field"><label>E-mail <span class="req">*</span></label><input type="email" id="email" autocomplete="email"></div>
+        <div class="field"><label>E-mail <span class="req">*</span></label><input type="email" id="email" autocomplete="email" placeholder="например, ivan@mail.ru" pattern="[^@\s]+@[^@\s]+\.ru$" title="Почта должна быть в домене .ru"><div class="hint">Только почта в домене .ru (mail.ru, yandex.ru, bk.ru и т.п.)</div></div>
         <div class="field"><label>Телефон <span class="req">*</span></label><input type="tel" id="phone" placeholder="+7 ..." autocomplete="tel"></div>
       </div>
       <div class="row2">
@@ -524,7 +524,9 @@ form.addEventListener('submit', async e => {
 
   if (!vacancy) return fail('Вакансия не загрузилась — обновите страницу.');
   if (!val('first_name') || !val('last_name')) return fail('Заполните имя и фамилию.');
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(val('email'))) return fail('Проверьте e-mail.');
+  const emailVal = val('email');
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(emailVal)) return fail('Проверьте e-mail.');
+  if (!/\.ru$/i.test(emailVal)) return fail('Пожалуйста, укажите почту в домене .ru (например, mail.ru, yandex.ru или bk.ru). Почта на gmail.com и других зарубежных сервисах не принимается.');
   if (!val('phone')) return fail('Укажите телефон.');
   if (!val('telegram')) return fail('Укажите ник в Telegram.');
   if (!val('city_tz')) return fail('Укажите город и часовой пояс.');
