@@ -341,6 +341,47 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
 .tz-chip{font-size:11px;font-weight:800;background:var(--purple-light);color:var(--purple-dark);
   border-radius:999px;padding:4px 10px;white-space:nowrap}
 .iv-chip{font-size:11px;font-weight:800;border-radius:999px;padding:4px 10px;white-space:nowrap}
+.hp-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.hp-tabs button{border:2px solid var(--cream-dark);background:#fff;border-radius:999px;padding:8px 15px;
+  font-size:13px;font-weight:800;cursor:pointer;color:var(--gray)}
+.hp-tabs button:hover{border-color:var(--purple-light)}
+.hp-tabs button.on{background:var(--purple);border-color:var(--purple);color:#fff}
+.hp-search{width:100%;max-width:420px;padding:10px 15px;border:2px solid var(--cream-dark);border-radius:999px;
+  font-size:13.5px;background:#fff;margin-bottom:16px;font-family:inherit}
+.hp-card{background:#fff;border:2px solid var(--cream-dark);border-radius:16px;padding:16px 20px;margin-bottom:12px}
+.hp-card h3{font-size:16px;margin:0 0 8px;font-weight:900}
+.hp-card p{font-size:14px;line-height:1.65;margin:0 0 10px}
+.hp-card p:last-child{margin-bottom:0}
+.hp-card ul{margin:0 0 10px;padding-left:20px;font-size:14px;line-height:1.65}
+.hp-card li{margin-bottom:4px}
+.hp-card a{color:var(--purple-dark);font-weight:700}
+.hp-tbl{width:100%;border-collapse:collapse;font-size:13.5px;margin:0 0 10px}
+.hp-tbl th{text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--gray);
+  padding:0 10px 6px 0;font-weight:900}
+.hp-tbl td{padding:7px 10px 7px 0;border-top:1px solid var(--cream-dark);vertical-align:top}
+.hp-tbl td:first-child{font-weight:800;white-space:nowrap}
+.hp-none{font-size:13.5px;color:var(--gray);padding:20px}
+.hp-tabs button.hp-edit{margin-left:auto;border-color:var(--orange);color:var(--orange)}
+.hp-tabs button.hp-edit.on{background:var(--orange);border-color:var(--orange);color:#fff}
+.hp-acts{display:flex;gap:8px;align-items:center;margin-top:12px;padding-top:10px;border-top:1px dashed var(--cream-dark)}
+.hp-acts button{border:none;background:var(--cream-dark);color:var(--gray);border-radius:999px;
+  padding:5px 12px;font-size:12px;font-weight:800;cursor:pointer}
+.hp-acts button:hover{background:var(--purple-light);color:var(--purple-dark)}
+.hp-add{border:2px dashed var(--cream-dark);background:#fff;border-radius:16px;padding:14px;width:100%;
+  font-size:13.5px;font-weight:800;color:var(--gray);cursor:pointer}
+.hp-add:hover{border-color:var(--purple);color:var(--purple-dark)}
+.hp-form{border-color:var(--purple-light)}
+.hp-in{width:100%;padding:10px 13px;border:2px solid var(--cream-dark);border-radius:10px;
+  font-size:14px;font-family:inherit;background:#FDFCF8;margin-bottom:10px}
+.hp-area{min-height:200px;line-height:1.55;font-size:13px;font-family:ui-monospace,Menlo,Consolas,monospace}
+.hp-frow{display:flex;gap:12px;align-items:center;flex-wrap:wrap;font-size:12.5px;font-weight:700;color:var(--gray)}
+.hp-frow select,.hp-frow input{margin-left:6px;padding:7px 10px;border:2px solid var(--cream-dark);
+  border-radius:9px;font-size:13px;background:#fff;font-family:inherit;width:auto}
+.hp-frow input{width:90px}
+.hp-frow #hfMsg{margin-left:auto;font-size:12.5px}
+.hp-cancel{border:none;border-radius:999px;padding:9px 16px;font-weight:800;background:var(--cream-dark);color:var(--gray);cursor:pointer}
+.hp-save{border:none;border-radius:999px;padding:9px 16px;font-weight:800;background:var(--purple);color:#fff;cursor:pointer}
+.hp-card code{background:var(--cream);padding:1px 5px;border-radius:5px;font-size:12px}
 .iv-wrap{margin:16px 0 4px}
 .iv-head{display:flex;align-items:center;gap:12px;cursor:pointer;padding:10px 14px;background:#fff;
   border:2px solid var(--cream-dark);border-radius:14px;font-size:13.5px;user-select:none}
@@ -398,6 +439,7 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
     <div class="nav-item" id="nav-access" onclick="switchSection('access')">🔑 Доступы</div>
     <div class="nav-item" id="nav-onb" onclick="switchSection('onb')">🎓 Онбординг <span class="nav-badge" id="onbBadge">0</span></div>
     <div class="nav-item" id="nav-stats" onclick="switchSection('stats')">📊 Аналитика</div>
+    <div class="nav-item" id="nav-help" onclick="switchSection('help')">📖 Инструкции</div>
   </nav>
   <div class="main">
 
@@ -522,6 +564,16 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
       </select>
     </div>
     <div id="statsPage">Загружаю…</div>
+  </section>
+
+  <section id="sec-help" style="display:none">
+    <h2 style="font-size:19px;margin-bottom:6px">📖 Инструкции</h2>
+    <p style="font-size:13px;color:var(--gray);margin-bottom:14px">Как всё устроено и что делать на своём месте.
+      Открывается на вашей роли — но читать можно любую, чтобы понимать соседей.
+      Поиск ищет сразу по всем разделам.</p>
+    <div class="hp-tabs" id="hpTabs"></div>
+    <input type="search" id="hpSearch" class="hp-search" placeholder="Поиск по инструкциям…" oninput="renderHelp()">
+    <div id="helpPage"></div>
   </section>
 
   </div><!-- /main -->
@@ -1516,7 +1568,7 @@ function renderTasksPage(){
 
 // ============ Разделы (левое меню) ============
 function switchSection(s){
-  ['apps','cal','tasks','access','stats','onb'].forEach(k => {
+  ['apps','cal','tasks','access','stats','onb','help'].forEach(k => {
     document.getElementById('sec-' + k).style.display = k === s ? '' : 'none';
     document.getElementById('nav-' + k).classList.toggle('on', k === s);
   });
@@ -1525,6 +1577,139 @@ function switchSection(s){
   if (s === 'access') loadAccess();
   if (s === 'stats') loadStats();
   if (s === 'onb') loadOnb();
+  if (s === 'help') openHelp();
+}
+
+// ============ Справочник сотрудника ============
+// Тексты живут в базе (hr_help_sections / hr_help_articles) и правятся
+// прямо здесь администратором — выкладка кода для этого не нужна.
+let HELP = [];            // [{key,label,icon,sort,articles:[{id,title,html,sort}]}]
+let helpTab = null;
+let helpEdit = false;     // режим правки
+let helpDraft = null;     // id карточки в редакторе, 'new' — новая
+
+async function loadHelp(force){
+  if (HELP.length && !force) return;
+  const { data, error } = await sb.rpc('hr_help');
+  if (error) { HELP = []; window.__helpErr = error.message; return; }
+  window.__helpErr = null;
+  HELP = data || [];
+}
+function isAdmin(){
+  const r = Array.isArray(me?.roles) ? me.roles : (me?.roles ? [me.roles] : []);
+  return r.includes('super_admin');
+}
+function myHelpTab(){
+  const r = Array.isArray(me?.roles) ? me.roles : (me?.roles ? [me.roles] : []);
+  const has = k => HELP.some(x => x.key === k);
+  if (r.includes('buddy') && !r.includes('recruiter') && !r.includes('super_admin'))
+    return r.includes('methodist') && has('methodist') ? 'methodist' : (has('buddy') ? 'buddy' : 'general');
+  if (r.includes('methodist') && has('methodist')) return 'methodist';
+  if (r.includes('assistant') && has('assistant')) return 'assistant';
+  if ((r.includes('recruiter') || r.includes('super_admin')) && has('recruiter')) return 'recruiter';
+  return HELP[0]?.key || 'general';
+}
+async function openHelp(){
+  await loadHelp();
+  if (!helpTab || !HELP.some(x => x.key === helpTab)) helpTab = myHelpTab();
+  renderHelp();
+}
+function setHelpTab(k){ helpTab = k; helpDraft = null; document.getElementById('hpSearch').value = ''; renderHelp(); }
+function toggleHelpEdit(){ helpEdit = !helpEdit; helpDraft = null; renderHelp(); }
+
+function renderHelp(){
+  const box = document.getElementById('helpPage');
+  if (window.__helpErr) {
+    document.getElementById('hpTabs').innerHTML = '';
+    box.innerHTML = '<div class="hp-none">Справочник пока не заведён в базе: ' + esc(window.__helpErr)
+      + '<br>Нужно прогнать патч 27.</div>';
+    return;
+  }
+  const q = (document.getElementById('hpSearch').value || '').trim().toLowerCase();
+
+  document.getElementById('hpTabs').innerHTML =
+    HELP.map(v => `<button class="${v.key === helpTab ? 'on' : ''}" onclick="setHelpTab('${v.key}')">${v.icon || ''} ${esc(v.label)}</button>`).join('')
+    + (isAdmin() ? `<button class="hp-edit ${helpEdit ? 'on' : ''}" onclick="toggleHelpEdit()">${helpEdit ? '✓ Готово' : '✏️ Править'}</button>` : '');
+
+  const plain = h => String(h).replace(/<[^>]+>/g, ' ').toLowerCase();
+  // sec — раздел карточки; withLabel показывает его в заголовке (нужно только в поиске)
+  const card = (a, sec, withLabel) => {
+    if (helpDraft === a.id) return helpForm(a, sec.key);
+    return `<div class="hp-card">
+      <h3>${esc(a.title)}${withLabel ? ` <span style="font-size:11.5px;color:var(--gray);font-weight:700">· ${esc(sec.label)}</span>` : ''}</h3>
+      ${a.html || ''}
+      ${helpEdit && !q ? `<div class="hp-acts">
+        <button onclick="helpDraft='${a.id}';renderHelp()">✏️ Изменить</button>
+        <button onclick="delHelp('${a.id}')">🗑 Удалить</button>
+        <span style="font-size:11.5px;color:var(--gray)">порядок ${a.sort}</span>
+      </div>` : ''}
+    </div>`;
+  };
+
+  let out = '';
+  if (q) {
+    HELP.forEach(sec => {
+      const hits = (sec.articles || []).filter(a => plain(a.title + ' ' + a.html).includes(q));
+      if (hits.length) out += hits.map(a => card(a, sec, true)).join('');
+    });
+    if (!out) out = '<div class="hp-none">Ничего не нашлось. Попробуйте другое слово — или напишите в @wowspeakHR.</div>';
+  } else {
+    const sec = HELP.find(x => x.key === helpTab) || HELP[0];
+    if (!sec) { box.innerHTML = '<div class="hp-none">Разделов пока нет.</div>'; return; }
+    out = (sec.articles || []).map(a => card(a, sec, false)).join('')
+       || '<div class="hp-none">В этом разделе пока пусто.</div>';
+    if (helpEdit) {
+      out += helpDraft === 'new'
+        ? helpForm({ id:'new', title:'', html:'', sort:'' }, sec.key)
+        : `<button class="hp-add" onclick="helpDraft='new';renderHelp()">＋ Добавить карточку</button>`;
+    }
+  }
+  box.innerHTML = out;
+}
+
+function helpForm(a, sectionKey){
+  return `<div class="hp-card hp-form">
+    <input id="hfTitle" class="hp-in" placeholder="Заголовок карточки" value="${esc(a.title || '')}">
+    <textarea id="hfBody" class="hp-in hp-area" placeholder="Текст. Можно &lt;p&gt;, &lt;ul&gt;/&lt;li&gt;, &lt;b&gt;, &lt;a href&gt; и таблицу &lt;table class=&quot;hp-tbl&quot;&gt;">${esc(a.html || '')}</textarea>
+    <div class="hp-frow">
+      <label>Раздел
+        <select id="hfSection">${HELP.map(v => `<option value="${v.key}" ${v.key === sectionKey ? 'selected' : ''}>${esc(v.label)}</option>`).join('')}</select>
+      </label>
+      <label>Порядок <input id="hfSort" type="number" step="10" value="${a.sort ?? ''}" placeholder="в конец"></label>
+      <span id="hfMsg"></span>
+      <button class="hp-cancel" onclick="helpDraft=null;renderHelp()">Отмена</button>
+      <button class="hp-save" onclick="saveHelp('${a.id}')">Сохранить</button>
+    </div>
+    <div style="font-size:12px;color:var(--gray);margin-top:8px">
+      Абзацы — <code>&lt;p&gt;…&lt;/p&gt;</code>, список — <code>&lt;ul&gt;&lt;li&gt;…&lt;/li&gt;&lt;/ul&gt;</code>,
+      жирный — <code>&lt;b&gt;</code>, ссылка — <code>&lt;a href="…"&gt;</code>.
+    </div>
+  </div>`;
+}
+
+async function saveHelp(id){
+  const msg = document.getElementById('hfMsg');
+  const title = document.getElementById('hfTitle').value.trim();
+  if (!title) { msg.textContent = 'Нужен заголовок'; msg.style.color = 'var(--red)'; return; }
+  const sortRaw = document.getElementById('hfSort').value;
+  const { error } = await sb.rpc('hr_help_save', {
+    p_id: id === 'new' ? null : id,
+    p_section: document.getElementById('hfSection').value,
+    p_title: title,
+    p_body: document.getElementById('hfBody').value,
+    p_sort: sortRaw === '' ? null : Number(sortRaw)
+  });
+  if (error) { msg.textContent = error.message; msg.style.color = 'var(--red)'; return; }
+  helpDraft = null;
+  await loadHelp(true);
+  renderHelp();
+}
+async function delHelp(id){
+  if (!confirm('Удалить карточку? Её увидят только те, кто откроет справочник заново.')) return;
+  const { error } = await sb.rpc('hr_help_delete', { p_id: id });
+  if (error) { alert('Не получилось: ' + error.message); return; }
+  await loadHelp(true);
+  renderHelp();
 }
 
 // ============ Онбординг ============
