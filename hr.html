@@ -331,15 +331,24 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
 .cal-legend i{width:11px;height:11px;border-radius:4px;display:inline-block;margin-right:6px;vertical-align:-1px}
 .cal-slot .cs-time{font-weight:900;font-size:13px}
 .cal-slot .cs-who{color:var(--gray);font-weight:700;margin:1px 0 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.cal-slot button{border:none;background:rgba(45,45,63,.08);border-radius:999px;padding:3px 9px;
-  font-size:11px;font-weight:800;color:var(--gray);cursor:pointer}
+.cal-slot .cs-acts{display:flex;gap:5px;flex-wrap:wrap}
+.cal-slot button{border:none;background:rgba(45,45,63,.08);border-radius:999px;padding:3px 8px;
+  font-size:10.5px;font-weight:800;color:var(--gray);cursor:pointer;white-space:nowrap}
 .cal-slot button:hover{background:var(--red-light);color:#B91C1C}
+.cal-slot button.edit:hover{background:var(--purple-light);color:var(--purple-dark)}
 .cal-hint{font-size:12px;color:var(--gray);margin-top:12px}
 #sec-tasks h2{font-size:19px;margin-bottom:14px}
 .tz-chip{font-size:11px;font-weight:800;background:var(--purple-light);color:var(--purple-dark);
   border-radius:999px;padding:4px 10px;white-space:nowrap}
 .iv-chip{font-size:11px;font-weight:800;border-radius:999px;padding:4px 10px;white-space:nowrap}
-.iv-funnel{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:14px 0 4px}
+.iv-wrap{margin:16px 0 4px}
+.iv-head{display:flex;align-items:center;gap:12px;cursor:pointer;padding:10px 14px;background:#fff;
+  border:2px solid var(--cream-dark);border-radius:14px;font-size:13.5px;user-select:none}
+.iv-head:hover{border-color:var(--purple-light)}
+.iv-head .iv-mini{font-size:12.5px;font-weight:800;color:var(--gray);margin-left:auto}
+.iv-head .iv-caret{color:var(--purple);font-weight:900}
+.iv-scroll{max-height:210px;overflow-y:auto}
+.iv-funnel{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:10px 0 4px}
 .iv-col{background:#fff;border:2px solid var(--cream-dark);border-radius:16px;padding:12px 13px 10px}
 .iv-col h5{margin:0 0 2px;font-size:13px;font-weight:900;display:flex;justify-content:space-between;align-items:center}
 .iv-col h5 span.n{font-family:'Fredoka',sans-serif;font-weight:600;font-size:20px;color:var(--purple)}
@@ -406,8 +415,9 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
       <option value="en">🇬🇧 Англоязычные</option>
     </select>
     <select id="fSort" onchange="render()">
+      <option value="date" selected>🕓 Сначала свежие</option>
+      <option value="date_old">Сначала старые</option>
       <option value="score">По баллам ↓</option>
-      <option value="date">По дате ↓</option>
     </select>
     <select id="fAssign" onchange="render()">
       <option value="">Все ответственные</option>
@@ -449,7 +459,6 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
     </div>
     <div id="calAlert"></div>
     <div id="calStats" class="cal-stats"></div>
-    <div id="ivFunnel"></div>
     <div id="calGrid" class="cal-grid"><div class="loading">Загружаю…</div></div>
     <div class="cal-legend">
       <span><i style="background:var(--purple)"></i>свободен</span>
@@ -457,7 +466,8 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
       <span><i style="background:var(--cream-dark)"></i>чужой или прошедший</span>
       <span>＋ в шапке дня — быстро добавить слот</span>
     </div>
-    <div class="cal-hint">Время — московское (МСК). Слот всегда 45 минут; между вашими слотами минимум 15 минут — база не даст поставить ближе.</div>
+    <div class="cal-hint">Время — московское (МСК). новый слот — 45 минут, при изменении длительность можно поменять. Между вашими слотами минимум 15 минут — база не даст поставить ближе. Кнопка ✏️ на своём слоте меняет день, время и длительность; занятый слот тоже можно двигать — кандидат получит письмо.</div>
+    <div id="ivFunnel"></div>
   </section>
 
   <section id="sec-tasks" style="display:none">
@@ -524,6 +534,29 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
 </div>
 
 <!-- ===== Reject modal ===== -->
+<div id="moveOverlay" onclick="if(event.target===this)closeMove()" style="display:none;position:fixed;inset:0;background:rgba(45,45,63,.55);z-index:60;align-items:flex-start;justify-content:center;padding:60px 14px;overflow-y:auto">
+  <div style="background:#fff;border-radius:18px;max-width:420px;width:100%;padding:24px;box-shadow:var(--shadow)">
+    <h3 style="font-size:18px;margin-bottom:4px">✏️ Изменить слот</h3>
+    <div id="mvWho" style="font-size:12.5px;color:var(--gray);margin-bottom:16px"></div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:14px">
+      <input type="date" id="mvDate" style="padding:9px 11px;border:2px solid var(--cream-dark);border-radius:10px;font-size:14px;background:#FDFCF8">
+      <input type="time" id="mvTime" step="900" style="padding:9px 11px;border:2px solid var(--cream-dark);border-radius:10px;font-size:14px;background:#FDFCF8">
+      <select id="mvDur" style="padding:9px 11px;border:2px solid var(--cream-dark);border-radius:10px;font-size:14px;background:#FDFCF8;font-weight:700">
+        <option value="30">30 мин</option>
+        <option value="45" selected>45 мин</option>
+        <option value="60">60 мин</option>
+        <option value="90">90 мин</option>
+      </select>
+    </div>
+    <div style="font-size:12px;color:var(--gray);margin-top:8px">Время московское (МСК).</div>
+    <div id="mvErr" style="font-size:13px;color:var(--red);margin-top:10px"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">
+      <button onclick="closeMove()" style="border:none;border-radius:999px;padding:10px 18px;font-weight:800;background:var(--cream-dark);color:var(--gray)">Отмена</button>
+      <button id="mvGo" onclick="confirmMove()" style="border:none;border-radius:999px;padding:10px 18px;font-weight:800;background:var(--purple);color:#fff">Сохранить</button>
+    </div>
+  </div>
+</div>
+
 <div id="bulkOverlay" onclick="if(event.target===this)closeBulk()" style="display:none;position:fixed;inset:0;background:rgba(45,45,63,.55);z-index:60;align-items:flex-start;justify-content:center;padding:50px 14px;overflow-y:auto">
   <div style="background:#fff;border-radius:18px;max-width:480px;width:100%;padding:24px;box-shadow:var(--shadow)">
     <h3 style="font-size:18px;margin-bottom:4px">📅 Слоты на период</h3>
@@ -897,7 +930,11 @@ function filteredRows(){
   if (fTaskSel.value) rows = rows.filter(a => a.interview_task_slug === fTaskSel.value);
   const fSp = document.getElementById('fSpeaker').value;
   if (fSp) rows = rows.filter(a => (a.speaker_type || 'ru') === fSp);
+  // по умолчанию — свежие сверху; при равной дате выше тот, у кого больше баллов
   if (sort === 'score') rows.sort((a,b) => (b.score ?? -1) - (a.score ?? -1));
+  else if (sort === 'date_old') rows.sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
+  else rows.sort((a,b) => new Date(b.created_at) - new Date(a.created_at)
+                       || (b.score ?? -1) - (a.score ?? -1));
   return rows;
 }
 function render(){
@@ -1754,6 +1791,7 @@ function mondayOf(d){
 function calShift(n){ calStart.setDate(calStart.getDate() + 7 * n); loadCalendar(); }
 function calToday(){ calStart = mondayOf(new Date()); loadCalendar(); }
 const mskDayKey = d => new Date(d).toLocaleDateString('ru-RU', { timeZone: 'Europe/Moscow' });
+let calSlots = [];   // слоты показанной недели — нужны для редактирования
 
 async function loadCalendar(){
   const mineOnly = document.getElementById('calMine').checked;
@@ -1779,8 +1817,9 @@ async function loadCalendar(){
   if (urlInput && document.activeElement !== urlInput) urlInput.value = me.meeting_url || '';
   renderMeetUrlMsg();
 
+  calSlots = data || [];
   const byDay = {};
-  (data || []).forEach(s => { const k = mskDayKey(s.start_at); (byDay[k] = byDay[k] || []).push(s); });
+  calSlots.forEach(s => { const k = mskDayKey(s.start_at); (byDay[k] = byDay[k] || []).push(s); });
 
   const days = [];
   for (let i = 0; i < 7; i++) { const d = new Date(calStart); d.setDate(d.getDate() + i); days.push(d); }
@@ -1854,7 +1893,13 @@ function renderCalStats(future, mineOnly){
   document.getElementById('calAlert').className = (waiting > 0 && free === 0) ? 'cal-alert' : '';
 }
 
-// Кто на каком подэтапе собеседования — три колонки, клик открывает карточку.
+// Кто на каком подэтапе собеседования — три колонки под календарём.
+let ivFunnelOpen = localStorage.getItem('ivFunnelOpen') !== '0';
+function toggleIvFunnel(){
+  ivFunnelOpen = !ivFunnelOpen;
+  localStorage.setItem('ivFunnelOpen', ivFunnelOpen ? '1' : '0');
+  renderIvFunnel();
+}
 function renderIvFunnel(){
   const box = document.getElementById('ivFunnel');
   if (!box) return;
@@ -1874,22 +1919,28 @@ function renderIvFunnel(){
     return `<div class="iv-col">
       <h5><span>${title}</span><span class="n">${list.length}</span></h5>
       <div class="hint">${hint}</div>
-      ${list.length ? list.map(({a, iv}) => `<div class="iv-row ${iv.fg === '#B91C1C' ? 'late' : ''}" onclick="openCard('${a.id}')">
+      <div class="iv-scroll">${list.length ? list.map(({a, iv}) => `<div class="iv-row ${iv.fg === '#B91C1C' ? 'late' : ''}" onclick="openCard('${a.id}')">
           <span>${esc(a.full_name)}</span><em>${note(a, iv)}</em></div>`).join('')
-        : `<div class="none">никого</div>`}
+        : `<div class="none">никого</div>`}</div>
     </div>`;
   };
 
-  box.className = 'iv-funnel';
-  box.innerHTML =
-      col('invited', '🎤 Приглашены', 'время ещё не выбрали',
-          (a, iv) => iv.days >= 5 ? `${iv.days} дн.` : (iv.days ? `${iv.days} дн.` : 'сегодня'))
-    + col('booked', '🗓️ Записаны', 'встреча впереди',
-          (a, iv) => ivWhen(iv.when))
-    + col('passed', '✅ Прошли', 'демо-урок позади',
-          (a) => ivChecks[a.id]
-            ? `${ivChecks[a.id].total_score}/${ivChecks[a.id].max_score}`
-            : 'нужен чек-лист');
+  box.className = 'iv-wrap';
+  box.innerHTML = `<div class="iv-head" onclick="toggleIvFunnel()">
+      <b>Кто на каком подэтапе собеседования</b>
+      <span class="iv-mini">🎤 ${b.invited.length} · 🗓️ ${b.booked.length} · ✅ ${b.passed.length}</span>
+      <span class="iv-caret">${ivFunnelOpen ? '▴' : '▾'}</span>
+    </div>`
+    + (ivFunnelOpen ? `<div class="iv-funnel">`
+      + col('invited', '🎤 Приглашены', 'время ещё не выбрали',
+            (a, iv) => iv.days >= 5 ? `${iv.days} дн.` : (iv.days ? `${iv.days} дн.` : 'сегодня'))
+      + col('booked', '🗓️ Записаны', 'встреча впереди',
+            (a, iv) => ivWhen(iv.when))
+      + col('passed', '✅ Прошли', 'демо-урок позади',
+            (a) => ivChecks[a.id]
+              ? `${ivChecks[a.id].total_score}/${ivChecks[a.id].max_score}`
+              : 'нужен чек-лист')
+      + `</div>` : '');
 }
 
 function calSlotHtml(s){
@@ -1905,9 +1956,12 @@ function calSlotHtml(s){
       ${booked && app ? `onclick="openCard('${app.id}')"` : ''}>
     <div class="cs-time">${time}</div>
     <div class="cs-who">${who}</div>
-    ${mine && !past ? (booked
-      ? `<button onclick="event.stopPropagation();staffCancelSlot('${s.id}')">снять бронь</button>`
-      : `<button onclick="event.stopPropagation();delSlot('${s.id}')">удалить</button>`) : ''}
+    ${mine && !past ? `<div class="cs-acts">
+      <button class="edit" title="Поменять день, время или длительность" onclick="event.stopPropagation();openMoveSlot('${s.id}')">✏️</button>
+      ${booked
+        ? `<button onclick="event.stopPropagation();staffCancelSlot('${s.id}')">снять бронь</button>`
+        : `<button onclick="event.stopPropagation();delSlot('${s.id}')">удалить</button>`}
+    </div>` : ''}
   </div>`;
 }
 
@@ -2372,6 +2426,59 @@ async function createSlot(dateStr, timeStr){
   }
   return true;
 }
+// ---- перенос слота: меняем день, время и длительность вместо «удалить и создать» ----
+let moveSlotId = null;
+// дата и время слота в МСК, пригодные для <input type=date|time>
+function mskParts(iso){
+  const p = new Intl.DateTimeFormat('sv-SE', { timeZone:'Europe/Moscow',
+    year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false })
+    .format(new Date(iso));                 // «2026-08-05 11:00»
+  const [d, t] = p.split(' ');
+  return { date: d, time: t };
+}
+function openMoveSlot(id){
+  const sl = calSlots.find(x => x.id === id);
+  if (!sl) return;
+  moveSlotId = id;
+  const { date, time } = mskParts(sl.start_at);
+  document.getElementById('mvDate').value = date;
+  document.getElementById('mvTime').value = time;
+  document.getElementById('mvDur').value = String(sl.duration_min || 45);
+  document.getElementById('mvErr').textContent = '';
+  const app = sl.application_id ? apps.find(a => a.id === sl.application_id) : null;
+  document.getElementById('mvWho').innerHTML = app
+    ? `⚠️ На это время записан(а) <b>${esc(app.full_name)}</b> — кандидату уйдёт письмо с новым временем.`
+    : 'Слот свободный — никого не потревожим.';
+  document.getElementById('moveOverlay').style.display = 'flex';
+}
+function closeMove(){ document.getElementById('moveOverlay').style.display = 'none'; moveSlotId = null; }
+async function confirmMove(){
+  if (!moveSlotId) return;
+  const d = document.getElementById('mvDate').value;
+  const t = document.getElementById('mvTime').value;
+  const dur = Number(document.getElementById('mvDur').value) || 45;
+  const err = document.getElementById('mvErr');
+  if (!d || !t) { err.textContent = 'Укажите дату и время.'; return; }
+  const startISO = new Date(d + 'T' + t + ':00+03:00').toISOString();
+  if (new Date(startISO) < new Date()) { err.textContent = 'Это время уже в прошлом.'; return; }
+
+  const btn = document.getElementById('mvGo');
+  btn.disabled = true; btn.textContent = 'Сохраняю…';
+  const { data, error } = await sb.rpc('hr_move_slot',
+    { p_slot_id: moveSlotId, p_start_at: startISO, p_duration_min: dur });
+  btn.disabled = false; btn.textContent = 'Сохранить';
+  if (error) {
+    err.textContent = error.message.includes('hr_slots_no_overlap')
+      ? 'Слишком близко к другому вашему слоту: между слотами нужно минимум 15 минут.'
+      : error.message;
+    return;
+  }
+  closeMove();
+  calStart = mondayOf(new Date(startISO));
+  await loadCalendar();
+  if (data?.notified) alert('Слот перенесён. Кандидату отправлено письмо с новым временем.');
+}
+
 async function delSlot(id){
   if (!confirm('Удалить свободный слот?')) return;
   await sb.from('hr_slots').delete().eq('id', id).is('application_id', null);
