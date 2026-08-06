@@ -705,6 +705,7 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
 
     <div style="font-size:12px;font-weight:900;color:var(--gray);text-transform:uppercase;margin:14px 0 6px">Возрастная категория (назначит наставника)</div>
     <div class="bulk-chips" id="offerAge"></div>
+    <div id="offerAgeHint" style="font-size:12.5px;color:var(--gray);margin-top:7px"></div>
 
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:22px">
       <button onclick="closeOffer()" style="border:none;border-radius:999px;padding:10px 18px;font-weight:800;background:var(--cream-dark);color:var(--gray)">Отмена</button>
@@ -941,6 +942,7 @@ async function loadApps(){
   apps = data || [];
   await loadInterviewState();
   render();
+  openFromHash();
 }
 async function archiveApp(id){
   const app = apps.find(a => a.id === id);
@@ -1175,6 +1177,7 @@ let current = null;
 async function openCard(id){
   current = apps.find(a => a.id === id);
   if (!current) return;
+  if (location.hash !== '#app/' + id) history.replaceState(null, '', '#app/' + id);
   const a = current, ans = a.answers || {};
   const st = STATUSES[a.status] || STATUSES.new;
   const vac = vacancies.find(v => v.id === a.vacancy_id);
@@ -1190,6 +1193,7 @@ async function openCard(id){
         <div class="sub">${esc(vac?.title||'')} · заявка от ${fmtDate(a.created_at)}</div>
       </div>
       <button onclick="archiveApp('${a.id}')" class="arch-btn" style="margin-left:auto">${a.archived_at ? '♻️ Вернуть' : 'В архив'}</button>
+      <button onclick="copyCardLink('${a.id}')" class="arch-btn" id="copyLinkBtn" title="Скопировать ссылку на карточку">🔗 Ссылка</button>
       <button class="x" onclick="closeCard()">✕</button>
     </div>
     <div class="mbody">
@@ -1285,7 +1289,40 @@ async function openCard(id){
   const os = document.getElementById('offerState'); if (os) os.textContent = offerStateText(a);
   loadMedia(a); loadNotes(a.id); loadTasksFor(a.id); loadTimeline(a); loadInterview(a.id); loadCheck(a);
 }
-function closeCard(){ document.getElementById('overlay').style.display = 'none'; current = null; }
+function closeCard(){
+  document.getElementById('overlay').style.display = 'none';
+  current = null;
+  if (location.hash.startsWith('#app/')) history.replaceState(null, '', location.pathname + location.search);
+}
+
+// ---- ссылка на карточку ----
+// Адрес вида …/hr.html#app/<id> — открывается сразу на нужном кандидате.
+function cardLink(id){ return location.origin + location.pathname + '#app/' + id; }
+async function copyCardLink(id){
+  const url = cardLink(id);
+  const btn = document.getElementById('copyLinkBtn');
+  try {
+    await navigator.clipboard.writeText(url);
+  } catch (e) {
+    // в некоторых браузерах clipboard недоступен без https — показываем адрес
+    prompt('Скопируйте ссылку:', url);
+    return;
+  }
+  if (btn) { const t = btn.textContent; btn.textContent = '✓ Скопировано'; setTimeout(() => btn.textContent = t, 1800); }
+}
+// открыть карточку из адреса: при загрузке и при смене хеша вручную
+function openFromHash(){
+  const m = (location.hash || '').match(/^#app\/([\w-]{4,})$/);
+  if (!m) return false;
+  const id = m[1];
+  if (current?.id === id) return true;
+  if (!apps.some(a => a.id === id)) return false;
+  openCard(id);
+  return true;
+}
+window.addEventListener('hashchange', () => {
+  if (!openFromHash() && !location.hash) closeCard();
+});
 
 async function loadMedia(a){
   // видео
@@ -2528,6 +2565,27 @@ async function viewSnapshot(id){
   w.document.close();
 }
 
+// Подсказка возрастной связки по анкете: кандидат отмечал возрасты,
+// связки перекрываются — берём ту, что накрывает больше отмеченного.
+// При равенстве выбираем младшую: там у школы потребность.
+const PAIR_AGES = {
+  pair_4_9:   ['4-6', '7-9'],
+  pair_7_12:  ['7-9', '10-12'],
+  pair_10_13: ['10-12', 'teens']
+};
+function suggestAgeGroup(a){
+  const picked = (a.answers?.ages || []).filter(Boolean);
+  if (!picked.length) return null;
+  let best = null, bestScore = 0;
+  ageGroups.forEach(g => {
+    const cover = PAIR_AGES[g.slug];
+    if (!cover) return;
+    const score = cover.filter(x => picked.includes(x)).length;
+    if (score > bestScore) { bestScore = score; best = g; }   // равенство — остаётся первая по sort_order
+  });
+  return bestScore ? best : null;
+}
+
 function openOffer(){
   if (!current) return;
   // предвыбор: если оффер уже слали — те же значения
@@ -2538,9 +2596,24 @@ function openOffer(){
   setChip('offerLang', current.offer_lang || (current.speaker_type === 'en' ? 'en' : 'ru'));
   setChip('offerGrade', current.offer_grade || 'basic');
   const ageBox = document.getElementById('offerAge');
+  const sug = current.age_group ? null : suggestAgeGroup(current);
+  const chosen = current.age_group || sug?.slug || null;
   ageBox.innerHTML = ageGroups.map(g =>
-    `<span data-v="${g.slug}" class="${current.age_group === g.slug ? 'on' : ''}">${esc(g.title)}</span>`).join('')
+    `<span data-v="${g.slug}" class="${chosen === g.slug ? 'on' : ''}">${esc(g.title)}</span>`).join('')
     || '<span style="font-size:12px;color:var(--gray)">Категории не заведены (hr_age_groups)</span>';
+
+  const picked = (current.answers?.ages || []).map(x => AGES[x] || x).join(', ');
+  const hint = document.getElementById('offerAgeHint');
+  if (sug) {
+    hint.innerHTML = `💡 Предложено по анкете${picked ? ' (кандидат отметил: ' + esc(picked) + ')' : ''}. `
+      + `Наставник — <b>${esc(nameOf(sug.buddy_id))}</b>. Проверьте и поменяйте, если нужно.`;
+  } else if (current.age_group) {
+    hint.innerHTML = `Категория уже выбрана в карточке${picked ? ' · в анкете: ' + esc(picked) : ''}.`;
+  } else {
+    hint.innerHTML = picked
+      ? `В анкете кандидат отметил: ${esc(picked)} — подходящей связки не нашлось, выберите вручную.`
+      : 'В анкете возраст не указан — выберите вручную.';
+  }
   document.getElementById('offerOverlay').style.display = 'flex';
 }
 function closeOffer(){ document.getElementById('offerOverlay').style.display = 'none'; }
