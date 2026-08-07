@@ -349,6 +349,12 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
 .rej-pool input{width:18px;height:18px;accent-color:var(--purple);flex-shrink:0;margin-top:1px}
 .pool-chip{font-size:11px;font-weight:800;background:#FEF3C7;color:#92400E;border-radius:999px;
   padding:4px 10px;white-space:nowrap}
+.sub-hints{margin:0 0 8px 27px;display:flex;flex-direction:column;gap:2px}
+.sub-hints.muted{opacity:.45}
+.sub-row{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:var(--gray);cursor:pointer;padding:2px 0}
+.sub-row input{width:14px;height:14px;accent-color:var(--purple);flex-shrink:0;margin-top:2px}
+.sub-row span.off{text-decoration:line-through;opacity:.6}
+.sub-left{font-size:11px;font-weight:800;color:var(--orange);padding:2px 0 0 22px}
 .lnk-btn{border:none;background:none;color:var(--purple-dark);font-weight:800;font-size:12px;
   cursor:pointer;text-decoration:underline;padding:0;font-family:inherit}
 .edit-toggle{float:right;border:none;background:var(--cream-dark);color:var(--gray);border-radius:999px;
@@ -368,6 +374,9 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
 .ed-acts .save{border:none;border-radius:999px;padding:9px 18px;font-weight:800;background:var(--purple);color:#fff;cursor:pointer}
 .ed-acts .cancel{border:none;border-radius:999px;padding:9px 18px;font-weight:800;background:var(--cream-dark);color:var(--gray);cursor:pointer}
 .ed-note{font-size:12px;color:var(--gray);margin-top:10px;line-height:1.5}
+.st-in{padding:8px 11px;border:2px solid var(--cream-dark);border-radius:10px;font-size:13px;
+  font-weight:700;background:#fff;font-family:inherit}
+.st-period{font-size:12.5px;color:var(--gray);font-weight:700;margin-bottom:12px}
 .f-search{padding:9px 15px;border:2px solid var(--cream-dark);border-radius:999px;font-size:13px;
   font-weight:600;background:#fff;font-family:inherit;min-width:210px}
 .f-search:focus{outline:none;border-color:var(--purple)}
@@ -586,12 +595,23 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
   <section id="sec-stats" style="display:none">
     <h2 style="font-size:19px;margin-bottom:6px">📊 Аналитика воронки</h2>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px">
-      <select id="stPeriod" onchange="loadStats()" style="padding:9px 32px 9px 12px;border:2px solid var(--cream-dark);border-radius:999px;font-size:13px;font-weight:700;background:#fff">
-        <option value="30">За 30 дней</option>
-        <option value="90" selected>За 3 месяца</option>
-        <option value="365">За год</option>
-        <option value="3650">За всё время</option>
+      <select id="stPeriod" onchange="onPeriodChange()" style="padding:9px 32px 9px 12px;border:2px solid var(--cream-dark);border-radius:999px;font-size:13px;font-weight:700;background:#fff">
+        <option value="d30">За 30 дней</option>
+        <option value="d90" selected>За 3 месяца</option>
+        <option value="ytd">С начала года</option>
+        <option value="d365">За 12 месяцев</option>
+        <option value="all">За всё время</option>
+        <option value="month">📅 Конкретный месяц</option>
+        <option value="year">📅 Конкретный год</option>
+        <option value="range">📅 Свой промежуток</option>
       </select>
+      <span id="stMonthBox" style="display:none"><input type="month" id="stMonth" onchange="loadStats()" class="st-in"></span>
+      <span id="stYearBox" style="display:none"><select id="stYear" onchange="loadStats()" class="st-in"></select></span>
+      <span id="stRangeBox" style="display:none;gap:6px;align-items:center">
+        <input type="date" id="stFrom" onchange="loadStats()" class="st-in">
+        <span style="color:var(--gray);font-size:13px">—</span>
+        <input type="date" id="stTo" onchange="loadStats()" class="st-in">
+      </span>
       <select id="stVacancy" onchange="loadStats()" style="padding:9px 32px 9px 12px;border:2px solid var(--cream-dark);border-radius:999px;font-size:13px;font-weight:700;background:#fff">
         <option value="">Все вакансии</option>
       </select>
@@ -686,7 +706,7 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
   </div>
 </div>
 
-<div id="checkOverlay" onclick="if(event.target===this)closeCheck()" style="display:none;position:fixed;inset:0;background:rgba(45,45,63,.55);z-index:65;align-items:flex-start;justify-content:center;padding:40px 14px;overflow-y:auto">
+<div id="checkOverlay" style="display:none;position:fixed;inset:0;background:rgba(45,45,63,.55);z-index:65;align-items:flex-start;justify-content:center;padding:40px 14px;overflow-y:auto">
   <div style="background:#fff;border-radius:20px;max-width:720px;width:100%;padding:26px 28px;box-shadow:var(--shadow)">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:4px">
       <h3 id="chkTitle" style="font-size:20px">Чек-лист демо-урока</h3>
@@ -696,7 +716,7 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
     <div id="chkBody"></div>
     <div class="field" style="margin-top:18px">
       <label style="font-size:12px;font-weight:900;color:var(--gray);text-transform:uppercase;letter-spacing:.03em">Комментарий по уроку</label>
-      <textarea id="chkComment" rows="3" style="width:100%;margin-top:6px;padding:11px 13px;border:2px solid var(--cream-dark);border-radius:12px;font-size:14px;background:#FDFCF8;font-family:inherit" placeholder="Что запомнилось, что стоит учесть…"></textarea>
+      <textarea oninput="if(chkState)chkState.dirty=true" id="chkComment" rows="3" style="width:100%;margin-top:6px;padding:11px 13px;border:2px solid var(--cream-dark);border-radius:12px;font-size:14px;background:#FDFCF8;font-family:inherit" placeholder="Что запомнилось, что стоит учесть…"></textarea>
     </div>
     <div style="position:sticky;bottom:0;background:#fff;padding-top:16px;margin-top:6px;border-top:1px solid var(--cream-dark);display:flex;gap:12px;align-items:center;flex-wrap:wrap">
       <div id="chkScore" style="font-family:'Fredoka',sans-serif;font-weight:600;font-size:22px"></div>
@@ -2089,9 +2109,25 @@ async function delHelp(id){
 // ============ Онбординг ============
 const OWNER_LABEL = { candidate:'кандидат', buddy:'наставник', methodist:'методист', assistant:'ассистент' };
 let onbData = [];
+let onbHints = {};   // slug шага → подпункты для команды
+let onbSub = {};     // "appId|slug" → Set отмеченных ключей
+async function loadOnbExtras(){
+  const [st, sub] = await Promise.all([
+    sb.from('hr_onboarding_steps').select('slug,staff_hints'),
+    sb.from('hr_onboarding_substeps').select('application_id,step_slug,key')
+  ]);
+  onbHints = {};
+  (st.data || []).forEach(r => { if ((r.staff_hints || []).length) onbHints[r.slug] = r.staff_hints; });
+  onbSub = {};
+  (sub.data || []).forEach(r => {
+    const k = r.application_id + '|' + r.step_slug;
+    (onbSub[k] = onbSub[k] || new Set()).add(r.key);
+  });
+}
 async function loadOnb(){
   const { data, error } = await sb.rpc('hr_onboarding_board');
   if (error) { document.getElementById('onbPage').innerHTML = 'Ошибка: ' + esc(error.message); return; }
+  await loadOnbExtras();
   onbData = data || [];
   document.getElementById('onbBadge').textContent = onbData.length;
   renderOnb();
@@ -2126,12 +2162,50 @@ function renderOnb(){
               <span style="font-size:11px;color:var(--gray)">· ${s.auto ? '🤖 авто (обучение)' : (OWNER_LABEL[s.owner]||s.owner)}</span></span>
             ${s.done_at ? `<span style="font-size:11.5px;color:var(--green)">✓ ${fmtDate(s.done_at)}</span>`
               : (s.due_at ? `<span style="font-size:11.5px;font-weight:800;color:${over?'var(--red)':'var(--gray)'}">${over?'🔥 ':'до '}${fmtDate(s.due_at)}</span>` : '')}
-          </div>`;
+          </div>
+          ${subHints(o.id, s)}`;
         }).join('')}
       </div>
     </div>`;
   }).join('');
 }
+// Подпункты — памятка для команды внутри шага. Кандидат их не видит.
+// Отметки живут отдельно от самого шага: шаг можно закрыть и без них.
+function subHints(appId, step){
+  const hints = onbHints[step.slug];
+  if (!hints || !hints.length) return '';
+  const done = onbSub[appId + '|' + step.slug] || new Set();
+  const left = hints.filter(h => !done.has(h.key)).length;
+  return `<div class="sub-hints ${step.done_at ? 'muted' : ''}">
+    ${hints.map(h => {
+      const on = done.has(h.key);
+      return `<label class="sub-row">
+        <input type="checkbox" ${on ? 'checked' : ''}
+               onchange="toggleSub('${appId}','${step.slug}','${h.key}',this.checked)">
+        <span class="${on ? 'off' : ''}">${esc(h.text)}</span></label>`;
+    }).join('')}
+    ${!step.done_at && left ? `<div class="sub-left">осталось ${left} из ${hints.length}</div>` : ''}
+  </div>`;
+}
+async function toggleSub(appId, slug, key, on){
+  const k = appId + '|' + slug;
+  onbSub[k] = onbSub[k] || new Set();
+  if (on) onbSub[k].add(key); else onbSub[k].delete(key);
+  renderOnb();
+  const q = on
+    ? sb.from('hr_onboarding_substeps').insert({ application_id: appId, step_slug: slug, key, done_by: me.id })
+    : sb.from('hr_onboarding_substeps').delete()
+         .eq('application_id', appId).eq('step_slug', slug).eq('key', key);
+  const { error } = await q;
+  if (error) {
+    alert(/hr_onboarding_substeps|schema cache/i.test(error.message)
+      ? 'Подпункты ещё не заведены в базе — нужен патч 37.'
+      : 'Не получилось: ' + error.message);
+    if (on) onbSub[k].delete(key); else onbSub[k].add(key);
+    renderOnb();
+  }
+}
+
 async function doneStep(appId, slug){
   const { error } = await sb.rpc('hr_complete_step', { p_application_id: appId, p_step_slug: slug });
   if (error) { alert('Не получилось: ' + error.message); loadOnb(); return; }
@@ -2146,6 +2220,71 @@ async function stopOnb(id, name){
 }
 
 // ============ Аналитика воронки ============
+// Период считаем в одном месте: и «за 30 дней», и конкретный месяц, и свой промежуток.
+function onPeriodChange(){
+  const v = document.getElementById('stPeriod').value;
+  const show = (id, on, disp) => { const e = document.getElementById(id); if (e) e.style.display = on ? (disp || '') : 'none'; };
+  show('stMonthBox', v === 'month');
+  show('stYearBox',  v === 'year');
+  show('stRangeBox', v === 'range', 'inline-flex');
+
+  const now = new Date();
+  if (v === 'month') {
+    const m = document.getElementById('stMonth');
+    if (!m.value) m.value = now.toISOString().slice(0, 7);
+  }
+  if (v === 'year') {
+    const y = document.getElementById('stYear');
+    if (!y.options.length) {
+      const first = apps.length ? new Date(apps[apps.length - 1].created_at).getFullYear() : now.getFullYear();
+      for (let i = now.getFullYear(); i >= Math.min(first, now.getFullYear() - 5); i--)
+        y.insertAdjacentHTML('beforeend', `<option value="${i}">${i} год</option>`);
+    }
+  }
+  if (v === 'range') {
+    const f = document.getElementById('stFrom'), t = document.getElementById('stTo');
+    if (!f.value) f.value = new Date(now.getFullYear(), now.getMonth() - 2, 1).toISOString().slice(0, 10);
+    if (!t.value) t.value = now.toISOString().slice(0, 10);
+  }
+  loadStats();
+}
+const MONTHS_RU = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+function statsPeriod(){
+  const v = document.getElementById('stPeriod').value;
+  const now = new Date();
+  const iso = d => d.toISOString();
+  if (v === 'month') {
+    const raw = document.getElementById('stMonth').value || now.toISOString().slice(0, 7);
+    const [y, m] = raw.split('-').map(Number);
+    const from = new Date(Date.UTC(y, m - 1, 1));
+    const to   = new Date(Date.UTC(y, m, 1) - 1);
+    return { from: iso(from), to: iso(to), label: `${MONTHS_RU[m-1]} ${y}` };
+  }
+  if (v === 'year') {
+    const y = Number(document.getElementById('stYear').value || now.getFullYear());
+    return { from: iso(new Date(Date.UTC(y, 0, 1))), to: iso(new Date(Date.UTC(y + 1, 0, 1) - 1)),
+             label: `${y} год` };
+  }
+  if (v === 'range') {
+    const f = document.getElementById('stFrom').value, t = document.getElementById('stTo').value;
+    if (f && t) {
+      const from = new Date(f + 'T00:00:00');
+      const to   = new Date(t + 'T23:59:59');
+      if (from > to) return { from: iso(to), to: iso(from), label: 'промежуток задом наперёд — поменяла местами' };
+      return { from: iso(from), to: iso(to),
+               label: `${from.toLocaleDateString('ru-RU')} — ${to.toLocaleDateString('ru-RU')}` };
+    }
+  }
+  if (v === 'ytd') {
+    return { from: iso(new Date(Date.UTC(now.getFullYear(), 0, 1))), to: iso(now),
+             label: `с 1 января ${now.getFullYear()}` };
+  }
+  if (v === 'all') return { from: iso(new Date(Date.UTC(2000, 0, 1))), to: iso(now), label: 'за всё время' };
+  const days = Number((v || 'd90').replace('d', '')) || 90;
+  return { from: iso(new Date(Date.now() - days * 86400000)), to: iso(now),
+           label: `последние ${days} дней` };
+}
+
 async function loadStats(){
   const el = document.getElementById('statsPage');
   const vSel = document.getElementById('stVacancy');
@@ -2153,10 +2292,9 @@ async function loadStats(){
     vacancies.forEach(v => vSel.insertAdjacentHTML('beforeend', `<option value="${v.id}">${esc(v.title)}</option>`));
   }
   el.innerHTML = '<div class="loading">Загружаю…</div>';
-  const days = parseInt(document.getElementById('stPeriod').value);
-  const from = new Date(Date.now() - days * 86400000).toISOString();
+  const per = statsPeriod();
   const { data, error } = await sb.rpc('hr_funnel_stats',
-    { p_from: from, p_to: new Date().toISOString(), p_vacancy_id: vSel.value || null });
+    { p_from: per.from, p_to: per.to, p_vacancy_id: vSel.value || null });
   if (error) { el.innerHTML = '<div class="empty">Ошибка: ' + esc(error.message) + '</div>'; return; }
   const f = data.funnel || {}, t = data.timing || {};
 
@@ -2222,6 +2360,7 @@ async function loadStats(){
       <td>${esc(STAGE_RU[r.stage] || r.stage)}</td><td class="num">${r.n}</td></tr>`);
 
   el.innerHTML = `
+    <div class="st-period">Период: <b>${esc(per.label)}</b> · ${new Date(per.from).toLocaleDateString('ru-RU')} — ${new Date(per.to).toLocaleDateString('ru-RU')}</div>
     <div class="st-tiles">
       ${tile(f.new ?? 0, 'заявок за период')}
       ${tile((f.conv_total ?? 0) + '%', 'доходят до найма', `${f.hired ?? 0} из ${f.new ?? 0}`)}
@@ -2720,6 +2859,7 @@ async function openCheck(appId){
 function toggleCrit(id, on){
   if (!chkState) return;
   chkState.answers[id] = on ? 1 : 0;
+  chkState.dirty = true;
   renderChkScore();
 }
 function renderChkScore(){
@@ -2734,7 +2874,13 @@ function renderChkScore(){
   v.textContent = good ? '✅ выше рекомендуемого порога' : `⚠️ ниже порога (${pass})`;
   v.style.color = good ? 'var(--green)' : 'var(--orange)';
 }
-function closeCheck(){ document.getElementById('checkOverlay').style.display = 'none'; chkState = null; }
+function closeCheck(force){
+  // окно не закрывается кликом мимо — только кнопками, и с вопросом,
+  // если есть неотмеченные изменения: терять заполненный чек-лист обидно
+  if (!force && chkState?.dirty && !confirm('Закрыть чек-лист? Изменения не сохранятся.')) return;
+  document.getElementById('checkOverlay').style.display = 'none';
+  chkState = null;
+}
 async function saveCheck(){
   if (!chkState) return;
   const btn = document.getElementById('chkSave');
@@ -2748,7 +2894,7 @@ async function saveCheck(){
   btn.disabled = false; btn.textContent = 'Сохранить';
   if (error) { alert('Не получилось: ' + error.message); return; }
   const appId = chkState.appId;
-  closeCheck();
+  closeCheck(true);
   const a = apps.find(x => x.id === appId);
   if (a) { loadCheck(a); loadTimeline(a); }
   // чек-лист заполнен → кандидат переезжает в «прошли и оценены»
