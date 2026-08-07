@@ -421,6 +421,8 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
 .hp-cancel{border:none;border-radius:999px;padding:9px 16px;font-weight:800;background:var(--cream-dark);color:var(--gray);cursor:pointer}
 .hp-save{border:none;border-radius:999px;padding:9px 16px;font-weight:800;background:var(--purple);color:#fff;cursor:pointer}
 .hp-card code{background:var(--cream);padding:1px 5px;border-radius:5px;font-size:12px}
+.hp-card blockquote{margin:8px 0 12px;padding:11px 15px;background:var(--cream);border-left:3px solid var(--purple);
+  border-radius:0 10px 10px 0;font-size:13.5px;line-height:1.6;white-space:pre-line}
 .iv-wrap{margin:16px 0 4px}
 .iv-head{display:flex;align-items:center;gap:12px;cursor:pointer;padding:10px 14px;background:#fff;
   border:2px solid var(--cream-dark);border-radius:14px;font-size:13.5px;user-select:none}
@@ -531,6 +533,10 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
       <div class="cal-add">
         <input type="date" id="slotDate">
         <input type="time" id="slotTime" step="900">
+        <select id="slotPurpose" onchange="loadCalendar()" style="padding:9px 30px 9px 12px;border:2px solid var(--cream-dark);border-radius:999px;font-size:13px;font-weight:700;background:#fff">
+          <option value="interview">🎤 Собеседования</option>
+          <option value="onboarding">🎓 Встречи с подопечными</option>
+        </select>
         <button onclick="addSlot()">＋ Слот 45 мин</button>
         <button onclick="openBulk()" style="background:var(--orange)">📅 Слоты на период</button>
       </div>
@@ -665,7 +671,7 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
 <div id="bulkOverlay" onclick="if(event.target===this)closeBulk()" style="display:none;position:fixed;inset:0;background:rgba(45,45,63,.55);z-index:60;align-items:flex-start;justify-content:center;padding:50px 14px;overflow-y:auto">
   <div style="background:#fff;border-radius:18px;max-width:480px;width:100%;padding:24px;box-shadow:var(--shadow)">
     <h3 style="font-size:18px;margin-bottom:4px">📅 Слоты на период</h3>
-    <div style="font-size:12.5px;color:var(--gray);margin-bottom:16px">Выберите дни недели, времена начала (МСК) и период — слоты создадутся разом. Конфликтные пропустятся.</div>
+    <div style="font-size:12.5px;color:var(--gray);margin-bottom:16px">Выберите дни недели, времена начала (МСК) и период — слоты создадутся разом. Конфликтные пропустятся. <b>Пачкой создаются слоты на собеседования</b>; окна для подопечных пока добавляются по одному.</div>
 
     <div style="font-size:12px;font-weight:900;color:var(--gray);text-transform:uppercase;margin-bottom:6px">Дни недели</div>
     <div class="bulk-chips" id="bulkDays">
@@ -2495,8 +2501,10 @@ async function loadCalendar(){
   const mineOnly = document.getElementById('calMine').checked;
   const from = new Date(calStart); from.setHours(0,0,0,0);
   const to = new Date(from); to.setDate(to.getDate() + 7);
+  const purpose = document.getElementById('slotPurpose')?.value || 'interview';
   let q = sb.from('hr_slots').select('*')
     .gte('start_at', from.toISOString()).lt('start_at', to.toISOString())
+    .eq('purpose', purpose)
     .order('start_at');
   if (mineOnly) q = q.eq('recruiter_id', me.id);
 
@@ -2558,6 +2566,7 @@ async function saveMeetUrl(){
   else renderMeetUrlMsg();
 }
 
+const STEP_TITLES = { prep_meeting:'подготовка к уроку', final_meeting:'итоговая встреча' };
 const CAL_HOURS = ['09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00'];
 function toggleQuickAdd(i){
   const box = document.getElementById('qa-' + i);
@@ -2572,7 +2581,10 @@ function renderCalStats(future, mineOnly){
   const free = mySlots.filter(s => !s.application_id).length;
   const nextBooked = future.filter(s => s.application_id)[0];
   // ждут записи — те, у кого слота нет вовсе (прошедшие встречи сюда не попадают)
-  const waiting = apps.filter(a => a.status === 'interview' && !a.archived_at && !ivSlots[a.id]).length;
+  const purpose = document.getElementById('slotPurpose')?.value || 'interview';
+  const waiting = purpose === 'onboarding'
+    ? apps.filter(a => a.status === 'onboarding' && !a.archived_at).length
+    : apps.filter(a => a.status === 'interview' && !a.archived_at && !ivSlots[a.id]).length;
 
   const nextApp = nextBooked ? apps.find(a => a.id === nextBooked.application_id) : null;
   const tile = (cls, ic, v, l) => `<div class="cal-stat ${cls}"><div class="ic">${ic}</div>
@@ -2583,7 +2595,8 @@ function renderCalStats(future, mineOnly){
     + tile(nextBooked ? 'ok' : '', '🗓️',
         nextBooked ? mskFmt(nextBooked.start_at).replace(' МСК','') : '—',
         nextBooked ? 'ближайшее: ' + esc(nextApp?.full_name || 'кандидат') : 'записей пока нет')
-    + tile(waiting > 0 && free === 0 ? 'warn' : '', '⏳', waiting, 'приглашены, но не выбрали время');
+    + tile(waiting > 0 && free === 0 ? 'warn' : '', '⏳', waiting,
+        purpose === 'onboarding' ? 'подопечных в онбординге' : 'приглашены, но не выбрали время');
 
   document.getElementById('calAlert').innerHTML = (waiting > 0 && free === 0)
     ? `⚠️ ${waiting} ${waiting === 1 ? 'кандидат ждёт' : 'кандидата(ов) ждут'} записи, а свободных слотов нет — их некуда записать. Добавьте слоты.`
@@ -2601,6 +2614,10 @@ function toggleIvFunnel(){
 function renderIvFunnel(){
   const box = document.getElementById('ivFunnel');
   if (!box) return;
+  // воронка про собеседования — на календаре подопечных она не к месту
+  if ((document.getElementById('slotPurpose')?.value || 'interview') !== 'interview') {
+    box.innerHTML = ''; box.className = ''; return;
+  }
   const b = { invited:[], booked:[], passed:[] };
   apps.filter(a => a.status === 'interview' && !a.archived_at)
       .forEach(a => { const iv = ivStage(a); b[iv.key === 'scored' ? 'passed' : iv.key].push({ a, iv }); });
@@ -2652,10 +2669,12 @@ function calSlotHtml(s){
   const who = mine
     ? (booked ? esc(app?.full_name || 'кандидат') : 'свободен')
     : esc((nameOf(s.recruiter_id) || '').split(' ')[0]) + (booked ? ' · занят' : '');
+  const stepTitle = s.step_slug ? (STEP_TITLES[s.step_slug] || s.step_slug) : '';
   return `<div class="cal-slot ${booked ? 'booked' : 'free'} ${mine ? '' : 'other'} ${past ? 'past' : ''}"
       ${booked && app ? `onclick="openCard('${app.id}')"` : ''}>
     <div class="cs-time">${time}</div>
     <div class="cs-who">${who}</div>
+    ${stepTitle ? `<div style="font-size:10.5px;color:var(--gray);margin:-2px 0 4px">${esc(stepTitle)}</div>` : ''}
     ${mine && !past ? `<div class="cs-acts">
       <button class="edit" title="Поменять день, время или длительность" onclick="event.stopPropagation();openMoveSlot('${s.id}')">✏️</button>
       ${booked
@@ -3165,7 +3184,8 @@ async function addSlot(){
 async function createSlot(dateStr, timeStr){
   const startISO = new Date(dateStr + 'T' + timeStr + ':00+03:00').toISOString();
   if (new Date(startISO) < new Date()) { alert('Это время уже в прошлом.'); return false; }
-  const { error } = await sb.from('hr_slots').insert({ recruiter_id: me.id, start_at: startISO, duration_min: 45 });
+  const purpose = document.getElementById('slotPurpose')?.value || 'interview';
+  const { error } = await sb.from('hr_slots').insert({ recruiter_id: me.id, start_at: startISO, duration_min: 45, purpose });
   if (error) {
     alert(error.message.includes('hr_slots_no_overlap')
       ? 'Слишком близко к другому вашему слоту: между слотами нужно минимум 15 минут.'

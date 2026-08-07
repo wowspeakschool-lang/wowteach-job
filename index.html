@@ -120,6 +120,20 @@ button{font-family:inherit;cursor:pointer}
 #cmWrap button{border:none;border-radius:999px;padding:12px 24px;font-weight:800;font-size:14.5px;cursor:pointer;font-family:inherit}
 #cmWrap .no{background:var(--cream-dark);color:var(--gray)}
 #cmWrap .yes{background:var(--purple);color:#fff}
+.bslot{margin-top:10px}
+.bslot-title{font-size:12.5px;color:var(--gray);font-weight:700;margin-bottom:6px}
+.bslot-grid{display:flex;flex-wrap:wrap;gap:6px}
+.bslot-grid button{border:2px solid var(--cream-dark);background:#fff;border-radius:10px;padding:8px 12px;
+  font-size:12.5px;font-weight:800;cursor:pointer;font-family:inherit;color:var(--ink)}
+.bslot-grid button:hover{border-color:var(--purple);color:var(--purple-dark)}
+.bslot-ok{background:var(--green-light);border-radius:12px;padding:11px 14px;font-size:13.5px;
+  display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.bslot-btn{background:var(--purple);color:#fff;border-radius:999px;padding:7px 15px;font-weight:800;
+  font-size:12.5px;text-decoration:none}
+.bslot-link{border:none;background:none;color:var(--purple-dark);font-weight:800;font-size:12px;
+  cursor:pointer;text-decoration:underline;padding:0;font-family:inherit;margin-top:6px}
+.bslot-note{font-size:12.5px;color:var(--gray)}
+.bslot-tg{display:inline-block;margin-top:8px;font-size:12.5px;color:var(--purple-dark);font-weight:700}
 </style>
 </head>
 <body>
@@ -396,8 +410,70 @@ async function loadOnboarding(a){
         }).join('')}
       </div>
     </div>`;
+
+  // подгружаем свободное время наставника для шагов с записью
+  steps.filter(s => BOOKABLE_STEPS.includes(s.slug) && !s.done_at)
+       .forEach(s => loadBuddySlots(s.slug));
 }
+
+// ---- запись к наставнику ----
+const bsCache = {};
+async function loadBuddySlots(step){
+  const box = document.getElementById('bs-' + step);
+  if (!box) return;
+  const { data, error } = await sb.rpc('hr_my_buddy_slots', { p_step_slug: step });
+  if (error) {
+    box.innerHTML = /hr_my_buddy_slots|schema cache/i.test(error.message)
+      ? '<span class="bslot-note">Запись на встречу скоро появится.</span>'
+      : '<span class="bslot-note">' + esc(error.message) + '</span>';
+    return;
+  }
+  if (!data || data.ok === false) { box.innerHTML = '<span class="bslot-note">' + esc(data?.reason || '—') + '</span>'; return; }
+  bsCache[step] = data;
+  renderBuddySlots(step);
+}
+function renderBuddySlots(step, showAll){
+  const box = document.getElementById('bs-' + step);
+  const d = bsCache[step];
+  if (!box || !d) return;
+  const fmt = t => new Date(t).toLocaleString('ru-RU', { weekday:'short', day:'numeric', month:'short',
+                                                        hour:'2-digit', minute:'2-digit' });
+  if (d.booked && !showAll) {
+    box.innerHTML = `<div class="bslot-ok">
+      <b>🗓️ Вы записаны: ${fmt(d.booked.start_at)}</b> (МСК), ${d.booked.duration_min} минут
+      ${d.meeting_url ? `<a href="${esc(d.meeting_url)}" target="_blank" class="bslot-btn">Подключиться →</a>` : ''}
+      <button class="bslot-link" onclick="renderBuddySlots('${step}', true)">выбрать другое время</button>
+    </div>`;
+    return;
+  }
+  const free = d.free || [];
+  if (!free.length) {
+    box.innerHTML = `<span class="bslot-note">У наставника пока нет свободных окон${d.buddy ? ' (' + esc(d.buddy) + ')' : ''} — напишите ему в Telegram, договоритесь напрямую.</span>`
+      + (d.booked ? `<button class="bslot-link" onclick="renderBuddySlots('${step}')">← назад к записи</button>` : '');
+    return;
+  }
+  box.innerHTML = `<div class="bslot-title">Выберите удобное время${d.buddy ? ' — ' + esc(d.buddy) : ''}:</div>
+    <div class="bslot-grid">${free.slice(0, 12).map(f =>
+      `<button onclick="bookBuddy('${step}','${f.id}')">${fmt(f.start_at)}</button>`).join('')}</div>
+    ${free.length > 12 ? `<span class="bslot-note">и ещё ${free.length - 12} — выберите из ближайших</span>` : ''}
+    ${d.booked ? `<button class="bslot-link" onclick="renderBuddySlots('${step}')">← оставить прежнее время</button>` : ''}`;
+}
+async function bookBuddy(step, slotId){
+  const box = document.getElementById('bs-' + step);
+  if (box) box.innerHTML = '<span class="bslot-note">Записываю…</span>';
+  const { error } = await sb.rpc('hr_book_buddy_slot', { p_slot_id: slotId, p_step_slug: step });
+  if (error) { alert('Не получилось: ' + error.message); loadBuddySlots(step); return; }
+  loadBuddySlots(step);
+}
+
+// Шаги, на которые подопечный записывается сам: наставник открывает окна,
+// человек выбирает время. Знакомство идёт перепиской — там только Telegram.
+const BOOKABLE_STEPS = ['prep_meeting', 'final_meeting'];
 function stepAction(a, s, tg){
+  if (BOOKABLE_STEPS.includes(s.slug)) {
+    return `<div id="bs-${s.slug}" class="bslot">Загружаю свободное время…</div>`
+         + (tg ? `<a href="https://t.me/${esc(tg)}" target="_blank" class="bslot-tg">или написать наставнику →</a>` : '');
+  }
   if (s.owner !== 'candidate') {
     // шаг наставника «Знакомство» — даём кнопку написать в Telegram
     if (s.slug === 'meet_buddy' && tg) {
