@@ -131,6 +131,8 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
 .mini-grid th{font-size:10px;color:var(--gray);padding:2px 4px;font-weight:800}
 .mini-grid td{width:34px;height:22px;border-radius:6px;background:var(--cream-dark)}
 .mini-grid td.on{background:var(--green)}
+.mini-grid.editable td{cursor:pointer;box-shadow:inset 0 0 0 2px transparent}
+.mini-grid.editable td:hover{box-shadow:inset 0 0 0 2px var(--purple)}
 .stage-now{display:flex;align-items:center;gap:11px;flex-wrap:wrap;margin-bottom:14px}
 .stage-hint{font-size:13px;color:var(--gray);font-weight:700}
 .stage-acts{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
@@ -1196,15 +1198,13 @@ let current = null;
 async function openCard(id){
   current = apps.find(a => a.id === id);
   if (!current) return;
-  cardEdit = false;
+  cardEdit = false; gridEdit = false;
   if (location.hash !== '#app/' + id) history.replaceState(null, '', '#app/' + id);
   const a = current, ans = a.answers || {};
   const st = STATUSES[a.status] || STATUSES.new;
   const vac = vacancies.find(v => v.id === a.vacancy_id);
 
-  const gridHtml = `<table class="mini-grid"><tr><th></th>${SLOTS.map(s=>`<th>${{morning:'9–12',day:'12–16',evening:'16–21'}[s]}</th>`).join('')}</tr>` +
-    DAYS.map(([k,l]) => `<tr><th>${l}</th>${SLOTS.map(s =>
-      `<td class="${(ans.schedule_grid?.[k]||[]).includes(s) ? 'on':''}"></td>`).join('')}</tr>`).join('') + '</table>';
+  const gridHtml = gridTable(ans.schedule_grid, false);
 
   document.getElementById('modal').innerHTML = `
     <div class="mhead">
@@ -1280,7 +1280,10 @@ async function openCard(id){
         <div id="kvEdit" style="display:none"></div>
       </div>
 
-      <div class="sec"><h3>Расписание (МСК)</h3>${gridHtml}</div>
+      <div class="sec"><h3>Расписание (МСК)
+          <button class="edit-toggle" onclick="toggleGridEdit()">✏️ Исправить</button></h3>
+        <div id="gridBox">${gridHtml}</div>
+      </div>
 
       ${ans.cover_letter ? `<div class="sec"><h3>Несколько слов о себе</h3>
         <div style="white-space:pre-wrap;font-size:14px;line-height:1.6">${esc(ans.cover_letter)}</div></div>` : ''}
@@ -1514,6 +1517,59 @@ async function togglePool(id){
   if (error) { alert('Не получилось: ' + error.message); return; }
   a.talent_pool = on; a.talent_pool_at = on ? new Date().toISOString() : null; a.talent_pool_note = on ? note : null;
   render(); openCard(id);
+}
+
+// ============ Рабочие часы ============
+// Ту же сетку показываем и в режиме правки: клик по клетке включает и выключает окно.
+const SLOT_LABEL = { morning:'9–12', day:'12–16', evening:'16–21' };
+function gridTable(grid, editable){
+  const g = grid || {};
+  return `<table class="mini-grid ${editable ? 'editable' : ''}">
+    <tr><th></th>${SLOTS.map(s => `<th>${SLOT_LABEL[s]}</th>`).join('')}</tr>
+    ${DAYS.map(([k, l]) => `<tr><th>${l}</th>${SLOTS.map(s =>
+      `<td class="${(g[k] || []).includes(s) ? 'on' : ''}" data-d="${k}" data-s="${s}"
+           ${editable ? 'onclick="this.classList.toggle(\'on\')"' : ''}></td>`).join('')}</tr>`).join('')}
+  </table>`;
+}
+let gridEdit = false;
+function toggleGridEdit(){
+  gridEdit = !gridEdit;
+  const box = document.getElementById('gridBox');
+  if (!box || !current) return;
+  if (!gridEdit) { box.innerHTML = gridTable(current.answers?.schedule_grid, false); return; }
+  box.innerHTML = gridTable(current.answers?.schedule_grid, true)
+    + `<div class="ed-acts">
+         <button class="cancel" onclick="toggleGridEdit()">Отмена</button>
+         <button class="save" id="grSave" onclick="saveGrid('${current.id}')">Сохранить</button>
+         <span id="grMsg" style="font-size:12.5px"></span>
+       </div>
+       <div class="ed-note">Клик по клетке включает и выключает окно. Время московское.</div>`;
+}
+async function saveGrid(id){
+  const a = apps.find(x => x.id === id);
+  if (!a) return;
+  const grid = {};
+  DAYS.forEach(([k]) => {
+    const on = [...document.querySelectorAll(`#gridBox td[data-d="${k}"].on`)].map(td => td.dataset.s);
+    if (on.length) grid[k] = on;
+  });
+  const before = JSON.stringify(a.answers?.schedule_grid || {});
+  if (before === JSON.stringify(grid)) { gridEdit = false; toggleGridEdit(); return; }
+
+  const ans = { ...(a.answers || {}), schedule_grid: grid };
+  const btn = document.getElementById('grSave'), msg = document.getElementById('grMsg');
+  btn.disabled = true; btn.textContent = 'Сохраняю…';
+  const { error } = await sb.from('hr_applications').update({ answers: ans }).eq('id', id);
+  btn.disabled = false; btn.textContent = 'Сохранить';
+  if (error) { msg.textContent = error.message; msg.style.color = 'var(--red)'; return; }
+
+  await sb.from('hr_events').insert({
+    application_id: id, type: 'application_edited',
+    payload: { fields: ['рабочие часы'], by: me.id }
+  });
+  a.answers = ans;
+  gridEdit = false;
+  openCard(id);
 }
 
 // ============ Журнал писем ============
