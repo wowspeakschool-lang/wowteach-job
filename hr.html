@@ -355,6 +355,39 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
 .sub-row input{width:14px;height:14px;accent-color:var(--purple);flex-shrink:0;margin-top:2px}
 .sub-row span.off{text-decoration:line-through;opacity:.6}
 .sub-left{font-size:11px;font-weight:800;color:var(--orange);padding:2px 0 0 22px}
+/* ── онбординг: лента этапов + аккордеон ── */
+.onb-strip{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 12px;margin-bottom:2px}
+.onb-chip{flex:0 0 auto;border:2px solid var(--cream-dark);background:#fff;border-radius:999px;
+  padding:7px 13px;font-size:12px;font-weight:800;color:var(--gray);cursor:pointer;font-family:inherit;
+  white-space:nowrap;display:flex;gap:7px;align-items:center}
+.onb-chip:hover{border-color:var(--purple)}
+.onb-chip.on{background:var(--purple);border-color:var(--purple);color:#fff}
+.onb-chip .n{background:var(--cream);color:var(--purple-dark);border-radius:999px;padding:1px 7px;font-size:11px}
+.onb-chip.on .n{background:rgba(255,255,255,.28);color:#fff}
+.onb-chip.hot{border-color:var(--red);color:#B91C1C}
+.onb-chip.hot.on{background:var(--red);border-color:var(--red);color:#fff}
+.onb-row{background:#fff;border:1px solid var(--cream-dark);border-radius:16px;margin-bottom:10px;overflow:hidden}
+.onb-row.hot{border-color:var(--red)}
+.onb-row.open{box-shadow:0 5px 20px rgba(0,0,0,.07)}
+.onb-head{display:flex;gap:12px;align-items:center;padding:13px 16px;cursor:pointer;flex-wrap:wrap}
+.onb-head:hover{background:#FDFCF8}
+.onb-name{font-weight:800;font-size:15px}
+.onb-meta{font-size:12px;color:var(--gray);margin-top:2px}
+.onb-now{font-size:13px;font-weight:800;color:var(--purple-dark)}
+.onb-bar{width:88px;height:6px;border-radius:999px;background:var(--cream-dark);overflow:hidden;flex-shrink:0}
+.onb-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--purple),var(--pink))}
+.onb-caret{font-size:11px;color:var(--gray);width:10px}
+.onb-body{padding:4px 16px 14px;border-top:1px solid var(--cream)}
+.onb-pills{display:flex;flex-wrap:wrap;gap:6px;padding:10px 0 2px}
+.onb-pill{font-size:11.5px;font-weight:700;color:#15803D;background:var(--green-light);
+  border-radius:999px;padding:3px 10px;cursor:pointer}
+.onb-pill:hover{filter:brightness(.96)}
+.onb-step{border-radius:12px;padding:8px 11px;margin-top:6px}
+.onb-step.cur{background:var(--purple-light)}
+.onb-step.fut{opacity:.6}
+.onb-step.was{background:var(--cream);opacity:.85}
+.onb-step .sub-hints{margin-left:27px;margin-bottom:2px}
+@media(max-width:760px){.onb-bar{display:none}.onb-head{gap:8px;padding:12px}.onb-body{padding:4px 11px 12px}}
 .lnk-btn{border:none;background:none;color:var(--purple-dark);font-weight:800;font-size:12px;
   cursor:pointer;text-decoration:underline;padding:0;font-family:inherit}
 .edit-toggle{float:right;border:none;background:var(--cream-dark);color:var(--gray);border-radius:999px;
@@ -594,6 +627,8 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
     <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
       <label style="font-size:13px;font-weight:700;display:flex;gap:6px;align-items:center;cursor:pointer">
         <input type="checkbox" id="onbMine" onchange="renderOnb()"> только мои подопечные</label>
+      <label style="font-size:13px;font-weight:700;display:flex;gap:6px;align-items:center;cursor:pointer">
+        <input type="checkbox" id="onbWait" onchange="renderOnb()"> где мой ход <span id="onbWaitN" style="color:var(--purple)"></span></label>
     </div>
     <div id="onbPage">Загружаю…</div>
   </section>
@@ -1223,6 +1258,10 @@ function toggleStatusAll(){
 let current = null;
 async function openCard(id){
   current = apps.find(a => a.id === id);
+  if (!current) {   // из онбординга можно прийти раньше, чем догрузился список заявок
+    const { data } = await sb.from('hr_applications').select('*').eq('id', id).maybeSingle();
+    if (data) { apps.push(data); current = data; }
+  }
   if (!current) return;
   cardEdit = false; gridEdit = false;
   if (location.hash !== '#app/' + id) history.replaceState(null, '', '#app/' + id);
@@ -2117,6 +2156,9 @@ const OWNER_LABEL = { candidate:'кандидат', buddy:'наставник', 
 let onbData = [];
 let onbHints = {};   // slug шага → подпункты для команды
 let onbSub = {};     // "appId|slug" → Set отмеченных ключей
+let onbStepOpen = {};                                    // "appId|slug" → раскрыты ли подпункты вручную
+let onbStage = '';                                       // фильтр по этапу ленты ('' | slug | '__hot')
+let onbOpen = (() => { try { return localStorage.getItem('onbOpen') || ''; } catch(e){ return ''; } })();
 async function loadOnbExtras(){
   const [st, sub] = await Promise.all([
     sb.from('hr_onboarding_steps').select('slug,staff_hints'),
@@ -2138,42 +2180,141 @@ async function loadOnb(){
   document.getElementById('onbBadge').textContent = onbData.length;
   renderOnb();
 }
+// Текущий шаг — первый незакрытый. Просрочка — любой незакрытый с прошедшим сроком.
+function onbCur(o){ return (o.steps||[]).find(s => !s.done_at) || null; }
+function onbHot(o){ return (o.steps||[]).some(s => !s.done_at && s.due_at && new Date(s.due_at) < new Date()); }
+// «Мой ход»: у наставника — только свои подопечные, у остальных — по роли.
+function onbIsMine(o, owner){
+  if (!me || !owner || owner === 'candidate') return false;
+  if (owner === 'buddy') return o.buddy?.id === me.id;
+  const r = Array.isArray(me?.roles) ? me.roles : (me?.roles ? [me.roles] : []);
+  return r.includes(owner);
+}
+function onbWaitsMe(o){ const c = onbCur(o); return !!(c && !c.auto && onbIsMine(o, c.owner)); }
+
+function setOnbStage(s){ onbStage = (onbStage === s ? '' : s); renderOnb(); }
+function toggleOnb(id){
+  onbOpen = (onbOpen === id ? '' : id);
+  try { localStorage.setItem('onbOpen', onbOpen); } catch(e){}
+  renderOnb();
+}
+function toggleStep(appId, slug){
+  const o = onbData.find(x => x.id === appId); if (!o) return;
+  const k = appId + '|' + slug;
+  const def = onbCur(o)?.slug === slug;
+  onbStepOpen[k] = !(onbStepOpen[k] === undefined ? def : onbStepOpen[k]);
+  renderOnb();
+}
+
+function onbStrip(rows){
+  const order = [];
+  onbData.forEach(o => (o.steps||[]).forEach(s => {
+    if (!order.some(x => x.slug === s.slug)) order.push({ slug:s.slug, title:s.title });
+  }));
+  const cnt = {}; let hot = 0;
+  rows.forEach(o => {
+    const c = onbCur(o); if (c) cnt[c.slug] = (cnt[c.slug]||0) + 1;
+    if (onbHot(o)) hot++;
+  });
+  const chips = [`<button class="onb-chip ${!onbStage?'on':''}" onclick="setOnbStage('')">Все <span class="n">${rows.length}</span></button>`];
+  if (hot) chips.push(`<button class="onb-chip hot ${onbStage==='__hot'?'on':''}" onclick="setOnbStage('__hot')">🔥 Просрочка <span class="n">${hot}</span></button>`);
+  order.forEach((st, i) => {
+    if (!cnt[st.slug]) return;
+    chips.push(`<button class="onb-chip ${onbStage===st.slug?'on':''}" onclick="setOnbStage('${st.slug}')">${i+1}. ${esc(st.title)} <span class="n">${cnt[st.slug]}</span></button>`);
+  });
+  return `<div class="onb-strip">${chips.join('')}</div>`;
+}
+
+function onbStepBlock(o, s, kind){
+  const over = !s.done_at && s.due_at && new Date(s.due_at) < new Date();
+  const hints = onbHints[s.slug] || [];
+  const k = o.id + '|' + s.slug;
+  const shown = hints.length && (onbStepOpen[k] === undefined ? kind === 'cur' : onbStepOpen[k]);
+  const doneSet = onbSub[k] || new Set();
+  const left = hints.filter(h => !doneSet.has(h.key)).length;
+  return `<div class="onb-step ${kind}">
+    <div style="display:flex;gap:10px;align-items:center;font-size:13.5px">
+      <input type="checkbox" ${s.done_at?'checked disabled':''} onchange="doneStep('${o.id}','${s.slug}')"
+        style="width:17px;height:17px;accent-color:var(--green);flex-shrink:0">
+      <span style="flex:1;${s.done_at?'opacity:.6;text-decoration:line-through':''}">${esc(s.title)}
+        <span style="font-size:11px;color:var(--gray)">· ${s.auto ? '🤖 авто (обучение)' : (OWNER_LABEL[s.owner]||s.owner)}</span></span>
+      ${hints.length ? `<button class="lnk-btn" onclick="toggleStep('${o.id}','${s.slug}')">${
+        shown ? 'свернуть' : 'подпункты ' + (hints.length - left) + '/' + hints.length}</button>` : ''}
+      ${s.done_at ? `<span style="font-size:11.5px;color:var(--green);white-space:nowrap">✓ ${fmtDay(s.done_at)}</span>`
+        : (s.due_at ? `<span style="font-size:11.5px;font-weight:800;white-space:nowrap;color:${over?'var(--red)':'var(--gray)'}">${over?'🔥 ':'до '}${fmtDay(s.due_at)}</span>` : '')}
+    </div>
+    ${shown ? subHints(o.id, s) : ''}
+  </div>`;
+}
+
+function onbBody(o){
+  const steps = o.steps || [];
+  const cur = onbCur(o);
+  const passed = steps.filter(s => s.done_at);
+  const rest   = steps.filter(s => !s.done_at);
+  const openedPassed = passed.filter(s => onbStepOpen[o.id + '|' + s.slug] === true);
+  return `<div class="onb-body">
+    ${passed.length ? `<div class="onb-pills">${passed.map(s =>
+        `<span class="onb-pill" onclick="toggleStep('${o.id}','${s.slug}')" title="закрыт ${fmtDay(s.done_at)}">✓ ${esc(s.title)}</span>`
+      ).join('')}</div>` : ''}
+    ${openedPassed.map(s => onbStepBlock(o, s, 'was')).join('')}
+    ${rest.map(s => onbStepBlock(o, s, cur && s.slug === cur.slug ? 'cur' : 'fut')).join('')}
+    ${!rest.length ? '<div style="font-size:13px;color:var(--gray);padding:8px 0">Все шаги закрыты 🎉</div>' : ''}
+  </div>`;
+}
+
 function renderOnb(){
-  const mine = document.getElementById('onbMine').checked;
-  const rows = mine ? onbData.filter(o => o.buddy?.id === me.id) : onbData;
   const el = document.getElementById('onbPage');
-  if (!rows.length) { el.innerHTML = '<div style="color:var(--gray);padding:30px 0">Нет активных онбордингов 🦉</div>'; return; }
-  el.innerHTML = rows.map(o => {
-    const done = (o.steps||[]).filter(s => s.done_at).length;
-    const total = (o.steps||[]).length;
-    const overdue = (o.steps||[]).some(s => !s.done_at && s.due_at && new Date(s.due_at) < new Date());
-    return `<div style="background:#fff;border:1px solid ${overdue?'var(--red)':'var(--cream-dark)'};border-radius:16px;padding:18px 20px;margin-bottom:14px">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
-        <div>
-          <div style="font-weight:800;font-size:16px">${esc(o.full_name)} ${overdue?'<span style="color:var(--red);font-size:12px">🔥 просрочка</span>':''}</div>
-          <div style="font-size:12.5px;color:var(--gray)">${esc(o.age_group||'категория не указана')} · наставник: ${esc(o.buddy?.name||'—')} · старт ${fmtDate(o.started_at)}</div>
+  if (!onbData.length) { el.innerHTML = '<div style="color:var(--gray);padding:30px 0">Нет активных онбордингов 🦉</div>'; return; }
+
+  const waitN = onbData.filter(onbWaitsMe).length;
+  const wn = document.getElementById('onbWaitN');
+  if (wn) wn.textContent = waitN ? '· ' + waitN : '';
+
+  let rows = onbData;
+  if (document.getElementById('onbMine').checked) rows = rows.filter(o => o.buddy?.id === me.id);
+  if (document.getElementById('onbWait')?.checked) rows = rows.filter(onbWaitsMe);
+
+  const strip = onbStrip(rows);
+
+  if (onbStage === '__hot') rows = rows.filter(onbHot);
+  else if (onbStage) rows = rows.filter(o => onbCur(o)?.slug === onbStage);
+
+  rows = rows.slice().sort((a, b) => {
+    const ha = onbHot(a), hb = onbHot(b);
+    if (ha !== hb) return ha ? -1 : 1;
+    const da = onbCur(a)?.due_at, db = onbCur(b)?.due_at;
+    if (da && db) return new Date(da) - new Date(db);
+    if (da) return -1; if (db) return 1;
+    return new Date(a.started_at) - new Date(b.started_at);
+  });
+
+  el.innerHTML = strip + (rows.length ? rows.map(o => {
+    const steps = o.steps || [];
+    const done = steps.filter(s => s.done_at).length, total = steps.length;
+    const cur = onbCur(o), hot = onbHot(o), open = onbOpen === o.id;
+    const over = cur && cur.due_at && new Date(cur.due_at) < new Date();
+    return `<div class="onb-row ${hot?'hot':''} ${open?'open':''}">
+      <div class="onb-head" onclick="toggleOnb('${o.id}')">
+        <span class="onb-caret">${open?'▾':'▸'}</span>
+        <div style="flex:2;min-width:190px">
+          <div class="onb-name">${esc(o.full_name)}${hot?' <span style="color:var(--red);font-size:11.5px;font-weight:800">🔥</span>':''}</div>
+          <div class="onb-meta">${esc(o.age_group||'категория не указана')} · ${esc(o.buddy?.name||'без наставника')} · старт ${fmtDay(o.started_at)}</div>
         </div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <span style="font-size:13px;font-weight:800;color:var(--purple)">${done}/${total}</span>
-          <button class="acc-btn" style="background:var(--red-light);color:#B91C1C" onclick="stopOnb('${o.id}','${esc(o.full_name)}')">Прекратить</button>
+        <div style="flex:2;min-width:180px">
+          <div class="onb-now">${cur ? esc(cur.title) : 'все шаги закрыты 🎉'}</div>
+          <div class="onb-meta">${cur ? (cur.auto ? '🤖 авто' : (OWNER_LABEL[cur.owner]||cur.owner))
+            + (cur.due_at ? ' · <b style="color:'+(over?'var(--red)':'var(--gray)')+'">'+(over?'🔥 просрочен ':'до ')+fmtDay(cur.due_at)+'</b>' : '') : ''}</div>
         </div>
+        <div class="onb-bar" title="${done} из ${total}"><i style="width:${total?done*100/total:0}%"></i></div>
+        <span style="font-size:12.5px;font-weight:800;color:var(--purple);min-width:32px">${done}/${total}</span>
+        <button class="acc-btn" onclick="event.stopPropagation();openCard('${o.id}')" title="Открыть карточку кандидата">👤 Карточка</button>
+        <button class="acc-btn" style="background:var(--red-light);color:#B91C1C"
+          onclick="event.stopPropagation();stopOnb('${o.id}','${esc(o.full_name)}')">Прекратить</button>
       </div>
-      <div style="margin-top:12px;display:flex;flex-direction:column;gap:6px">
-        ${(o.steps||[]).map(s => {
-          const over = !s.done_at && s.due_at && new Date(s.due_at) < new Date();
-          return `<div style="display:flex;gap:10px;align-items:center;font-size:13.5px;padding:6px 0;border-bottom:1px solid var(--cream)">
-            <input type="checkbox" ${s.done_at?'checked disabled':''} onchange="doneStep('${o.id}','${s.slug}')"
-              style="width:17px;height:17px;accent-color:var(--green)">
-            <span style="flex:1;${s.done_at?'opacity:.5;text-decoration:line-through':''}">${esc(s.title)}
-              <span style="font-size:11px;color:var(--gray)">· ${s.auto ? '🤖 авто (обучение)' : (OWNER_LABEL[s.owner]||s.owner)}</span></span>
-            ${s.done_at ? `<span style="font-size:11.5px;color:var(--green)">✓ ${fmtDate(s.done_at)}</span>`
-              : (s.due_at ? `<span style="font-size:11.5px;font-weight:800;color:${over?'var(--red)':'var(--gray)'}">${over?'🔥 ':'до '}${fmtDate(s.due_at)}</span>` : '')}
-          </div>
-          ${subHints(o.id, s)}`;
-        }).join('')}
-      </div>
+      ${open ? onbBody(o) : ''}
     </div>`;
-  }).join('');
+  }).join('') : '<div style="color:var(--gray);padding:24px 0">Под фильтр никто не попал.</div>');
 }
 // Подпункты — памятка для команды внутри шага. Кандидат их не видит.
 // Отметки живут отдельно от самого шага: шаг можно закрыть и без них.
@@ -3272,6 +3413,7 @@ async function loadInterview(appId){
 // ============ Утилиты ============
 function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function fmtDate(d){ return new Date(d).toLocaleDateString('ru-RU', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }); }
+function fmtDay(d){ return new Date(d).toLocaleDateString('ru-RU', { day:'numeric', month:'short' }); }
 </script>
 </body>
 </html>
