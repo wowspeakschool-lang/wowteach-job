@@ -198,12 +198,14 @@ input:focus,select:focus{outline:none;border-color:var(--purple)}
     <div class="card">
       <h2><span class="ico">🎥</span> Видео-визитка</h2>
       <div class="tz">
-        <b>Пожалуйста, запишите короткое видео <u>на английском языке</u> (до 1,5 минут). Ответьте на наши вопросы:</b>
+        <b>Пожалуйста, запишите короткое видео <u>на английском языке</u> (2–3 минуты). Ответьте на наши вопросы:</b>
         <ol>
-          <li>Are you working or studying at the moment?</li>
-          <li>Could you tell us about your educational background and teaching experience?</li>
-          <li>Which ages have you taught? Do you feel comfortable teaching little kids (4–9 y.o.)?</li>
-          <li>What are, in your opinion, the most important personal qualities in a teacher for little students?</li>
+          <li>Do you have any relevant experience (teaching, sales, teacher training, etc)?</li>
+          <li>Do you have experience working ONLINE (teaching, sales, teacher training etc)?</li>
+          <li>If you are a teacher, what ages have you worked with (e.g. from 4 yo till 12 yo)?</li>
+          <li>Have you ever conducted demo lessons? If yes, could you tell us about this experience?<br>
+            <span style="font-weight:600">(Demo lessons are lessons aimed at assessing a student&rsquo;s level and selling the educational course.)</span></li>
+          <li>How many 40-minute demo lessons are you ready to give per week on a regular basis?</li>
         </ol>
         <div class="note">Постарайтесь не читать ответы с листа — нам важно услышать живую речь и увидеть вас так, как вас увидят дети и родители 🙂</div>
       </div>
@@ -262,19 +264,24 @@ input:focus,select:focus{outline:none;border-color:var(--purple)}
       </div>
 
       <div class="field">
-        <label>Есть ли у вас опыт онлайн-продаж? <span class="req">*</span></label>
+        <label>Опыт продаж <span class="req">*</span></label>
         <select id="sales_exp">
           <option value="">— выберите —</option>
-          <option value="yes">Да</option>
-          <option value="no">Нет</option>
+          <option value="yes">Да, есть опыт продаж</option>
+          <option value="no">Опыта нет, но хочу научиться</option>
         </select>
-        <div class="hint">Не обязательное требование, но будет преимуществом: на вводном уроке вы рекомендуете программу.</div>
+        <div class="hint">Продажи — половина этой роли: на вводном уроке вы не только определяете уровень
+        ребёнка, но и рекомендуете программу и помогаете семье принять решение. Опыт для нас важен —
+        но если его нет, всё равно откликайтесь: научим на старте.</div>
       </div>
 
       <div class="field">
         <label>Несколько слов о себе <span class="opt">(необязательно)</span></label>
-        <textarea id="cover_letter" rows="4" placeholder="Что вам близко в работе с детьми и почему вам интересна эта роль."></textarea>
+        <textarea id="cover_letter" rows="4" placeholder="Что вам ближе — вести урок или разговаривать с родителями? Был ли опыт, когда вы кому-то что-то рекомендовали и вас услышали? Пары предложений достаточно."></textarea>
       </div>
+    </div>
+
+    <!-- ===== График ===== -->      </div>
     </div>
 
     <!-- ===== График ===== -->
@@ -315,16 +322,17 @@ input:focus,select:focus{outline:none;border-color:var(--purple)}
 
     <!-- ===== Документы ===== -->
     <div class="card">
-      <h2><span class="ico">📎</span> Документы <span style="font-size:13px;color:var(--gray-text);font-weight:600">(необязательно, но станет преимуществом)</span></h2>
+      <h2><span class="ico">📎</span> Документы</h2>
       <div class="field">
-        <label>Ваше резюме</label>
+        <label>Ваше резюме <span class="req">*</span></label>
         <label class="filebox" id="resumeBox">
           <input type="file" id="resume" accept=".pdf,image/jpeg,image/png,image/webp">
           <b>＋ Выбрать файл</b><span>PDF или фото, до 20 МБ</span>
         </label>
+        <div class="hint">Без резюме мы не сможем рассмотреть отклик — приложите файл или фото.</div>
       </div>
       <div class="field">
-        <label>Сертификат на знание языка</label>
+        <label>Сертификат на знание языка <span class="opt">(необязательно)</span></label>
         <label class="filebox" id="certLangBox">
           <input type="file" id="cert_lang" accept=".pdf,image/jpeg,image/png,image/webp">
           <b>＋ Выбрать файл</b><span>Если есть — это конкурентное преимущество</span>
@@ -475,6 +483,7 @@ form.addEventListener('submit', async e => {
   if (!val('schedule_option')) return fail('Выберите вариант графика.');
   if (!val('load_ready')) return fail('Укажите, готовы ли проводить от 20 уроков в неделю.');
   if (!val('workplace')) return fail('Расскажите про рабочее место.');
+  if (!document.getElementById('resume').files[0]) return fail('Приложите резюме — без него мы не сможем рассмотреть отклик.');
   const videoFile = document.getElementById('video').files[0];
   if (!videoFile && !val('video_url')) return fail('Прикрепите видео-визитку (файлом или ссылкой).');
   if (!document.getElementById('consent').checked) return fail('Нужно согласие на обработку персональных данных.');
