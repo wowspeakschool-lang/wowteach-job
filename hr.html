@@ -887,6 +887,19 @@ const EDU = { pedagogical:'Педагогическое', linguistic:'Профи
 const EXP = { none:'Отсутствует', lt1:'Меньше 1 года', '1-2':'1–2 года', '3plus':'3+ лет' };
 const HOURS = { lt10:'< 10 ч/нед', '10-15':'10–15 ч/нед', '15-20':'15–20 ч/нед', '20-30':'20–30 ч/нед', fulltime:'Full-time (до 40 ч)' };
 const AGES = { '4-6':'4–6', '7-9':'7–9', '10-12':'10–12', teens:'Подростки', adults:'Взрослые' };
+// ── ответы анкет менеджеров: свои словари ──
+const SALES_YEARS = { none:'Нет опыта', lt6:'Меньше полугода', '6_12':'Полгода — год', '1_3':'1–3 года', '3plus':'Больше 3 лет' };
+const EDTECH  = { yes:'Да, продавал(а) обучение', adjacent:'Работал(а) в сфере, но не в продажах', no:'Нет' };
+const CRM     = { amocrm:'AmoCRM', moyklass:'«Мой Класс»', bitrix:'Bitrix24', other:'Другая', none:'Не работал(а)' };
+const SHIFT   = { '10_19':'10:00–19:00 МСК', '12_21':'12:00–21:00 МСК', any:'Любая' };
+const EQUIP   = { yes:'Есть всё', partly:'Есть частично', will_buy:'Куплю до старта', no:'Нет' };
+const MGR_SCHED = { evening:'Пн–пт 15:00–21:00 + выходной', morning:'Пн–пт 9:00–15:00 + выходной', weekend:'Сб и вс 9:00–21:00' };
+const MGR_LOAD  = { yes:'Да, от 20 уроков', less:'Пока может меньше' };
+const WORKPLACE = { yes:'Всё есть', partly:'Есть частично', no:'Пока нет' };
+const MGR_EXP   = { none:'Нет опыта', lt1:'Меньше года', '1_3':'1–3 года', '3plus':'Больше 3 лет' };
+// вакансия заявки: от неё зависит, какие поля анкеты показывать
+function vacSlugOf(a){ return vacancies.find(v => v.id === a.vacancy_id)?.slug || 'teacher'; }
+const lbl = (map, v) => (v === null || v === undefined || v === '') ? '—' : (map[v] || esc(String(v)));
 const LEVEL = { B1:'B1', B2:'B2', C1:'C1', C2:'C2', native:'Носитель' };
 const SPEAKER = { ru:'🇷🇺 Русскоязычный', en:'🇬🇧 Англоязычный' };
 const SOURCE = { employee_referral:'👥 Рекомендация сотрудника', friend_referral:'🤝 Рекомендация друга / знакомого', hh:'HeadHunter', avito:'Авито Работа', telegram:'Telegram', vk:'ВКонтакте', instagram:'Instagram', youtube:'YouTube', tiktok:'TikTok', search:'Поиск Google / Яндекс', website:'Сайт WowSpeak', other:'Другое' };
@@ -1315,40 +1328,15 @@ async function openCard(id){
 
       <div class="sec"><h3>Контакты и анкета
           <button class="edit-toggle" onclick="toggleCardEdit()">✏️ Исправить</button></h3>
-        <div class="kv" id="kvView">
-          <div><b>E-mail</b>${esc(a.email)}</div>
-          <div><b>Телефон</b>${esc(a.phone||'—')}</div>
-          <div><b>Telegram</b>${esc(a.telegram||'—')}</div>
-          <div><b>Город / пояс</b>${esc(a.city_tz||'—')}</div>
-          <div><b>Уровень английского</b>${LEVEL[ans.english_level]||'—'}</div>
-          <div><b>Тип преподавателя</b>
-            <select onchange="setSpeaker('${a.id}', this.value)" style="margin-top:2px;padding:5px 8px;border:2px solid var(--cream-dark);border-radius:8px;font-size:13px;font-weight:700;background:#fff">
-              <option value="ru" ${a.speaker_type!=='en'?'selected':''}>🇷🇺 Русскоязычный</option>
-              <option value="en" ${a.speaker_type==='en'?'selected':''}>🇬🇧 Англоязычный</option>
-            </select></div>
-          <div><b>Возрастная категория (наставник)</b>
-            <select onchange="setAgeGroup('${a.id}', this.value)" style="margin-top:2px;padding:5px 8px;border:2px solid var(--cream-dark);border-radius:8px;font-size:13px;font-weight:700;background:#fff;max-width:100%">
-              <option value="">— не выбрана —</option>
-              ${ageGroups.map(g => `<option value="${g.slug}" ${a.age_group===g.slug?'selected':''}>${esc(g.title)}</option>`).join('')}
-            </select>
-            <div id="buddyInfo" style="font-size:12px;color:var(--gray);margin-top:3px">${a.buddy_id ? '🧑‍🏫 ' + esc(nameOf(a.buddy_id)) : ''}</div>
-          </div>
-          <div><b>Образование</b>${EDU[ans.education]||'—'}</div>
-          <div><b>Опыт</b>${EXP[ans.experience]||'—'}</div>
-          <div><b>Нагрузка</b>${HOURS[ans.weekly_hours_label]||'—'}</div>
-          <div><b>Возраст учеников</b>${(ans.ages||[]).map(x=>AGES[x]||x).join(', ')||'—'}</div>
-          <div><b>Доп. языки</b>${(ans.extra_languages||[]).join(', ')||'—'}</div>
-          ${'sales_exp' in ans ? `<div><b>Опыт онлайн-продаж</b>${ans.sales_exp?'Да':'Нет'}</div>` : ''}
-          <div><b>Откуда узнал(а)</b>${esc(sourceLabel(ans))}</div>
-          ${ans.referral_name ? `<div><b>Порекомендовал(а)</b>${esc(ans.referral_name)}</div>` : ''}
+        <div class="kv" id="kvView">${answerRows(a, ans)}
         </div>
         <div id="kvEdit" style="display:none"></div>
       </div>
 
-      <div class="sec"><h3>Расписание (МСК)
+      ${vacSlugOf(a) === 'teacher' ? `<div class="sec"><h3>Расписание (МСК)
           <button class="edit-toggle" onclick="toggleGridEdit()">✏️ Исправить</button></h3>
         <div id="gridBox">${gridHtml}</div>
-      </div>
+      </div>` : ''}
 
       ${ans.cover_letter ? `<div class="sec"><h3>Несколько слов о себе</h3>
         <div style="white-space:pre-wrap;font-size:14px;line-height:1.6">${esc(ans.cover_letter)}</div></div>` : ''}
@@ -1692,8 +1680,62 @@ function toggleCardEdit(){
   box.style.display = cardEdit ? '' : 'none';
   if (cardEdit) box.innerHTML = cardEditForm(current);
 }
+// ── Ответы анкеты: у каждой вакансии свой набор ──
+function answerRows(a, ans){
+  const vac = vacSlugOf(a);
+  const row = (k, v) => `<div><b>${k}</b>${v}</div>`;
+  const speakerSel = row('Тип преподавателя',
+    `<select onchange="setSpeaker('${a.id}', this.value)" style="margin-top:2px;padding:5px 8px;border:2px solid var(--cream-dark);border-radius:8px;font-size:13px;font-weight:700;background:#fff">
+       <option value="ru" ${a.speaker_type!=='en'?'selected':''}>🇷🇺 Русскоязычный</option>
+       <option value="en" ${a.speaker_type==='en'?'selected':''}>🇬🇧 Англоязычный</option>
+     </select>`);
+  const ageGroupSel = row('Возрастная категория (наставник)',
+    `<select onchange="setAgeGroup('${a.id}', this.value)" style="margin-top:2px;padding:5px 8px;border:2px solid var(--cream-dark);border-radius:8px;font-size:13px;font-weight:700;background:#fff;max-width:100%">
+       <option value="">— не выбрана —</option>
+       ${ageGroups.map(g => `<option value="${g.slug}" ${a.age_group===g.slug?'selected':''}>${esc(g.title)}</option>`).join('')}
+     </select>
+     <div id="buddyInfo" style="font-size:12px;color:var(--gray);margin-top:3px">${a.buddy_id ? '🧑‍🏫 ' + esc(nameOf(a.buddy_id)) : ''}</div>`);
+
+  let mid = '';
+  if (vac === 'sales') {
+    mid = row('Опыт в продажах', lbl(SALES_YEARS, ans.sales_years))
+        + row('Онлайн-образование', lbl(EDTECH, ans.edtech))
+        + row('CRM', (ans.crm||[]).map(x => CRM[x]||x).join(', ') || '—')
+        + row('Смена', lbl(SHIFT, ans.shift))
+        + row('Гарнитура и камера', lbl(EQUIP, ans.equipment))
+        + row('Готов(а) выйти', ans.ready_from ? esc(ans.ready_from) : '—');
+  } else if (vac === 'manager') {
+    mid = row('Уровень английского', lbl(LEVEL, ans.english_level))
+        + speakerSel
+        + row('Образование', lbl(EDU, ans.education))
+        + row('Опыт преподавания', lbl({...EXP, ...MGR_EXP}, ans.experience))
+        + row('Опыт продаж', ('sales_exp' in ans) ? (ans.sales_exp ? '✅ есть' : '— нет, готов(а) учиться') : '—')
+        + row('График', lbl(MGR_SCHED, ans.schedule_option))
+        + row('Готовность к нагрузке', lbl(MGR_LOAD, ans.load_ready))
+        + row('Рабочее место', lbl(WORKPLACE, ans.workplace));
+  } else {
+    mid = row('Уровень английского', lbl(LEVEL, ans.english_level))
+        + speakerSel + ageGroupSel
+        + row('Образование', lbl(EDU, ans.education))
+        + row('Опыт', lbl(EXP, ans.experience))
+        + row('Нагрузка', lbl(HOURS, ans.weekly_hours_label))
+        + row('Возраст учеников', (ans.ages||[]).map(x=>AGES[x]||x).join(', ') || '—')
+        + row('Доп. языки', (ans.extra_languages||[]).join(', ') || '—')
+        + (('sales_exp' in ans) ? row('Опыт онлайн-продаж', ans.sales_exp ? 'Да' : 'Нет') : '');
+  }
+
+  return row('E-mail', esc(a.email))
+       + row('Телефон', esc(a.phone||'—'))
+       + row('Telegram', esc(a.telegram||'—'))
+       + row('Город / пояс', esc(a.city_tz||'—'))
+       + mid
+       + row('Откуда узнал(а)', esc(sourceLabel(ans)))
+       + (ans.referral_name ? row('Порекомендовал(а)', esc(ans.referral_name)) : '');
+}
+
 function cardEditForm(a){
   const ans = a.answers || {};
+  const vac = vacSlugOf(a);
   const opts = (map, val) => Object.entries(map)
     .map(([k, v]) => `<option value="${k}" ${val === k ? 'selected' : ''}>${esc(v)}</option>`).join('');
   // почта — логин кабинета; после выдачи доступа менять её здесь нельзя,
@@ -1706,14 +1748,33 @@ function cardEditForm(a){
     <div><label>Телефон</label><input id="edPhone" value="${esc(a.phone || '')}"></div>
     <div><label>Telegram</label><input id="edTg" value="${esc(a.telegram || '')}" placeholder="@nickname"></div>
     <div><label>Город и часовой пояс</label><input id="edCity" value="${esc(a.city_tz || '')}"></div>
-    <div><label>Уровень английского</label><select id="edLevel"><option value="">—</option>${opts(LEVEL, ans.english_level)}</select></div>
-    <div><label>Образование</label><select id="edEdu"><option value="">—</option>${opts(EDU, ans.education)}</select></div>
-    <div><label>Опыт</label><select id="edExp"><option value="">—</option>${opts(EXP, ans.experience)}</select></div>
-    <div><label>Нагрузка</label><select id="edHours"><option value="">—</option>${opts(HOURS, ans.weekly_hours_label)}</select></div>
-    <div class="wide"><label>Возраст учеников</label>
-      <div class="ed-chips" id="edAges">${Object.entries(AGES).map(([k, v]) =>
-        `<span data-v="${k}" class="${(ans.ages || []).includes(k) ? 'on' : ''}"
-               onclick="this.classList.toggle('on')">${esc(v)}</span>`).join('')}</div></div>
+    ${vac === 'sales' ? `
+      <div><label>Опыт в продажах</label><select id="edSalesYears"><option value="">—</option>${opts(SALES_YEARS, ans.sales_years)}</select></div>
+      <div><label>Онлайн-образование</label><select id="edEdtech"><option value="">—</option>${opts(EDTECH, ans.edtech)}</select></div>
+      <div><label>Смена</label><select id="edShift"><option value="">—</option>${opts(SHIFT, ans.shift)}</select></div>
+      <div><label>Гарнитура и камера</label><select id="edEquip"><option value="">—</option>${opts(EQUIP, ans.equipment)}</select></div>
+      <div class="wide"><label>CRM</label>
+        <div class="ed-chips" id="edCrm">${Object.entries(CRM).map(([k, v]) =>
+          `<span data-v="${k}" class="${(ans.crm || []).includes(k) ? 'on' : ''}"
+                 onclick="this.classList.toggle('on')">${esc(v)}</span>`).join('')}</div></div>
+      <div class="wide"><label>Когда готов(а) выйти</label><input id="edReady" value="${esc(ans.ready_from || '')}"></div>
+    ` : vac === 'manager' ? `
+      <div><label>Уровень английского</label><select id="edLevel"><option value="">—</option>${opts(LEVEL, ans.english_level)}</select></div>
+      <div><label>Образование</label><select id="edEdu"><option value="">—</option>${opts(EDU, ans.education)}</select></div>
+      <div><label>Опыт преподавания</label><select id="edExp"><option value="">—</option>${opts({...EXP, ...MGR_EXP}, ans.experience)}</select></div>
+      <div><label>График</label><select id="edSched"><option value="">—</option>${opts(MGR_SCHED, ans.schedule_option)}</select></div>
+      <div><label>Готовность к нагрузке</label><select id="edLoad"><option value="">—</option>${opts(MGR_LOAD, ans.load_ready)}</select></div>
+      <div><label>Рабочее место</label><select id="edWork"><option value="">—</option>${opts(WORKPLACE, ans.workplace)}</select></div>
+    ` : `
+      <div><label>Уровень английского</label><select id="edLevel"><option value="">—</option>${opts(LEVEL, ans.english_level)}</select></div>
+      <div><label>Образование</label><select id="edEdu"><option value="">—</option>${opts(EDU, ans.education)}</select></div>
+      <div><label>Опыт</label><select id="edExp"><option value="">—</option>${opts(EXP, ans.experience)}</select></div>
+      <div><label>Нагрузка</label><select id="edHours"><option value="">—</option>${opts(HOURS, ans.weekly_hours_label)}</select></div>
+      <div class="wide"><label>Возраст учеников</label>
+        <div class="ed-chips" id="edAges">${Object.entries(AGES).map(([k, v]) =>
+          `<span data-v="${k}" class="${(ans.ages || []).includes(k) ? 'on' : ''}"
+                 onclick="this.classList.toggle('on')">${esc(v)}</span>`).join('')}</div></div>
+    `}
   </div>
   <div class="ed-acts">
     <button class="cancel" onclick="toggleCardEdit()">Отмена</button>
@@ -1758,14 +1819,26 @@ async function saveCardEdit(id){
   const name = val('edName');
   if (!name) { msg.textContent = 'Имя не может быть пустым'; msg.style.color = 'var(--red)'; return; }
 
-  const ages = [...document.querySelectorAll('#edAges span.on')].map(x => x.dataset.v);
-  const ans = { ...(a.answers || {}),
-    english_level: val('edLevel') || null,
-    education:     val('edEdu') || null,
-    experience:    val('edExp') || null,
-    weekly_hours_label: val('edHours') || null,
-    ages
-  };
+  // правим только то, что есть в форме этой вакансии — иначе затрём чужие ответы
+  const has = i => !!document.getElementById(i);
+  const ans = { ...(a.answers || {}) };
+  const put = (id, key) => { if (has(id)) ans[key] = val(id) || null; };
+  put('edLevel', 'english_level');
+  put('edEdu', 'education');
+  put('edExp', 'experience');
+  put('edHours', 'weekly_hours_label');
+  put('edSalesYears', 'sales_years');
+  put('edEdtech', 'edtech');
+  put('edShift', 'shift');
+  put('edEquip', 'equipment');
+  put('edSched', 'schedule_option');
+  put('edLoad', 'load_ready');
+  put('edWork', 'workplace');
+  put('edReady', 'ready_from');
+  const ages = has('edAges') ? [...document.querySelectorAll('#edAges span.on')].map(x => x.dataset.v) : (a.answers?.ages || []);
+  if (has('edAges')) ans.ages = ages;
+  if (has('edCrm')) ans.crm = [...document.querySelectorAll('#edCrm span.on')].map(x => x.dataset.v);
+
   const patch = {
     full_name: name,
     phone:     val('edPhone') || null,
@@ -1798,6 +1871,9 @@ async function saveCardEdit(id){
   if ((a.answers?.experience || null) !== ans.experience) changed.push('опыт');
   if ((a.answers?.weekly_hours_label || null) !== ans.weekly_hours_label) changed.push('нагрузка');
   if ((a.answers?.ages || []).join(',') !== ages.join(',')) changed.push('возраст учеников');
+  ['sales_years','edtech','shift','equipment','schedule_option','load_ready','workplace','ready_from']
+    .forEach(k => { if (k in ans && (a.answers?.[k] ?? null) !== ans[k]) changed.push(k); });
+  if ('crm' in ans && (a.answers?.crm || []).join(',') !== (ans.crm || []).join(',')) changed.push('CRM');
   if (changed.length) {
     await sb.from('hr_events').insert({
       application_id: id, type: 'application_edited',
