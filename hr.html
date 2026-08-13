@@ -798,7 +798,7 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
 
 <div id="rejectOverlay" onclick="if(event.target===this)closeReject()">
   <div class="reject-box">
-    <h3>Отказ по заявке</h3>
+    <h3 id="rejTitle">Отказ по заявке</h3>
     <label>Кто отказал</label>
     <select id="rejWho" onchange="fillRejectReasons()">
       <option value="school">Мы отказали</option>
@@ -814,7 +814,7 @@ video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
     <div class="hint-mail" id="rejHint"></div>
     <div class="reject-actions">
       <button class="rcancel" onclick="closeReject()">Отмена</button>
-      <button class="rsave" onclick="saveReject()">Подтвердить отказ</button>
+      <button class="rsave" onclick="saveReject()" id="rejOk">Подтвердить отказ</button>
     </div>
   </div>
 </div>
@@ -876,9 +876,26 @@ const REJECT_REASONS = {
               'Нашёл(ла) другую работу',
               'Передумал(а), личные обстоятельства',
               'Не выходит на связь',
-              'Другое']
+              'Другое'],
+  // онбординг: причины другие — человек уже внутри, а не на входе
+  onboarding: {
+    school: ['Не справляется: слабые уроки, не тянет программу',
+             'Не выходит на связь во время онбординга',
+             'Сорваны сроки обучения, движения нет',
+             'Нарушение правил школы',
+             'Не подошёл возраст или формат — не смогли подобрать',
+             'Другое'],
+    candidate: ['Нашёл(ла) другую работу',
+                'Не устроили условия или оплата',
+                'Не устроил график или объём нагрузки',
+                'Передумал(а), личные обстоятельства',
+                'Не рассчитал(а) силы — не хватает времени',
+                'Не выходит на связь',
+                'Другое']
+  }
 };
 function reasonsFor(who, status){
+  if (status === 'onboarding') return REJECT_REASONS.onboarding[who] || REJECT_REASONS.onboarding.school;
   if (who === 'candidate') return REJECT_REASONS.candidate;
   return status === 'interview' ? REJECT_REASONS.school.interview : REJECT_REASONS.school.screening;
 }
@@ -1491,17 +1508,23 @@ async function reassign(){
 
 // ============ Окно отказа ============
 let pendingReject = null;
-function openRejectModal(id, reopen){
+function openRejectModal(id, reopen, mode){
   const app = apps.find(a => a.id === id);
-  pendingReject = { id, reopen, status: app?.status || 'screening' };
+  pendingReject = { id, reopen, mode: mode || null,
+                    status: mode === 'onboarding' ? 'onboarding' : (app?.status || 'screening') };
   // на этапе оффера отказ с нашей стороны не предусмотрен — только уход кандидата
   const whoSel = document.getElementById('rejWho');
   const offerStage = pendingReject.status === 'offer';
   whoSel.querySelector('option[value="school"]').disabled = offerStage;
   if (offerStage) whoSel.value = 'candidate';
+  if (pendingReject.mode === 'onboarding') whoSel.querySelector('option[value="school"]').disabled = false;
   document.getElementById('rejPool').checked = !!app?.talent_pool;
   document.getElementById('rejPoolNote').value = app?.talent_pool_note || '';
   togglePoolNote();
+  document.getElementById('rejTitle').textContent =
+    pendingReject.mode === 'onboarding' ? 'Прекратить онбординг' : 'Отказ по заявке';
+  document.getElementById('rejOk').textContent =
+    pendingReject.mode === 'onboarding' ? 'Прекратить онбординг' : 'Подтвердить отказ';
   fillRejectReasons();
   document.getElementById('rejectOverlay').style.display = 'flex';
 }
@@ -1525,6 +1548,15 @@ function updateRejHint(){
   const extra = REJ_HINT[reason];
   if (reason === 'Дубль заявки') { el.innerHTML = extra; return; }
   const pool = document.getElementById('rejPool')?.checked;
+  if (pendingReject?.mode === 'onboarding') {
+    const who = document.getElementById('rejWho').value;
+    el.innerHTML = (who === 'candidate'
+        ? '✉️ Уйдёт письмо «жаль, что не сложилось» — без обвинений, с приглашением вернуться.'
+        : '✉️ Уйдёт письмо о том, что мы прекращаем сотрудничество.')
+      + '<br>🛑 План онбординга погаснет, курсы в LEARN приостановятся, карточка в app станет «Не работает».'
+      + (pool ? '<br>💼 Заявка останется в резерве.' : '');
+    return;
+  }
   el.innerHTML = `✉️ Кандидату уйдёт короткое письмо${extra ? '. ' + extra : ' — без разбора причины.'}`
     + (pool ? '<br>💼 Заявка останется в резерве — её видно по фильтру «Кадровый резерв».' : '');
 }
@@ -1542,6 +1574,25 @@ async function saveReject(){
   const pool = document.getElementById('rejPool').checked;
   const poolNote = document.getElementById('rejPoolNote').value.trim();
   const p = pendingReject; closeReject();
+
+  if (p.mode === 'onboarding') {
+    const { error } = await sb.rpc('hr_stop_onboarding', {
+      p_application_id: p.id,
+      p_reason: reason + (comment ? ' — ' + comment : ''),
+      p_by: who
+    });
+    if (error) { alert('Не получилось: ' + error.message); return; }
+    if (pool) {
+      await sb.from('hr_applications').update({
+        talent_pool: true,
+        talent_pool_at: new Date().toISOString(),
+        talent_pool_note: poolNote || null
+      }).eq('id', p.id);
+    }
+    loadOnb(); loadApps();
+    return;
+  }
+
   await updateStatusFor(p.id, 'rejected', p.reopen, {
     rejected_by: who,
     rejection_reason: reason + (comment ? ' — ' + comment : ''),
@@ -2434,13 +2485,9 @@ async function doneStep(appId, slug){
   if (error) { alert('Не получилось: ' + error.message); loadOnb(); return; }
   loadOnb();
 }
-async function stopOnb(id, name){
-  const reason = prompt(`Прекратить онбординг ${name}? Укажите причину (кандидату уйдёт корректное письмо):`);
-  if (reason === null) return;
-  const { error } = await sb.rpc('hr_stop_onboarding', { p_application_id: id, p_reason: reason });
-  if (error) { alert('Не получилось: ' + error.message); return; }
-  loadOnb(); loadApps();
-}
+// Прекращение онбординга — тот же диалог, что и отказ: кто прекратил, почему, в резерв ли.
+// Одна кнопка делает всё: гасит план, ставит статус «Отказ», шлёт нужное письмо.
+function stopOnb(id){ openRejectModal(id, false, 'onboarding'); }
 
 // ============ Аналитика воронки ============
 // Период считаем в одном месте: и «за 30 дней», и конкретный месяц, и свой промежуток.
