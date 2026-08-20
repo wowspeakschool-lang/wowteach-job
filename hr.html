@@ -3488,7 +3488,10 @@ function gradeLabel(slug){
   return g ? ((g.emoji ? g.emoji + ' ' : '') + g.title) : (GRADE_LABEL[slug] || slug || '—');
 }
 async function loadITasks(){
-  const { data } = await sb.from('hr_interview_tasks').select('*').eq('is_active', true).order('sort_order');
+  // берём все, включая выключенные: по выключенному ТЗ кандидатов уже приглашали,
+  // и в их карточках должно остаться название, а не голый slug.
+  // Выбор при приглашении фильтруется отдельно, в openTaskModal.
+  const { data } = await sb.from('hr_interview_tasks').select('*').order('sort_order');
   itasks = data || [];
 }
 function openTaskModal(id, reopen){
@@ -3496,7 +3499,7 @@ function openTaskModal(id, reopen){
   if (!app) return;
   inviteFor = id; inviteReopen = reopen; pickedTask = null;
   const vac = vacancies.find(v => v.id === app.vacancy_id);
-  const list = itasks.filter(t => !t.vacancy_slug || t.vacancy_slug === vac?.slug);
+  const list = itasks.filter(t => t.is_active !== false && (!t.vacancy_slug || t.vacancy_slug === vac?.slug));
   // рекомендация по типу преподавателя: англоязычному — вариант «носитель»
   const rec = app.speaker_type === 'en'
     ? list.find(t => t.slug.includes('native'))?.slug
