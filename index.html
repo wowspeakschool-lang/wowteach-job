@@ -134,6 +134,21 @@ button{font-family:inherit;cursor:pointer}
   cursor:pointer;text-decoration:underline;padding:0;font-family:inherit;margin-top:6px}
 .bslot-note{font-size:12.5px;color:var(--gray)}
 .bslot-tg{display:inline-block;margin-top:8px;font-size:12.5px;color:var(--purple-dark);font-weight:700}
+/* Текст, который приходит из базы: ТЗ на собеседование, оффер, описания шагов.
+   Глобальный сброс в начале файла обнуляет отступы у p, ul и li — без этих
+   правил абзацы слипаются, а маркеры списка уезжают за край карточки. */
+.rich > *:first-child{margin-top:0}
+.rich > *:last-child{margin-bottom:0}
+.rich p{margin:0 0 11px}
+.rich ul,.rich ol{margin:0 0 11px;padding-left:22px}
+.rich li{margin-bottom:5px}
+.rich li:last-child{margin-bottom:0}
+.rich h1,.rich h2,.rich h3,.rich h4{margin:16px 0 7px;font-size:16px}
+.rich table{border-collapse:collapse;width:100%;margin:0 0 11px;font-size:13.5px}
+.rich th,.rich td{border:1px solid var(--cream-dark);padding:7px 9px;text-align:left}
+.rich th{background:var(--cream);font-weight:800}
+.rich a{text-decoration:underline;word-break:break-word}
+.rich img{max-width:100%;height:auto;border-radius:10px}
 </style>
 </head>
 <body>
@@ -396,7 +411,7 @@ async function loadApps(){
       ${a.offer_sent_at && !a.onboarding_started_at ? `<div id="offer-${a.id}" style="margin-top:14px"><div class="loading" style="padding:20px">Загружаю ваш оффер…</div></div>` : ''}
       ${a.interview_materials && !a.offer_sent_at && !a.interview_at ? `<div style="margin-top:14px;background:var(--purple-light);border-radius:var(--radius);padding:16px 18px">
         <b style="font-family:'Fredoka',sans-serif;font-weight:600;display:block;margin-bottom:6px">📚 Материалы к собеседованию</b>
-        <div style="font-size:14.5px">${a.interview_materials}</div>
+        <div class="rich" style="font-size:14.5px">${a.interview_materials}</div>
       </div>` : ''}
       <div class="contact">Вопросы? Напишите нам в Telegram — <a href="https://t.me/wowspeakHR" target="_blank" rel="noopener">@wowspeakHR</a></div>
     </div>`;
@@ -458,7 +473,7 @@ async function loadOnboarding(a){
                   ${s.due_at && !s.done_at ? ` · <b style="color:${over?'var(--red)':'var(--gray)'}">${over?'🔥 просрочено':'до ' + new Date(s.due_at).toLocaleDateString('ru-RU',{day:'numeric',month:'long'})}</b>` : ''}
                   ${s.done_at ? ` · ✅ ${new Date(s.done_at).toLocaleDateString('ru-RU',{day:'numeric',month:'long'})}` : ''}
                 </div>
-                ${s.description && !s.done_at ? `<div style="font-size:13.5px;margin-top:8px;line-height:1.55">${s.description}</div>` : ''}
+                ${s.description && !s.done_at ? `<div class="rich" style="font-size:13.5px;margin-top:8px;line-height:1.55">${s.description}</div>` : ''}
                 ${!s.done_at ? stepAction(a, s, tg) : ''}
               </div>
             </div>
@@ -561,7 +576,7 @@ async function openOfferModal(appId, slug){
   const { data, error } = await sb.rpc('hr_my_offer', { p_application_id: appId });
   body.innerHTML = error || !data
     ? 'Не удалось загрузить оффер.'
-    : `<div style="font-size:14.5px;line-height:1.6">${data}</div>`;
+    : `<div class="rich" style="font-size:14.5px;line-height:1.6">${data}</div>`;
 }
 function closeOfferModal(){ document.getElementById('offerModal').style.display = 'none'; }
 
@@ -582,7 +597,7 @@ async function loadOffer(a){
     <div style="background:#fff;border:2px solid var(--green);border-radius:var(--radius-lg);padding:22px 22px 18px">
       <div style="font-family:'Fredoka',sans-serif;font-weight:600;font-size:20px;margin-bottom:4px">📄 Ваш оффер WowSpeak</div>
       <div style="font-size:13px;color:var(--gray);margin-bottom:14px">Пожалуйста, внимательно ознакомьтесь с условиями.</div>
-      <div style="font-size:14.5px;line-height:1.6">${data}</div>
+      <div class="rich" style="font-size:14.5px;line-height:1.6">${data}</div>
       <div style="margin-top:20px;text-align:center">
         ${accepted
           ? `<div style="background:var(--green-light);color:#15803D;border-radius:999px;padding:12px 20px;font-weight:800;display:inline-block">✅ Оффер принят ${fmtDate(accepted)} — добро пожаловать в команду! 🎉</div>`
@@ -680,7 +695,7 @@ function bookingBlock(a){
       ${canCancel ? '' : `<div class="local" style="margin-top:10px">До встречи меньше ${CANCEL_HOURS} часов — перенести из кабинета уже нельзя. Напишите нам в Telegram <a href="https://t.me/wowspeakHR" target="_blank" rel="noopener">@wowspeakHR</a>, поможем.</div>`}
       ${a.interview_materials ? `<div class="prep">
         <b class="h">📚 Что подготовить</b>
-        <div>${a.interview_materials}</div>
+        <div class="rich">${a.interview_materials}</div>
       </div>` : ''}
     </div>`;
   }
