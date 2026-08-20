@@ -392,6 +392,11 @@ const MAX_DOC   = 20  * 1024 * 1024;   // 20 МБ
 
 // ============ Вакансия из ?vacancy= ============
 const slug = new URLSearchParams(location.search).get('vacancy') || 'teacher';
+// У менеджеров свои анкеты. Старые ссылки вида apply.html?vacancy=manager
+// разошлись по hh и телеграму — переносим человека на нужную страницу,
+// чтобы он не заполнял преподавательские поля.
+const OWN_FORMS = { manager: 'apply-manager.html', sales: 'apply-sales.html' };
+if (OWN_FORMS[slug]) { location.replace(OWN_FORMS[slug] + location.hash); }
 let vacancy = null;
 
 (async function loadVacancy(){
