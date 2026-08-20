@@ -468,7 +468,7 @@ async function bookBuddy(step, slotId){
 
 // Шаги, на которые подопечный записывается сам: наставник открывает окна,
 // человек выбирает время. Знакомство идёт перепиской — там только Telegram.
-const BOOKABLE_STEPS = ['prep_meeting', 'final_meeting'];
+const BOOKABLE_STEPS = ['prep_meeting', 'final_meeting', 'mvu_meet1', 'mvu_exam'];
 function stepAction(a, s, tg){
   if (BOOKABLE_STEPS.includes(s.slug)) {
     return `<div id="bs-${s.slug}" class="bslot">Загружаю свободное время…</div>`

@@ -894,9 +894,48 @@ const REJECT_REASONS = {
                 'Другое']
   }
 };
-function reasonsFor(who, status){
+// У менеджеров свои причины: у них нет демо-урока и нет английского как требования.
+const REJECT_BY_VACANCY = {
+  manager: {
+    screening: ['Уровень английского ниже B2',
+                'Мало опыта работы с детьми',
+                'Не готов(а) к нагрузке от 20 уроков в неделю',
+                'Не совпал график или часовой пояс',
+                'Нет подходящего рабочего места или связи',
+                'Некачественный отклик',
+                'Дубль заявки',
+                'Другое'],
+    interview: ['Техника: связь, звук, не готов(а) к уроку',
+                'Слабый контакт с ребёнком, мало энергии',
+                'Не может определить уровень ученика',
+                'Не справляется с разговором о программе и цене',
+                'Речь: ошибки в английском, не хватает спонтанной речи',
+                'Не пришёл(а) на собеседование',
+                'Другое']
+  },
+  sales: {
+    screening: ['Мало опыта в продажах',
+                'Нет опыта работы с CRM',
+                'Не подошла смена или график 5/2',
+                'Нет гарнитуры или рабочего места',
+                'Резюме не соответствует роли',
+                'Некачественный отклик',
+                'Дубль заявки',
+                'Другое'],
+    interview: ['Слабо отрабатывает возражения',
+                'Не доводит разговор до конкретики',
+                'Не понимает воронку продаж',
+                'Речь и подача не подходят для работы голосом',
+                'Опыт не подтвердился на разговоре',
+                'Не пришёл(а) на встречу',
+                'Другое']
+  }
+};
+function reasonsFor(who, status, vac){
   if (status === 'onboarding') return REJECT_REASONS.onboarding[who] || REJECT_REASONS.onboarding.school;
   if (who === 'candidate') return REJECT_REASONS.candidate;
+  const own = REJECT_BY_VACANCY[vac];
+  if (own) return status === 'interview' ? own.interview : own.screening;
   return status === 'interview' ? REJECT_REASONS.school.interview : REJECT_REASONS.school.screening;
 }
 const REJECTED_BY = { school:'Мы отказали', candidate:'Кандидат отказался' };
@@ -1511,12 +1550,15 @@ let pendingReject = null;
 function openRejectModal(id, reopen, mode){
   const app = apps.find(a => a.id === id);
   pendingReject = { id, reopen, mode: mode || null,
+                    vac: app ? vacSlugOf(app) : 'teacher',
                     status: mode === 'onboarding' ? 'onboarding' : (app?.status || 'screening') };
   // на этапе оффера отказ с нашей стороны не предусмотрен — только уход кандидата
   const whoSel = document.getElementById('rejWho');
   const offerStage = pendingReject.status === 'offer';
   whoSel.querySelector('option[value="school"]').disabled = offerStage;
-  if (offerStage) whoSel.value = 'candidate';
+  // сбрасываем на «мы отказали»: иначе модалка помнит прошлый выбор
+  // и можно молча записать чужую инициативу
+  whoSel.value = offerStage ? 'candidate' : 'school';
   if (pendingReject.mode === 'onboarding') whoSel.querySelector('option[value="school"]').disabled = false;
   document.getElementById('rejPool').checked = !!app?.talent_pool;
   document.getElementById('rejPoolNote').value = app?.talent_pool_note || '';
@@ -1531,7 +1573,7 @@ function openRejectModal(id, reopen, mode){
 function fillRejectReasons(){
   const who = document.getElementById('rejWho').value;
   document.getElementById('rejReason').innerHTML =
-    reasonsFor(who, pendingReject?.status).map(r => `<option>${r}</option>`).join('');
+    reasonsFor(who, pendingReject?.status, pendingReject?.vac).map(r => `<option>${r}</option>`).join('');
   updateRejHint();
 }
 // подсказки: что именно уйдёт кандидату при выбранной причине
@@ -3023,7 +3065,7 @@ document.addEventListener('click', e => {
 const GRADE_LABEL = { basic:'🟢 Basic', expert:'🔵 Expert', pro:'🟠 Pro' };
 function offerStateText(a){
   if (!a.offer_sent_at) return 'Оффер ещё не отправлен.';
-  const g = GRADE_LABEL[a.offer_grade] || a.offer_grade;
+  const g = gradeLabel(a.offer_grade);
   const lang = a.offer_lang === 'en' ? 'EN' : 'RU';
   let s = `Отправлен: ${g} · ${lang} · ${fmtDate(a.offer_sent_at)}`;
   if (a.offer_accepted_at) s += ` · ✅ Принят ${fmtDate(a.offer_accepted_at)}`;
@@ -3040,9 +3082,9 @@ async function startOnboardingFor(id, name){
 
 // ============ Чек-лист демо-урока ============
 // Какой чек-лист показывать — зависит от вакансии.
+const CHECK_CODES = { manager:'interview_mvu', sales:'interview_sales', teacher:'interview_teacher' };
 function checkCodeFor(a){
-  const vac = vacancies.find(v => v.id === a.vacancy_id);
-  return vac?.slug === 'manager' ? 'interview_mvu' : 'interview_teacher';
+  return CHECK_CODES[vacSlugOf(a)] || 'interview_teacher';
 }
 const _chkCache = {};
 let chkState = null;   // { appId, code, cfg, answers }
@@ -3200,7 +3242,7 @@ async function openOfferHistory(appId){
   box.innerHTML = data.map(h => `
     <div style="border:1px solid var(--cream-dark);border-radius:12px;padding:10px 13px;margin-bottom:8px;
                 display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13px">
-      <b>${esc(GRADE_LABEL[h.grade] || h.grade || '—')}</b>
+      <b>${esc(gradeLabel(h.grade))}</b>
       <span style="color:var(--gray)">${h.lang === 'en' ? 'EN' : 'RU'} · отправлен ${fmtDate(h.sent_at)}</span>
       ${h.accepted_at
         ? `<span style="background:var(--green-light);color:#15803D;font-size:11.5px;font-weight:800;border-radius:999px;padding:3px 10px">был принят ${fmtDate(h.accepted_at)}</span>`
@@ -3285,7 +3327,24 @@ function openOffer(){
     [...box.children].forEach(c => c.classList.toggle('on', c.dataset.v === val));
   };
   setChip('offerLang', current.offer_lang || (current.speaker_type === 'en' ? 'en' : 'ru'));
-  setChip('offerGrade', current.offer_grade || 'basic');
+
+  // грейды берём из базы: у каждой вакансии свои
+  const vac = vacSlugOf(current);
+  const list = gradesFor(vac);
+  const gradeBox = document.getElementById('offerGrade');
+  gradeBox.innerHTML = list.map(g =>
+    `<span data-v="${g.slug}">${esc((g.emoji ? g.emoji + ' ' : '') + g.title)}</span>`).join('')
+    || '<span style="font-size:12px;color:var(--gray)">Грейды не заведены (hr_grades)</span>';
+  setChip('offerGrade', list.some(g => g.slug === current.offer_grade)
+    ? current.offer_grade : (list[0]?.slug || 'basic'));
+
+  // возрастная категория есть только там, где по ней назначается наставник
+  const needAge = vac === 'teacher';
+  document.querySelectorAll('#offerAge, #offerAgeHint').forEach(e => e.style.display = needAge ? '' : 'none');
+  const ageTitle = document.querySelector('#offerAge')?.previousElementSibling;
+  if (ageTitle) ageTitle.style.display = needAge ? '' : 'none';
+  if (!needAge) { document.getElementById('offerOverlay').style.display = 'flex'; return; }
+
   const ageBox = document.getElementById('offerAge');
   const sug = current.age_group ? null : suggestAgeGroup(current);
   const chosen = current.age_group || sug?.slug || null;
@@ -3314,8 +3373,9 @@ async function confirmOffer(){
   const grade = document.querySelector('#offerGrade .on')?.dataset.v || 'basic';
   const already = current.offer_accepted_at;
   if (already && !confirm('Кандидат уже принял оффер. Отправить новый? Отметка о принятии сбросится.')) return;
+  const needAge = vacSlugOf(current) === 'teacher';
   const age = document.querySelector('#offerAge .on')?.dataset.v || null;
-  if (!age) { alert('Выберите возрастную категорию — по ней назначается наставник.'); return; }
+  if (needAge && !age) { alert('Выберите возрастную категорию — по ней назначается наставник.'); return; }
   const btn = document.getElementById('offerGo');
   btn.disabled = true; btn.textContent = 'Отправляю…';
   const { error } = await sb.rpc('hr_send_offer',
@@ -3353,9 +3413,21 @@ async function setSpeaker(id, val){
 // ============ ТЗ и приглашение на собеседование ============
 let itasks = [], inviteFor = null, inviteReopen = false, pickedTask = null;
 let ageGroups = [];
+let grades = [];
 async function loadAgeGroups(){
   const { data } = await sb.from('hr_age_groups').select('*').eq('is_active', true).order('sort_order');
   ageGroups = data || [];
+  const g = await sb.from('hr_grades').select('*').order('sort_order');
+  grades = g.data || [];
+}
+// Грейды вакансии: есть свои — только они, иначе общие (преподавательские).
+function gradesFor(vac){
+  const own = grades.filter(x => x.vacancy_slug === vac);
+  return own.length ? own : grades.filter(x => !x.vacancy_slug);
+}
+function gradeLabel(slug){
+  const g = grades.find(x => x.slug === slug);
+  return g ? ((g.emoji ? g.emoji + ' ' : '') + g.title) : (GRADE_LABEL[slug] || slug || '—');
 }
 async function loadITasks(){
   const { data } = await sb.from('hr_interview_tasks').select('*').eq('is_active', true).order('sort_order');
