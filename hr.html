@@ -127,9 +127,13 @@ button{font-family:inherit;cursor:pointer}
 video{width:100%;border-radius:var(--radius);background:#000;max-height:420px}
 .docs a{display:inline-flex;gap:7px;align-items:center;background:var(--purple-light);color:var(--purple-dark);
   font-weight:800;font-size:13px;border-radius:999px;padding:8px 14px;margin:0 8px 8px 0}
+.mini-grid-wrap{overflow-x:auto;padding-bottom:2px}
 .mini-grid{border-collapse:separate;border-spacing:3px}
 .mini-grid th{font-size:10px;color:var(--gray);padding:2px 4px;font-weight:800}
+.mini-grid th.d{position:sticky;left:0;background:#fff;z-index:1;text-align:right}
 .mini-grid td{width:34px;height:22px;border-radius:6px;background:var(--cream-dark)}
+.mini-grid.hours td{width:22px;height:20px;border-radius:5px}
+.mini-grid.hours th{font-size:9.5px;padding:2px}
 .mini-grid td.on{background:var(--green)}
 .mini-grid.editable td{cursor:pointer;box-shadow:inset 0 0 0 2px transparent}
 .mini-grid.editable td:hover{box-shadow:inset 0 0 0 2px var(--purple)}
@@ -1394,7 +1398,7 @@ async function openCard(id){
   const st = STATUSES[a.status] || STATUSES.new;
   const vac = vacancies.find(v => v.id === a.vacancy_id);
 
-  const gridHtml = gridTable(ans.schedule_grid, false);
+  const gridHtml = gridTable(ans, false);
 
   document.getElementById('modal').innerHTML = `
     <div class="mhead">
@@ -1724,8 +1728,38 @@ async function togglePool(id){
 // ============ Рабочие часы ============
 // Ту же сетку показываем и в режиме правки: клик по клетке включает и выключает окно.
 const SLOT_LABEL = { morning:'9–12', day:'12–16', evening:'16–21' };
-function gridTable(grid, editable){
-  const g = grid || {};
+const GRID_HOURS = [9,10,11,12,13,14,15,16,17,18,19,20];
+const slotOfHour = h => h < 12 ? 'morning' : (h < 16 ? 'day' : 'evening');
+
+// [16,17,18,20] → «16–19, 20–21»
+function hourRanges(hs){
+  const out = []; let from = null, prev = null;
+  [...hs].sort((a, b) => a - b).forEach(h => {
+    if (from === null) { from = prev = h; return; }
+    if (h === prev + 1) { prev = h; return; }
+    out.push(from + '–' + (prev + 1)); from = prev = h;
+  });
+  if (from !== null) out.push(from + '–' + (prev + 1));
+  return out.join(', ');
+}
+
+// Анкеты, поданные до перехода на часы, знают только утро/день/вечер —
+// им и рисуем прежние три столбца. У новых есть schedule_hours.
+function gridTable(ans, editable){
+  const a = ans || {};
+  const hours = a.schedule_hours;
+  if (hours && Object.keys(hours).length) {
+    const words = DAYS.filter(([k]) => (hours[k] || []).length)
+      .map(([k, l]) => l + ' ' + hourRanges(hours[k])).join(' · ');
+    return `<div class="mini-grid-wrap"><table class="mini-grid hours ${editable ? 'editable' : ''}">
+      <tr><th class="d"></th>${GRID_HOURS.map(h => `<th>${h}</th>`).join('')}</tr>
+      ${DAYS.map(([k, l]) => `<tr><th class="d">${l}</th>${GRID_HOURS.map(h =>
+        `<td class="${(hours[k] || []).includes(h) ? 'on' : ''}" data-d="${k}" data-h="${h}"
+             ${editable ? 'onclick="this.classList.toggle(\'on\')"' : ''}></td>`).join('')}</tr>`).join('')}
+    </table></div>
+    <div style="font-size:12px;color:var(--gray);font-weight:700;margin-top:6px">${esc(words)} · МСК</div>`;
+  }
+  const g = a.schedule_grid || {};
   return `<table class="mini-grid ${editable ? 'editable' : ''}">
     <tr><th></th>${SLOTS.map(s => `<th>${SLOT_LABEL[s]}</th>`).join('')}</tr>
     ${DAYS.map(([k, l]) => `<tr><th>${l}</th>${SLOTS.map(s =>
@@ -1738,8 +1772,8 @@ function toggleGridEdit(){
   gridEdit = !gridEdit;
   const box = document.getElementById('gridBox');
   if (!box || !current) return;
-  if (!gridEdit) { box.innerHTML = gridTable(current.answers?.schedule_grid, false); return; }
-  box.innerHTML = gridTable(current.answers?.schedule_grid, true)
+  if (!gridEdit) { box.innerHTML = gridTable(current.answers, false); return; }
+  box.innerHTML = gridTable(current.answers, true)
     + `<div class="ed-acts">
          <button class="cancel" onclick="toggleGridEdit()">Отмена</button>
          <button class="save" id="grSave" onclick="saveGrid('${current.id}')">Сохранить</button>
@@ -1750,15 +1784,34 @@ function toggleGridEdit(){
 async function saveGrid(id){
   const a = apps.find(x => x.id === id);
   if (!a) return;
+  const hourly = !!document.querySelector('#gridBox td[data-h]');
   const grid = {};
   DAYS.forEach(([k]) => {
-    const on = [...document.querySelectorAll(`#gridBox td[data-d="${k}"].on`)].map(td => td.dataset.s);
+    const on = [...document.querySelectorAll(`#gridBox td[data-d="${k}"].on`)]
+      .map(td => hourly ? +td.dataset.h : td.dataset.s);
     if (on.length) grid[k] = on;
   });
-  const before = JSON.stringify(a.answers?.schedule_grid || {});
-  if (before === JSON.stringify(grid)) { gridEdit = false; toggleGridEdit(); return; }
 
-  const ans = { ...(a.answers || {}), schedule_grid: grid };
+  // почасовую сетку сохраняем как есть и тут же пересчитываем старый вид:
+  // на нём держится скоринг заявки и фильтры в списке
+  let ans;
+  if (hourly) {
+    const legacy = {};
+    for (const [day, hs] of Object.entries(grid)) {
+      const set = new Set(hs.map(slotOfHour));
+      legacy[day] = SLOTS.filter(s => set.has(s));
+    }
+    const total = Object.values(grid).reduce((n, arr) => n + arr.length, 0);
+    ans = { ...(a.answers || {}), schedule_hours: grid, schedule_hours_total: total, schedule_grid: legacy };
+    if (JSON.stringify(a.answers?.schedule_hours || {}) === JSON.stringify(grid)) {
+      gridEdit = false; toggleGridEdit(); return;
+    }
+  } else {
+    if (JSON.stringify(a.answers?.schedule_grid || {}) === JSON.stringify(grid)) {
+      gridEdit = false; toggleGridEdit(); return;
+    }
+    ans = { ...(a.answers || {}), schedule_grid: grid };
+  }
   const btn = document.getElementById('grSave'), msg = document.getElementById('grMsg');
   btn.disabled = true; btn.textContent = 'Сохраняю…';
   const { error } = await sb.from('hr_applications').update({ answers: ans }).eq('id', id);

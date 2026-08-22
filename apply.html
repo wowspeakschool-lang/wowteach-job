@@ -70,16 +70,25 @@ input:focus,select:focus{outline:none;border-color:var(--purple)}
   font-size:14px;cursor:pointer;user-select:none;background:#FDFCF8;transition:all .12s}
 .chip.on{background:var(--purple);border-color:var(--purple);color:#fff}
 
-/* schedule grid */
-.grid-wrap{overflow-x:auto}
-.sgrid{width:100%;border-collapse:separate;border-spacing:6px}
-.sgrid th{font-size:12px;font-weight:800;color:var(--gray-text);padding:4px 2px;text-align:center}
-.sgrid th.day{text-align:left;text-transform:none;font-size:14px;color:var(--dark)}
+/* schedule grid — клетка равна одному часу */
+.grid-wrap{overflow-x:auto;padding-bottom:4px}
+.sgrid{border-collapse:separate;border-spacing:3px;margin:0 auto}
+.sgrid th{font-size:11.5px;font-weight:800;color:var(--gray-text);padding:2px;text-align:center}
+.sgrid th.hour{cursor:pointer;min-width:34px}
+.sgrid th.hour:hover{color:var(--purple)}
+/* столбец с днями примораживаем — на телефоне сетка едет вбок,
+   и без этого непонятно, в какой строке ты отмечаешь */
+.sgrid th.day{text-align:left;text-transform:none;font-size:13.5px;color:var(--dark);
+  cursor:pointer;padding-right:8px;white-space:nowrap;
+  position:sticky;left:0;background:var(--white);z-index:1}
+.sgrid th.day:hover{color:var(--purple)}
+@media(max-width:560px){ .cell{height:38px} }
 .sgrid td{padding:0}
-.cell{height:42px;min-width:64px;border:2px solid var(--cream-dark);border-radius:10px;cursor:pointer;
-  background:#FDFCF8;display:flex;align-items:center;justify-content:center;font-weight:800;
-  color:transparent;transition:all .12s;user-select:none}
-.cell.on{background:var(--green);border-color:var(--green);color:#fff}
+.cell{height:32px;width:34px;border:2px solid var(--cream-dark);border-radius:8px;cursor:pointer;
+  background:#FDFCF8;transition:background .1s,border-color .1s;user-select:none;-webkit-tap-highlight-color:transparent}
+.cell.on{background:var(--green);border-color:var(--green)}
+.grid-sum{margin-top:10px;font-size:13px;font-weight:800;color:var(--dark)}
+.grid-sum span{color:var(--gray-text);font-weight:700}
 .grid-actions{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}
 .grid-actions button{font-size:12px;font-weight:800;color:var(--purple);background:var(--purple-light);
   border:none;border-radius:999px;padding:6px 12px;cursor:pointer}
@@ -317,18 +326,22 @@ input:focus,select:focus{outline:none;border-color:var(--purple)}
     <!-- ===== Расписание ===== -->
     <div class="card">
       <h2><span class="ico">🗓️</span> Когда вы можете работать?</h2>
-      <p class="hint" style="margin:-8px 0 14px">Отметьте удобные интервалы (время московское). Более точные промежутки уточним на следующих этапах.</p>
+      <p class="hint" style="margin:-8px 0 14px">Одна клетка — один час, время московское. Цифра над столбцом — начало часа: 17 значит с 17:00 до 18:00.
+      На компьютере можно вести мышью, на телефоне — листать сетку вбок. Клик по дню отмечает всю строку, по часу — весь столбец.</p>
       <div class="grid-wrap">
         <table class="sgrid" id="sgrid">
-          <thead><tr><th class="day"></th><th>Утро<br>9–12</th><th>День<br>12–16</th><th>Вечер<br>16–21</th></tr></thead>
+          <thead><tr id="sgridHead"></tr></thead>
           <tbody></tbody>
         </table>
       </div>
       <div class="grid-actions">
-        <button type="button" onclick="presetGrid('evenings')">Все будни вечером</button>
-        <button type="button" onclick="presetGrid('weekends')">Все выходные</button>
+        <button type="button" onclick="presetGrid('evenings')">Будни 16–21</button>
+        <button type="button" onclick="presetGrid('afternoons')">Будни 12–16</button>
+        <button type="button" onclick="presetGrid('weekends')">Выходные целиком</button>
+        <button type="button" onclick="presetGrid('copyMon')">Как в понедельник — на все будни</button>
         <button type="button" onclick="presetGrid('clear')">Очистить</button>
       </div>
+      <div class="grid-sum" id="gridSum"><span>Пока ничего не отмечено</span></div>
     </div>
 
     <!-- ===== Документы ===== -->
@@ -423,36 +436,105 @@ document.querySelectorAll('.chips').forEach(g =>
 const chipValues = id => [...document.querySelectorAll('#'+id+' .chip.on')].map(c => c.dataset.v);
 
 // ============ Сетка расписания ============
-const DAYS = [['mon','Пн'],['tue','Вт'],['wed','Ср'],['thu','Чт'],['fri','Пт'],['sat','Сб'],['sun','Вс']];
-const SLOTS = ['morning','day','evening'];
-const tbody = document.querySelector('#sgrid tbody');
+// Клетка = один час. HOURS[i] — час начала: 17 значит 17:00–18:00.
+// Раньше было три широкие полосы (утро/день/вечер), и по ним нельзя было
+// понять, свободен человек в 16 или только в 20. Теперь по часам,
+// а старый формат считаем из нового — от него зависит скоринг заявки
+// и то, как расписание показано в кабинете рекрутера.
+const DAYS  = [['mon','Пн'],['tue','Вт'],['wed','Ср'],['thu','Чт'],['fri','Пт'],['sat','Сб'],['sun','Вс']];
+const HOURS = [9,10,11,12,13,14,15,16,17,18,19,20];
+const WEEKDAYS = ['mon','tue','wed','thu','fri'];
+// границы старых полос: утро 9–12, день 12–16, вечер 16–21
+const slotOfHour = h => h < 12 ? 'morning' : (h < 16 ? 'day' : 'evening');
+
+const sgrid = document.getElementById('sgrid');
+document.getElementById('sgridHead').innerHTML =
+  '<th class="day"></th>' + HOURS.map(h => '<th class="hour" data-h="'+h+'">'+h+'</th>').join('');
+const tbody = sgrid.querySelector('tbody');
 DAYS.forEach(([key,label]) => {
   const tr = document.createElement('tr');
-  tr.innerHTML = '<th class="day">'+label+'</th>' +
-    SLOTS.map(s => '<td><div class="cell" data-day="'+key+'" data-slot="'+s+'">✓</div></td>').join('');
+  tr.innerHTML = '<th class="day" data-day="'+key+'">'+label+'</th>' +
+    HOURS.map(h => '<td><div class="cell" data-day="'+key+'" data-h="'+h+'"></div></td>').join('');
   tbody.appendChild(tr);
 });
-tbody.addEventListener('click', e => { if (e.target.classList.contains('cell')) e.target.classList.toggle('on'); });
+
+// Протяжка: нажали на клетке и ведёте — красится вся дорожка.
+// На телефоне pointerover не приходит, там работает обычное касание,
+// а для скорости есть кнопки-заготовки и клик по дню или часу.
+let dragTo = null;
+sgrid.addEventListener('pointerdown', e => {
+  const c = e.target.closest('.cell');
+  if (!c) return;
+  if (e.pointerType === 'mouse') e.preventDefault();
+  dragTo = !c.classList.contains('on');
+  c.classList.toggle('on', dragTo);
+  gridChanged();
+});
+sgrid.addEventListener('pointerover', e => {
+  if (dragTo === null) return;
+  const c = e.target.closest('.cell');
+  if (!c) return;
+  c.classList.toggle('on', dragTo);
+  gridChanged();
+});
+document.addEventListener('pointerup', () => { dragTo = null; });
+
+// клик по названию дня — вся строка, по часу — весь столбец
+sgrid.addEventListener('click', e => {
+  const th = e.target.closest('th.day, th.hour');
+  if (!th) return;
+  const sel = th.dataset.day ? '.cell[data-day="'+th.dataset.day+'"]' : '.cell[data-h="'+th.dataset.h+'"]';
+  const cells = [...sgrid.querySelectorAll(sel)];
+  if (!cells.length) return;
+  const allOn = cells.every(c => c.classList.contains('on'));
+  cells.forEach(c => c.classList.toggle('on', !allOn));
+  gridChanged();
+});
+
+function cellsOf(day){ return [...sgrid.querySelectorAll('.cell[data-day="'+day+'"]')]; }
 
 function presetGrid(mode){
-  if (mode === 'clear') { document.querySelectorAll('.cell.on').forEach(c => c.classList.remove('on')); return; }
-  document.querySelectorAll('.cell').forEach(c => {
-    const wd = !['sat','sun'].includes(c.dataset.day);
-    if (mode === 'evenings' && wd && c.dataset.slot === 'evening') c.classList.add('on');
-    if (mode === 'weekends' && !wd) c.classList.add('on');
-  });
+  if (mode === 'clear') {
+    sgrid.querySelectorAll('.cell.on').forEach(c => c.classList.remove('on'));
+  } else if (mode === 'copyMon') {
+    const src = cellsOf('mon').filter(c => c.classList.contains('on')).map(c => c.dataset.h);
+    WEEKDAYS.filter(d => d !== 'mon').forEach(d =>
+      cellsOf(d).forEach(c => c.classList.toggle('on', src.includes(c.dataset.h))));
+  } else {
+    sgrid.querySelectorAll('.cell').forEach(c => {
+      const wd = WEEKDAYS.includes(c.dataset.day), h = +c.dataset.h;
+      if (mode === 'evenings'   && wd  && h >= 16) c.classList.add('on');
+      if (mode === 'afternoons' && wd  && h >= 12 && h < 16) c.classList.add('on');
+      if (mode === 'weekends'   && !wd) c.classList.add('on');
+    });
+  }
+  gridChanged();
 }
 
+// {mon:[16,17,18], sat:[9,10]} — что человек отметил на самом деле
 function gridData(){
   const g = {};
-  document.querySelectorAll('.cell.on').forEach(c => { (g[c.dataset.day] = g[c.dataset.day] || []).push(c.dataset.slot); });
+  sgrid.querySelectorAll('.cell.on').forEach(c => {
+    (g[c.dataset.day] = g[c.dataset.day] || []).push(+c.dataset.h);
+  });
+  Object.values(g).forEach(a => a.sort((x, y) => x - y));
   return g;
 }
+
+// старый вид {mon:['evening']} — его ждут скоринг и кабинет рекрутера
+function legacyGrid(hours){
+  const g = {};
+  for (const [day, hs] of Object.entries(hours)) {
+    const set = new Set(hs.map(slotOfHour));
+    g[day] = ['morning','day','evening'].filter(s => set.has(s));
+  }
+  return g;
+}
+
 function gridSummary(g){
-  const wd = ['mon','tue','wed','thu','fri'];
   const slots = new Set(); let eveningDays = 0;
   for (const [day, ss] of Object.entries(g)) {
-    const isWd = wd.includes(day);
+    const isWd = WEEKDAYS.includes(day);
     ss.forEach(s => {
       if (!isWd) slots.add('weekend');
       else { slots.add('weekday_' + s); if (s === 'evening') eveningDays++; }
@@ -460,6 +542,31 @@ function gridSummary(g){
   }
   if (eveningDays > 0) slots.add('evening');
   return { slots: [...slots], evening_days: eveningDays };
+}
+
+// человекочитаемые промежутки: [16,17,18,20] → «16–19, 20–21»
+function hourRanges(hs){
+  const out = []; let from = null, prev = null;
+  hs.forEach(h => {
+    if (from === null) { from = prev = h; return; }
+    if (h === prev + 1) { prev = h; return; }
+    out.push(from + '–' + (prev + 1)); from = prev = h;
+  });
+  if (from !== null) out.push(from + '–' + (prev + 1));
+  return out.join(', ');
+}
+
+function gridChanged(){
+  const box = document.getElementById('gridSum');
+  if (!box) return;
+  const g = gridData();
+  const total = Object.values(g).reduce((n, a) => n + a.length, 0);
+  if (!total) { box.innerHTML = '<span>Пока ничего не отмечено</span>'; return; }
+  const word = total % 10 === 1 && total % 100 !== 11 ? 'час'
+             : ([2,3,4].includes(total % 10) && ![12,13,14].includes(total % 100) ? 'часа' : 'часов');
+  const byDay = DAYS.filter(([k]) => g[k]?.length)
+    .map(([k, l]) => l + ' ' + hourRanges(g[k])).join(' · ');
+  box.innerHTML = 'Отмечено ' + total + ' ' + word + ' в неделю <span>— ' + byDay + '</span>';
 }
 
 // ============ Файловые поля ============
@@ -557,7 +664,9 @@ form.addEventListener('submit', async e => {
   try {
     const appId = crypto.randomUUID();
     const hoursMap = { 'lt10': 9, '10-15': 10, '15-20': 15, '20-30': 20, 'fulltime': 40 };
-    const summary = gridSummary(grid);
+    const legacy  = legacyGrid(grid);          // старый вид для скоринга и кабинета
+    const summary = gridSummary(legacy);
+    const totalHours = Object.values(grid).reduce((n, arr) => n + arr.length, 0);
 
     // 1) видео
     let video_path = null;
@@ -576,7 +685,9 @@ form.addEventListener('submit', async e => {
       source: val('source'),
       source_other: val('source') === 'other' ? val('source_other') : null,
       referral_name: val('source') === 'employee_referral' ? val('referral_name') : null,
-      schedule_grid: grid,
+      schedule_hours: grid,          // {mon:[16,17,18]} — точные часы, МСК
+      schedule_hours_total: totalHours,
+      schedule_grid: legacy,         // {mon:['evening']} — прежний вид, на нём держится скоринг
       slots: summary.slots,
       evening_days: summary.evening_days
     };
