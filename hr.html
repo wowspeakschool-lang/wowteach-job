@@ -2869,6 +2869,7 @@ async function loadAccess(){
         ${!r.has_account
           ? `<button class="acc-btn" style="background:var(--purple);color:#fff" onclick="accGrant('${r.id}','${esc(r.full_name)}')">Выдать доступ</button>`
           : `<button class="acc-btn" onclick="accReset('${r.id}','${esc(r.full_name)}')">🔑 Сбросить пароль</button>`}
+        <button class="acc-btn" onclick="accSetPass('${r.id}','${esc(r.full_name)}','${esc(r.email)}')">✏️ Задать пароль</button>
         ${revoked
           ? `<button class="acc-btn" style="background:var(--green-light);color:#15803D" onclick="accRestore('${r.id}')">Открыть заново</button>`
           : (r.has_account ? `<button class="acc-btn" style="background:var(--red-light);color:#B91C1C" onclick="accRevoke('${r.id}','${esc(r.full_name)}')">Закрыть доступ</button>` : '')}
@@ -2893,6 +2894,95 @@ async function accRestore(id){
   if (error) { alert('Не получилось: ' + error.message); return; }
   loadAccess();
 }
+// ---- задать пароль руками ----
+// Письмо может не дойти (Resend уже упирался в суточный лимит), и тогда
+// кандидат остаётся без входа. Здесь рекрутер видит пароль на экране
+// и передаёт его человеку сам — в Telegram, голосом, как удобно.
+const PASS_WORDS = ['lemon','river','cloud','forest','garden','melody','planet','rocket','sunday','tiger','violet','window'];
+function accPassGen(){
+  const w = PASS_WORDS[Math.floor(Math.random() * PASS_WORDS.length)];
+  const n = String(Math.floor(100 + Math.random() * 900));
+  const el = document.getElementById('apsInput');
+  if (el) { el.value = w + '-' + n; apsCheck(); }
+}
+function apsCheck(){
+  const v = (document.getElementById('apsInput').value || '');
+  const msg = document.getElementById('apsMsg');
+  const btn = document.getElementById('apsSave');
+  let err = '';
+  if (v.length < 8) err = 'Не короче 8 символов';
+  else if (/\s/.test(v)) err = 'Без пробелов — кандидат не заметит их при копировании';
+  msg.textContent = err;
+  msg.style.color = 'var(--red)';
+  btn.disabled = !!err;
+  return !err;
+}
+function accPassClose(){ document.getElementById('apsWrap')?.remove(); }
+function accSetPass(id, name, email){
+  accPassClose();
+  const box = document.createElement('div');
+  box.id = 'apsWrap';
+  box.style.cssText = 'position:fixed;inset:0;background:rgba(45,45,63,.55);z-index:90;display:flex;align-items:center;justify-content:center;padding:20px';
+  box.onclick = e => { if (e.target === box) accPassClose(); };
+  box.innerHTML = `<div style="background:#fff;border-radius:20px;max-width:460px;width:100%;padding:26px 28px;box-shadow:var(--shadow)">
+      <h3 style="font-size:19px;margin-bottom:4px">✏️ Пароль для кандидата</h3>
+      <div style="font-size:13px;color:var(--gray);margin-bottom:16px">${esc(name)} · ${esc(email)}</div>
+      <div id="apsForm">
+        <div style="display:flex;gap:8px;align-items:center">
+          <input id="apsInput" oninput="apsCheck()" autocomplete="off" spellcheck="false"
+                 style="flex:1;padding:12px 14px;border:2px solid var(--cream-dark);border-radius:12px;font-size:16px;font-weight:800;letter-spacing:.02em">
+          <button class="acc-btn" onclick="accPassGen()">🎲 Придумать</button>
+        </div>
+        <div id="apsMsg" style="font-size:12.5px;font-weight:700;margin-top:6px;min-height:16px"></div>
+        <label style="display:flex;gap:9px;align-items:flex-start;font-size:13px;color:var(--gray);margin-top:10px;cursor:pointer">
+          <input type="checkbox" id="apsMail" style="width:18px;height:18px;margin-top:1px;accent-color:var(--purple)">
+          <span>Отправить кандидату письмо с этим паролем. Если письма до него не доходят — не ставьте галочку и передайте пароль в Telegram.</span>
+        </label>
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">
+          <button class="acc-btn" onclick="accPassClose()">Отмена</button>
+          <button class="acc-btn" id="apsSave" style="background:var(--purple);color:#fff" onclick="accPassSave('${id}')">Сохранить</button>
+        </div>
+      </div>
+      <div id="apsDone"></div>
+    </div>`;
+  document.body.appendChild(box);
+  accPassGen();
+  document.getElementById('apsInput').focus();
+}
+async function accPassSave(id){
+  if (!apsCheck()) return;
+  const pass = document.getElementById('apsInput').value;
+  const notify = document.getElementById('apsMail').checked;
+  const btn = document.getElementById('apsSave');
+  btn.disabled = true; btn.textContent = 'Сохраняю…';
+  const { error } = await sb.rpc('hr_set_password', { p_application_id: id, p_password: pass, p_notify: notify });
+  btn.disabled = false; btn.textContent = 'Сохранить';
+  if (error) {
+    const msg = document.getElementById('apsMsg');
+    msg.textContent = error.message; msg.style.color = 'var(--red)';
+    return;
+  }
+  document.getElementById('apsForm').style.display = 'none';
+  document.getElementById('apsDone').innerHTML =
+    `<div style="background:var(--green-light);border-radius:12px;padding:14px 16px">
+       <div style="font-weight:800;margin-bottom:6px">✅ Пароль установлен${notify ? ' и отправлен письмом' : ''}</div>
+       <div style="font-size:13px;color:var(--gray);margin-bottom:10px">Скопируйте и передайте кандидату — на экране он больше не появится.</div>
+       <div style="display:flex;gap:8px;align-items:center">
+         <code style="flex:1;background:#fff;border-radius:10px;padding:11px 13px;font-size:17px;font-weight:800">${esc(pass)}</code>
+         <button class="acc-btn" onclick="accPassCopy('${esc(pass)}')">Скопировать</button>
+       </div>
+     </div>
+     <div style="display:flex;justify-content:flex-end;margin-top:16px">
+       <button class="acc-btn" style="background:var(--purple);color:#fff" onclick="accPassClose()">Готово</button>
+     </div>`;
+  loadAccess();
+}
+function accPassCopy(pass){
+  navigator.clipboard?.writeText(pass);
+  const b = event?.target;
+  if (b) { b.textContent = 'Скопировано ✓'; setTimeout(() => { b.textContent = 'Скопировать'; }, 1500); }
+}
+
 async function accGrant(id, name){
   if (!confirm(`Выдать доступ ${name}? Будет создан аккаунт, кандидату придёт письмо с логином и паролем.`)) return;
   const { error } = await sb.rpc('hr_grant_access_manual', { p_application_id: id });
@@ -3117,6 +3207,9 @@ function tlLabel(ev){
     ? '🕓 Кандидат не пришёл — бронь снята, отправлено письмо с просьбой выбрать новое время'
     : `❌ Запись на собеседование отменена (${p.by === 'staff' ? 'нами' : 'кандидатом'})`;
   if (ev.type === 'cabinet_granted') return '🔑 Открыт кабинет кандидата (логин и пароль отправлены)';
+  if (ev.type === 'password_set') return '🔑 Пароль задан вручную'
+    + (p.notified ? ' и отправлен письмом' : ' (передан кандидату лично)')
+    + (p.by ? ` · ${esc(nameOf(p.by))}` : '');
   if (ev.type === 'assigned') return `👤 Назначен ответственный: <b>${esc(nameOf(p.to))}</b>`;
   if (ev.type === 'interview_invited')
     return '🎤 Приглашение на собеседование отправлено' + (p.task_slug ? ` · ТЗ: <b>${esc(taskTitleOf(p.task_slug))}</b>` : '');
