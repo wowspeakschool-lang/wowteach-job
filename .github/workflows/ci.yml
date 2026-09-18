@@ -1,0 +1,36 @@
+# Проверки нового проекта в app/. Боевые файлы в корне репозитория этот
+# workflow не трогает — их по-прежнему раздаёт GitHub Pages как есть.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+      - name: Типы
+        run: npm run typecheck
+      - name: Линтер
+        run: npm run lint
+      - name: Тесты
+        run: npm test
+      - name: Сборка
+        run: npx vite build
+        env:
+          # Сборке хватает фиктивных значений: к базе CI не ходит.
+          VITE_SUPABASE_HOSTS: https://example.invalid
+          VITE_SUPABASE_KEY: sb_publishable_ci_placeholder
+          VITE_APP_ENV: development
