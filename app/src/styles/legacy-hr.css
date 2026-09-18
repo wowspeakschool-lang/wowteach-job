@@ -1,0 +1,41 @@
+/*
+ * Слой совместимости со legacy/hr.html, а не источник истины.
+ * Источник истины — tokens.css.
+ *
+ * Значения перенесены дословно и НЕ темизуются. Это осознанно: экран,
+ * который ещё опирается на эти имена, в тёмной теме останется светлым —
+ * видимый признак того, что он не перенесён. Новый код сюда не обращается.
+ * Файл сокращается по мере переноса и удаляется, когда исчезнет последняя
+ * ссылка.
+ */
+
+:root {
+  --purple: #7b61ff;
+  --purple-dark: #5a45d9;
+  --purple-light: #f0ecff;
+  --orange: #ff8c42;
+  --orange-light: #ffe8d6;
+  --pink: #e91e8c;
+  --green: #22c55e;
+  --green-light: #dcfce7;
+  --red: #ef4444;
+  --red-light: #fee2e2;
+  --blue: #3b82f6;
+  --blue-light: #dbeafe;
+  --teal: #14b8a6;
+  --teal-light: #ccfbf1;
+  --yellow: #f59e0b;
+  --yellow-light: #fef3c7;
+  --cream: #fffbf2;
+  --cream-dark: #f5efe2;
+  --dark: #2d2d3f;
+  --gray: #5a5a6e;
+  --white: #fff;
+
+  /* В hr.html радиусы мельче, чем в кабинете. Расхождение сохранено. */
+  --radius: 12px;
+  --radius-lg: 20px;
+
+  --shadow-sm: 0 1px 3px rgba(45, 45, 63, 0.06);
+  --shadow: 0 8px 28px rgba(45, 45, 63, 0.12);
+}

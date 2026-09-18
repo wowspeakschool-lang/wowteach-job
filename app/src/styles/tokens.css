@@ -1,0 +1,340 @@
+/*
+ * Дизайн-система WowSpeak.
+ *
+ * Палитра не придумана заново — это палитра школы, которая до сих жила
+ * только в публичных отчётах для родителей (index.html:5848). Задача
+ * редизайна была довести её до всей платформы, а не заменить.
+ *
+ * Три слоя, и смешивать их нельзя:
+ *   1) --brand-*   — сырые фирменные цвета. НЕ меняются между темами.
+ *   2) --surface-* / --text-* / --accent-* и прочие смысловые токены —
+ *      только ими пользуются компоненты. Именно они переопределяются
+ *      в тёмной теме.
+ *   3) --legacy-*  — старые имена из index.html, чтобы перенесённый
+ *      без переписывания CSS продолжал работать. Новый код их не использует.
+ *
+ * Тёмные значения не подобраны на глаз: это карта из mkdark.py, по которой
+ * собраны согласованные макеты (artifact Lze2EZ6NKVoDvyHErT4VJ8). Фон не
+ * чёрный, а тёмно-фиолетовый — продолжение фирменного #2D2D3F: на чёрном
+ * розовый и фиолетовый выглядят кислотно.
+ */
+
+:root {
+  /* ======================================================================
+   * Слой 1. Фирменные цвета. Одинаковы в обеих темах.
+   * ==================================================================== */
+  --brand-pink: #e91e8c;
+  --brand-purple: #7b61ff;
+  --brand-violet: #6c3de0;
+  --brand-green: #2ecc71;
+  --brand-yellow: #f9c74f;
+  --brand-orange: #ff8c42;
+  --brand-ink: #2d2d3f;
+
+  /* ======================================================================
+   * Слой 2. Смысловые токены — светлая тема.
+   * ==================================================================== */
+
+  /* Поверхности, от самой дальней к самой близкой к читателю */
+  --surface-app: #f7f5fc;         /* фон рабочей области */
+  --surface-public: #e8f0fe;      /* фон публичных страниц (родители) */
+  --surface-card: #ffffff;        /* карточки и модальные окна */
+  --surface-sunken: #faf8ff;      /* вложенные блоки: отзывы, сертификаты */
+  --surface-control: #f4f0fe;     /* заливка иконочных кнопок */
+  --surface-pill: #f0ecff;        /* пилюли и теги */
+  --surface-hero: linear-gradient(120deg, #fbe6f4, #efe7fe);
+  --surface-hero-wide: linear-gradient(120deg, #fbe6f4 0%, #efe7fe 52%, #e6edfd 100%);
+
+  /* Текст */
+  --text-strong: #2d2d3f;
+  --text-muted: #5a5a6e;
+  --text-faint: #b9afd4;
+  --text-on-accent: #ffffff;
+
+  /* Линии */
+  --line: #e7e1f5;
+  --line-soft: #f2eefa;           /* разделители строк, трек прогресса */
+  --line-control: #d9cff5;        /* граница второстепенных кнопок */
+
+  /* Акценты — то, чем красится интерфейс */
+  --accent: #e91e8c;
+  --accent-secondary: #7b61ff;
+  --accent-action: #6c3de0;       /* акцент ТЕКСТОМ на светлой поверхности */
+
+  /*
+   * Залитая кнопка действия — пара «фон + текст», как у статусных плашек.
+   * Отдельно от --accent-action намеренно: тот в тёмной теме осветляется,
+   * чтобы читаться текстом на тёмном фоне, а осветлённая заливка под белой
+   * надписью даёт 4.2:1 — ниже порога. Один токен не может делать обе работы.
+   */
+  --accent-action-bg: #6c3de0;
+  --accent-action-text: #ffffff;
+  --accent-positive: #2ecc71;
+  --accent-info: #0ea5e9;
+  --accent-link: #2563eb;
+
+  /*
+   * Статусные плашки: фон + текст парой, иначе легко получить нечитаемое.
+   *
+   * Текст здесь глубже фирменных цветов, и это не ошибка сведения палитры.
+   * Плашка набрана 13px — по WCAG это обычный текст, ему нужно 4.5:1.
+   * Фирменный #e91e8c на бледно-розовом даёт 3.68:1, зелёный #17924f —
+   * 3.65:1. Поэтому у текста свои, более тёмные значения, а сами фирменные
+   * --brand-* остаются нетронутыми: они для крупных элементов и заливок.
+   */
+  --state-positive-bg: #e7f9ef;
+  --state-positive-text: #0f7a3f;
+  --state-warning-bg: #fff6e8;
+  --state-warning-text: #92400e;
+  --state-warning-text-soft: #a16207;
+  --state-warning-line: #f9c74f;
+  --state-attention-bg: #fdecf5;
+  --state-attention-text: #c2156f;
+  --state-star-bg: #fef6e0;
+  --state-star-text: #8a6414;
+  --state-danger-bg: #fee2e2;
+  --state-danger-text: #991b1b;
+
+  /* Тени */
+  --shadow-card: 0 8px 32px rgba(45, 45, 63, 0.08);
+  --shadow-raised: 0 4px 18px rgba(45, 45, 63, 0.06);
+  --shadow-subtle: 0 2px 8px rgba(45, 45, 63, 0.04);
+
+  /* Геометрия и типографика — общие для тем */
+  --radius-card: 20px;
+  --radius-block: 18px;
+  --radius-control: 13px;
+  --radius-pill: 20px;
+  --radius-avatar: 28px;
+  --font-body: 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  color-scheme: light;
+}
+
+/* ========================================================================
+ * Тёмная тема.
+ *
+ * Два блока с одинаковым содержимым — это не дублирование по недосмотру:
+ * первый ловит системную настройку, второй — ручной выбор. Системный блок
+ * защищён :not([data-theme='light']), иначе явно выбранная светлая тема
+ * на устройстве с тёмной системной сломается.
+ * ====================================================================== */
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --surface-app: #17141f;
+    --surface-public: #1b2138;
+    --surface-card: #221e2e;
+    --surface-sunken: #2a2438;
+    --surface-control: #332a45;
+    --surface-pill: #332a45;
+    --surface-hero: linear-gradient(120deg, #3a2140, #2a2348);
+    --surface-hero-wide: linear-gradient(120deg, #2e1b33 0%, #241f3c 52%, #1b2138 100%);
+
+    --text-strong: #f5f2fa;
+    --text-muted: #a79fb8;
+    --text-faint: #6f6685;
+
+    --line: #3a3248;
+    --line-soft: #332b47;
+    --line-control: #453b5c;
+
+    /* Акценты подняты по светлоте: фирменные значения на тёмном не читаются */
+    --accent: #ff4fa8;
+    --accent-secondary: #9b85ff;
+    /* Текстовый акцент: на тёмной поверхности #7b61ff давал 3.55:1 */
+    --accent-action: #9b85ff;
+    /* Заливка остаётся фирменной тёмной: белый текст на #7b61ff даёт 4.2:1 */
+    --accent-action-bg: #6c3de0;
+    --accent-action-text: #ffffff;
+    --accent-positive: #3edd82;
+    --accent-info: #38bdf8;
+    --accent-link: #5b93f5;
+
+    --state-positive-bg: #16351f;
+    --state-positive-text: #5fd98d;
+    --state-warning-bg: #3a2c16;
+    --state-warning-text: #fbbf24;
+    --state-warning-text-soft: #e8b54a;
+    --state-attention-bg: #3a1c2e;
+    --state-attention-text: #ff4fa8;
+    --state-star-bg: #3a300f;
+    --state-star-text: #e8b54a;
+    --state-danger-bg: #3a1a1a;
+    --state-danger-text: #ef6b6b;
+
+    --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.45);
+    --shadow-raised: 0 4px 18px rgba(0, 0, 0, 0.38);
+    --shadow-subtle: 0 2px 8px rgba(0, 0, 0, 0.32);
+
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --surface-app: #17141f;
+  --surface-public: #1b2138;
+  --surface-card: #221e2e;
+  --surface-sunken: #2a2438;
+  --surface-control: #332a45;
+  --surface-pill: #332a45;
+  --surface-hero: linear-gradient(120deg, #3a2140, #2a2348);
+  --surface-hero-wide: linear-gradient(120deg, #2e1b33 0%, #241f3c 52%, #1b2138 100%);
+
+  --text-strong: #f5f2fa;
+  --text-muted: #a79fb8;
+  --text-faint: #6f6685;
+
+  --line: #3a3248;
+  --line-soft: #332b47;
+  --line-control: #453b5c;
+
+  --accent: #ff4fa8;
+  --accent-secondary: #9b85ff;
+  --accent-action: #9b85ff;
+  --accent-action-bg: #6c3de0;
+  --accent-action-text: #ffffff;
+  --accent-positive: #3edd82;
+  --accent-info: #38bdf8;
+  --accent-link: #5b93f5;
+
+  --state-positive-bg: #16351f;
+  --state-positive-text: #5fd98d;
+  --state-warning-bg: #3a2c16;
+  --state-warning-text: #fbbf24;
+  --state-warning-text-soft: #e8b54a;
+  --state-attention-bg: #3a1c2e;
+  --state-attention-text: #ff4fa8;
+  --state-star-bg: #3a300f;
+  --state-star-text: #e8b54a;
+  --state-danger-bg: #3a1a1a;
+  --state-danger-text: #ef6b6b;
+
+  --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.45);
+  --shadow-raised: 0 4px 18px rgba(0, 0, 0, 0.38);
+  --shadow-subtle: 0 2px 8px rgba(0, 0, 0, 0.32);
+
+  color-scheme: dark;
+}
+
+/* ========================================================================
+ * Грейды преподавателей.
+ *
+ * Значения взяты из legacy дословно (index.html:2875–2903) и НЕ темизуются:
+ * это опознавательный цвет грейда, по нему люди узнают уровень с первого
+ * взгляда, и разный цвет в разных темах сломал бы узнавание. Все семь
+ * градиентов достаточно тёмные, белый текст читается на обоих фонах.
+ * ====================================================================== */
+
+:root {
+  --grade-basic: linear-gradient(135deg, #0ea5e9, #0284c7);
+  --grade-expert: linear-gradient(135deg, #10b981, #059669);
+  --grade-pro: linear-gradient(135deg, #6c3de0, #8b5cf6);
+  --grade-mvu: linear-gradient(135deg, #0ea5e9, #2563eb);
+  --grade-laoshi-master: linear-gradient(135deg, #dc2626, #991b1b);
+  --grade-laoshi-young: linear-gradient(135deg, #f97316, #c2410c);
+  --grade-other: linear-gradient(135deg, #64748b, #334155);
+
+  /* Плоские версии для бейджей-подписей (index.html:2897–2903) */
+  --grade-basic-flat: #0ea5e9;
+  --grade-expert-flat: #10b981;
+  --grade-pro-flat: #6c3de0;
+  --grade-mvu-flat: #2563eb;
+  --grade-laoshi-master-flat: #991b1b;
+  --grade-laoshi-young-flat: #c2410c;
+  --grade-other-flat: #475569;
+}
+
+/* ========================================================================
+ * Типы клубов в публичном расписании (?wowspace=).
+ *
+ * Светлые значения взяты из legacy дословно (index.html:12232 clubColor) —
+ * по этим цветам родители уже привыкли различать клубы. В отличие от
+ * грейдов, фон здесь светлый, а текст тёмный, поэтому темизовать надо:
+ * иначе на тёмной странице получаются шесть белых прямоугольников.
+ *
+ * Шесть типов, а не пять. В legacy легенда перечисляла пять, а «прочее»
+ * оставалось безымянным серым: на 16.09.2026 под него попадали
+ * «Travel course 10+» (9 событий) и «Gravity Falls 7-12» (8 событий) —
+ * родитель видел серую плашку без подписи в легенде.
+ * ====================================================================== */
+
+:root {
+  --club-speaking-bg: #dbeafe;
+  --club-speaking-line: #3b82f6;
+  --club-speaking-text: #1e40af;
+
+  --club-reading-bg: #fef3c7;
+  --club-reading-line: #f59e0b;
+  --club-reading-text: #92400e;
+
+  --club-master-bg: #fce7f3;
+  --club-master-line: #ec4899;
+  --club-master-text: #9d174d;
+
+  --club-webinar-bg: #dcfce7;
+  --club-webinar-line: #22c55e;
+  --club-webinar-text: #166534;
+
+  --club-gaming-bg: #ede9fe;
+  --club-gaming-line: #7c3aed;
+  --club-gaming-text: #5b21b6;
+
+  --club-other-bg: #f1f5f9;
+  --club-other-line: #94a3b8;
+  --club-other-text: #475569;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --club-speaking-bg: #16233d;
+    --club-speaking-line: #5b93f5;
+    --club-speaking-text: #9dc2fa;
+
+    --club-reading-bg: #33270f;
+    --club-reading-line: #f59e0b;
+    --club-reading-text: #f2c464;
+
+    --club-master-bg: #351427;
+    --club-master-line: #ec4899;
+    --club-master-text: #f49ac4;
+
+    --club-webinar-bg: #123123;
+    --club-webinar-line: #3edd82;
+    --club-webinar-text: #7be3a6;
+
+    --club-gaming-bg: #241a3d;
+    --club-gaming-line: #9b85ff;
+    --club-gaming-text: #bfa8ff;
+
+    --club-other-bg: #262a33;
+    --club-other-line: #8b96a8;
+    --club-other-text: #a8b2c2;
+  }
+}
+
+:root[data-theme='dark'] {
+  --club-speaking-bg: #16233d;
+  --club-speaking-line: #5b93f5;
+  --club-speaking-text: #9dc2fa;
+
+  --club-reading-bg: #33270f;
+  --club-reading-line: #f59e0b;
+  --club-reading-text: #f2c464;
+
+  --club-master-bg: #351427;
+  --club-master-line: #ec4899;
+  --club-master-text: #f49ac4;
+
+  --club-webinar-bg: #123123;
+  --club-webinar-line: #3edd82;
+  --club-webinar-text: #7be3a6;
+
+  --club-gaming-bg: #241a3d;
+  --club-gaming-line: #9b85ff;
+  --club-gaming-text: #bfa8ff;
+
+  --club-other-bg: #262a33;
+  --club-other-line: #8b96a8;
+  --club-other-text: #a8b2c2;
+}

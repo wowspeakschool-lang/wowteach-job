@@ -5,6 +5,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Кабинет кандидата — WowSpeak 🦉</title>
 <meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<script>
+  /* Тема применяется ДО первой отрисовки, иначе человек с тёмной темой видит
+     вспышку белого на каждой загрузке, и React это уже не исправит.
+     Импортировать ключ из модуля здесь нельзя: модуль отложит исполнение до
+     конца разбора документа — то есть вернёт ту же вспышку. Строка
+     продублирована осознанно, см. src/services/theme.ts */
+  try {
+    var m = window.localStorage.getItem('wowspeak:theme');
+    if (m === 'light' || m === 'dark') document.documentElement.setAttribute('data-theme', m);
+  } catch (e) {
+    /* приватное окно или заблокированные данные сайта — остаёмся на системной */
+  }
+</script>
 </head>
 <body>
 <div id="root"></div>

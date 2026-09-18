@@ -5,12 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && vitest run && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",
-    "types:db": "echo 'см. README: типы генерируются из Supabase и коммитятся в src/types/database.generated.ts'"
+    "types:db": "echo 'см. README: типы генерируются из Supabase и коммитятся в src/types/database.generated.ts'",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.58.0",
@@ -29,6 +31,7 @@
     "prettier": "^3.4.2",
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.18.0",
-    "vite": "^6.0.5"
+    "vite": "^6.0.5",
+    "vitest": "^5.0.1"
   }
 }

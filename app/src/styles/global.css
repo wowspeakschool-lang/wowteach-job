@@ -1,0 +1,49 @@
+/*
+ * Базовые правила. Источник токенов — tokens.css.
+ * Слой совместимости со старыми именами подключается отдельно, в точке
+ * входа: у панели и кабинета он разный (радиусы 12/20 против 14/24).
+ */
+
+@import './tokens.css';
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  background: var(--surface-app);
+  color: var(--text-strong);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Фокус виден всегда при навигации с клавиатуры. Legacy глушил обводку
+   почти везде — не воспроизводим: платформой пользуются по восемь часов. */
+:focus-visible {
+  outline: 2px solid var(--accent-secondary);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--surface-pill);
+  color: var(--text-strong);
+}

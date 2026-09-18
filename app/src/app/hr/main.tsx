@@ -1,9 +1,10 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Placeholder } from '@/app/Placeholder';
+import '@/styles/global.css';
+import '@/styles/legacy-hr.css';
 
-// Phase 0: только каркас. Экранов ещё нет — они появятся после того,
-// как будет зафиксирована дизайн-система.
+// Phase 0.5: дизайн-система подключена, экранов ещё нет.
 const el = document.getElementById('root');
 if (!el) throw new Error('#root не найден');
 
