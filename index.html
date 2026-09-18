@@ -540,6 +540,10 @@ async function bookBuddy(step, slotId){
 // Шаги, на которые подопечный записывается сам: наставник открывает окна,
 // человек выбирает время. Знакомство идёт перепиской — там только Telegram.
 const BOOKABLE_STEPS = ['prep_meeting', 'final_meeting', 'mvu_meet1', 'mvu_exam'];
+// Шаги, которые начинаются с чтения оффера. У преподавателя это «Перечитать оффер
+// и подтвердить», у менеджера вводного урока — «Подтвердить оффер»: слаги разные,
+// действие одно, и подтверждать вслепую, без текста оффера, человек не должен.
+const OFFER_STEPS = ['reread_offer', 'mvu_offer'];
 function stepAction(a, s, tg){
   if (BOOKABLE_STEPS.includes(s.slug)) {
     return `<div id="bs-${s.slug}" class="bslot">Загружаю свободное время…</div>`
@@ -556,8 +560,8 @@ function stepAction(a, s, tg){
   if (s.auto) {
     return `<div style="margin-top:10px;font-size:12.5px;color:var(--gray);font-weight:700">⏳ Шаг отметится автоматически после прохождения обучения</div>`;
   }
-  // «Перечитать оффер» — открываем оффер в модалке
-  if (s.slug === 'reread_offer') {
+  // шаг с оффером — открываем оффер в модалке, подтверждение внутри неё
+  if (OFFER_STEPS.includes(s.slug)) {
     return `<button onclick="openOfferModal('${a.id}','${s.slug}')" style="margin-top:10px;background:var(--purple);color:#fff;border:none;border-radius:999px;padding:9px 18px;font-weight:800;font-size:13px;cursor:pointer">Открыть оффер →</button>`;
   }
   return `<button onclick="doneMyStep('${a.id}','${s.slug}')" style="margin-top:10px;background:var(--green);color:#fff;border:none;border-radius:999px;padding:9px 18px;font-weight:800;font-size:13px;cursor:pointer">Готово ✓</button>`;
