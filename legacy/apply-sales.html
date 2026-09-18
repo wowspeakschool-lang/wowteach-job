@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#7B61FF">
+<title>Анкета: менеджер по продажам — WowSpeak 🦉</title>
+<meta name="robots" content="noindex">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --purple:#7B61FF; --purple-dark:#5A45D9; --purple-light:#F0ECFF;
+  --orange:#FF8C42; --orange-light:#FFE8D6;
+  --pink:#E91E8C; --green:#22C55E; --green-light:#DCFCE7;
+  --red:#EF4444; --red-light:#FEE2E2;
+  --cream:#FFFBF2; --cream-dark:#F5EFE2;
+  --dark:#2D2D3F; --gray-text:#5A5A6E; --white:#FFFFFF;
+  --radius:14px; --radius-lg:24px;
+  --shadow-sm:0 1px 3px rgba(45,45,63,.06);
+  --shadow:0 8px 28px rgba(45,45,63,.10);
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:inherit}
+body{font-family:'Nunito',sans-serif;color:var(--dark);background:var(--cream);line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+  background-image:radial-gradient(circle, rgba(123,97,255,.05) 1px, transparent 1px);background-size:26px 26px}
+h1,h2,h3{font-family:'Fredoka',sans-serif;font-weight:600;line-height:1.2}
+a{color:var(--purple);text-decoration:none}
+.wrap{max-width:760px;margin:0 auto;padding:0 18px}
+
+.header{position:sticky;top:0;z-index:50;background:rgba(255,251,242,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--cream-dark)}
+.header .wrap{display:flex;align-items:center;justify-content:space-between;padding:13px 18px}
+.logo{font-family:'Fredoka',sans-serif;font-weight:600;font-size:22px;color:var(--purple);display:flex;align-items:center;gap:8px}
+.logo .emoji{font-size:26px}
+.header a.back{font-weight:800;font-size:14px;color:var(--gray-text)}
+
+.hero{padding:34px 0 6px;text-align:center}
+.hero h1{font-size:clamp(26px,4.5vw,38px)}
+.hero p{color:var(--gray-text);margin-top:10px;font-size:16px}
+.hero .vac-title{display:inline-block;margin-top:14px;font-weight:800;font-size:14px;
+  background:var(--purple-light);color:var(--purple-dark);padding:7px 16px;border-radius:999px}
+
+form{padding:26px 0 80px}
+.card{background:var(--white);border:1px solid var(--cream-dark);border-radius:var(--radius-lg);
+  padding:26px 24px;box-shadow:var(--shadow-sm);margin-bottom:20px}
+.card h2{font-size:20px;margin-bottom:18px;display:flex;align-items:center;gap:9px}
+.card h2 .ico{font-size:23px}
+
+.field{margin-bottom:16px}
+.field:last-child{margin-bottom:0}
+label{display:block;font-weight:800;font-size:14px;margin-bottom:6px}
+label .req{color:var(--red)}
+label .opt{color:var(--gray-text);font-weight:600;font-size:12px}
+.hint{font-size:13px;color:var(--gray-text);margin-top:6px}
+input[type=text],input[type=email],input[type=tel],input[type=url],select,textarea{
+  width:100%;padding:13px 14px;border:2px solid var(--cream-dark);border-radius:var(--radius);
+  font-size:16px;background:#FDFCF8;transition:border-color .15s;-webkit-appearance:none;appearance:none}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9'%3E%3Cpath d='M1 1l6 6 6-6' stroke='%235A5A6E' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 14px center;padding-right:38px}
+input:focus,select:focus{outline:none;border-color:var(--purple)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:560px){.row2{grid-template-columns:1fr}}
+
+/* chips multiselect */
+.chips{display:flex;flex-wrap:wrap;gap:9px}
+.chip{padding:9px 16px;border:2px solid var(--cream-dark);border-radius:999px;font-weight:700;
+  font-size:14px;cursor:pointer;user-select:none;background:#FDFCF8;transition:all .12s}
+.chip.on{background:var(--purple);border-color:var(--purple);color:#fff}
+
+/* schedule grid */
+.grid-wrap{overflow-x:auto}
+.sgrid{width:100%;border-collapse:separate;border-spacing:6px}
+.sgrid th{font-size:12px;font-weight:800;color:var(--gray-text);padding:4px 2px;text-align:center}
+.sgrid th.day{text-align:left;text-transform:none;font-size:14px;color:var(--dark)}
+.sgrid td{padding:0}
+.cell{height:42px;min-width:64px;border:2px solid var(--cream-dark);border-radius:10px;cursor:pointer;
+  background:#FDFCF8;display:flex;align-items:center;justify-content:center;font-weight:800;
+  color:transparent;transition:all .12s;user-select:none}
+.cell.on{background:var(--green);border-color:var(--green);color:#fff}
+.grid-actions{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}
+.grid-actions button{font-size:12px;font-weight:800;color:var(--purple);background:var(--purple-light);
+  border:none;border-radius:999px;padding:6px 12px;cursor:pointer}
+
+/* file inputs */
+.filebox{border:2px dashed var(--cream-dark);border-radius:var(--radius);padding:16px;text-align:center;
+  cursor:pointer;background:#FDFCF8;transition:border-color .15s;font-size:14px}
+.filebox:hover{border-color:var(--purple)}
+.filebox.has{border-style:solid;border-color:var(--green);background:var(--green-light)}
+.filebox b{display:block;font-size:15px}
+.filebox span{color:var(--gray-text);font-size:13px}
+.filebox input{display:none}
+
+/* video TZ */
+.tz{background:var(--purple-light);border-radius:var(--radius);padding:18px 18px;font-size:14px;margin-bottom:16px}
+.tz b{display:block;margin-bottom:8px}
+.tz ol{margin:8px 0 8px 20px;display:flex;flex-direction:column;gap:6px}
+.tz .note{color:var(--gray-text);font-size:13px}
+
+/* progress */
+.progress{display:none;margin-top:12px}
+.progress .bar{height:10px;border-radius:999px;background:var(--cream-dark);overflow:hidden}
+.progress .fill{height:100%;width:0;background:linear-gradient(90deg,var(--purple),var(--pink));transition:width .3s}
+.progress .lbl{font-size:13px;color:var(--gray-text);margin-top:6px;text-align:center}
+
+/* consent + submit */
+.consent{display:flex;gap:12px;align-items:flex-start;font-size:13px;color:var(--gray-text)}
+.consent input{width:20px;height:20px;margin-top:2px;accent-color:var(--purple);flex-shrink:0}
+.btn-submit{display:flex;width:100%;justify-content:center;margin-top:20px;
+  background:linear-gradient(135deg,var(--orange),#F2722B);color:#fff;font-weight:800;font-size:18px;
+  padding:17px;border:none;border-radius:999px;cursor:pointer;box-shadow:var(--shadow);
+  font-family:'Nunito',sans-serif;transition:transform .15s}
+.btn-submit:hover{transform:translateY(-2px)}
+.btn-submit:disabled{opacity:.6;cursor:wait;transform:none}
+.err{display:none;background:var(--red-light);color:#B91C1C;border-radius:var(--radius);
+  padding:14px 16px;font-size:14px;font-weight:700;margin-top:14px}
+
+/* success */
+#success{display:none;text-align:center;padding:80px 18px}
+#success .big{font-size:74px;margin-bottom:14px}
+#success h1{font-size:clamp(26px,4.5vw,38px);margin-bottom:12px}
+#success p{color:var(--gray-text);font-size:17px;max-width:520px;margin:0 auto 8px}
+
+.hp{position:absolute;left:-9999px;opacity:0;height:0;overflow:hidden}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="wrap">
+    <a href="https://wowteach.ru" class="logo"><span class="emoji">🦉</span> WowSpeak</a>
+    <a class="back" href="https://wowteach.ru/#vacancies">← Вакансии</a>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="hero" id="hero">
+    <h1>Здравствуйте! 👋</h1>
+    <p>Wowspeak — онлайн-школа английского и китайского для детей 4–17 лет. Работаем с 2012 года, 1000+ семей в год, 120+ преподавателей.<br>
+    Ищем менеджера по продажам, который доводит клиента от вводного урока до оплаченного абонемента — быстро, но без потери доверия.</p>
+    <span class="vac-title" id="vacTitle">Загружаю вакансию…</span>
+  </div>
+
+  <form id="form" novalidate>
+    <!-- honeypot -->
+    <div class="hp"><label>Website</label><input type="text" id="hp_website" tabindex="-1" autocomplete="off"></div>
+
+    <!-- ===== Контакты ===== -->
+    <div class="card">
+      <h2><span class="ico">🙋</span> О вас</h2>
+      <div class="row2">
+        <div class="field"><label>Имя <span class="req">*</span></label><input type="text" id="first_name" autocomplete="given-name"></div>
+        <div class="field"><label>Фамилия <span class="req">*</span></label><input type="text" id="last_name" autocomplete="family-name"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>E-mail <span class="req">*</span></label><input type="email" id="email" autocomplete="email" placeholder="например, ivan@mail.ru" pattern="[^@\s]+@[^@\s]+\.ru$" title="Почта должна быть в домене .ru"><div class="hint">Только почта в домене .ru (mail.ru, yandex.ru, bk.ru и т.п.)</div></div>
+        <div class="field"><label>Телефон <span class="req">*</span></label><input type="tel" id="phone" placeholder="+7 ..." autocomplete="tel"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Ник в Telegram <span class="req">*</span></label><input type="text" id="telegram" placeholder="@nickname"></div>
+        <div class="field"><label>Город и часовой пояс <span class="req">*</span></label><input type="text" id="city_tz" placeholder="Например: Самара, МСК+1"></div>
+      </div>
+
+      <div class="field">
+        <label>Откуда вы о нас узнали? <span class="req">*</span></label>
+        <select id="source">
+          <option value="">— выберите —</option>
+          <option value="employee_referral">Рекомендация сотрудника WowSpeak</option>
+          <option value="friend_referral">Рекомендация друга / знакомого</option>
+          <option value="hh">HeadHunter (hh.ru)</option>
+          <option value="avito">Авито Работа</option>
+          <option value="telegram">Telegram</option>
+          <option value="vk">ВКонтакте</option>
+          <option value="instagram">Instagram</option>
+          <option value="youtube">YouTube</option>
+          <option value="tiktok">TikTok</option>
+          <option value="search">Поиск в Google / Яндекс</option>
+          <option value="website">Сайт WowSpeak</option>
+          <option value="other">Другое</option>
+        </select>
+      </div>
+
+      <div class="field" id="referralField" style="display:none">
+        <label>Имя и фамилия сотрудника, который вас порекомендовал <span class="req">*</span></label>
+        <input type="text" id="referral_name" placeholder="Например: Алина Петрова">
+        <div class="hint">Мы скажем ему спасибо 🙌</div>
+      </div>
+
+      <div class="field" id="sourceOtherField" style="display:none">
+        <label>Уточните, откуда именно <span class="req">*</span></label>
+        <input type="text" id="source_other" placeholder="Например: канал в Telegram «...»">
+      </div>
+    </div>
+
+    <!-- ===== Опыт ===== -->
+    <div class="card">
+      <h2><span class="ico">💼</span> Опыт в продажах</h2>
+
+      <div class="row2">
+        <div class="field">
+          <label>Опыт в продажах <span class="req">*</span></label>
+          <select id="sales_years">
+            <option value="">— выберите —</option>
+            <option value="none">Нет опыта</option>
+            <option value="lt6">Меньше полугода</option>
+            <option value="6_12">Полгода — год</option>
+            <option value="1_3">1–3 года</option>
+            <option value="3plus">Больше 3 лет</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Опыт в онлайн-образовании <span class="req">*</span></label>
+          <select id="edtech">
+            <option value="">— выберите —</option>
+            <option value="yes">Да, продавал(а) обучение</option>
+            <option value="adjacent">Работал(а) в сфере, но не в продажах</option>
+            <option value="no">Нет</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>С какими CRM работали? <span class="req">*</span></label>
+        <div class="chips" id="crm">
+          <span class="chip" data-v="amocrm">AmoCRM</span>
+          <span class="chip" data-v="moyklass">«Мой Класс»</span>
+          <span class="chip" data-v="bitrix">Bitrix24</span>
+          <span class="chip" data-v="other">Другая</span>
+          <span class="chip" data-v="none">Не работал(а)</span>
+        </div>
+        <div class="hint">Можно выбрать несколько. AmoCRM и «Мой Класс» — то, в чём работаем мы.</div>
+      </div>
+
+      <div class="field">
+        <label>Что продавали и какой был средний чек? <span class="opt">(необязательно)</span></label>
+        <textarea id="cover_letter" rows="4" placeholder="Пара предложений: продукт, аудитория, средний чек, план и как его выполняли."></textarea>
+      </div>
+    </div>
+
+    <!-- ===== График ===== -->
+    <div class="card">
+      <h2><span class="ico">🗓️</span> График и рабочее место</h2>
+      <p class="hint" style="margin:-8px 0 14px">График — 5 дней в неделю, полностью удалённо. Время московское.</p>
+
+      <div class="field">
+        <label>Какая смена вам подходит? <span class="req">*</span></label>
+        <select id="shift">
+          <option value="">— выберите —</option>
+          <option value="10_19">10:00 — 19:00 МСК</option>
+          <option value="12_21">12:00 — 21:00 МСК</option>
+          <option value="any">Готов(а) на любую</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Гарнитура и рабочая камера <span class="req">*</span></label>
+        <select id="equipment">
+          <option value="">— выберите —</option>
+          <option value="yes">Есть всё</option>
+          <option value="partly">Есть частично</option>
+          <option value="will_buy">Нет, но куплю до старта</option>
+          <option value="no">Нет</option>
+        </select>
+        <div class="hint">Работа голосом каждый день плюс планёрки в Zoom — без гарнитуры не получится.</div>
+      </div>
+
+      <div class="field">
+        <label>Когда готовы выйти? <span class="opt">(необязательно)</span></label>
+        <input type="text" id="ready_from" placeholder="Например: сразу / через 2 недели / с 1 сентября">
+      </div>
+    </div>
+
+    <!-- ===== Резюме ===== -->
+    <div class="card">
+      <h2><span class="ico">📎</span> Резюме</h2>
+      <div class="field">
+        <label>Ваше резюме <span class="req">*</span></label>
+        <label class="filebox" id="resumeBox">
+          <input type="file" id="resume" accept=".pdf,image/jpeg,image/png,image/webp">
+          <b>＋ Выбрать файл</b><span>PDF или фото, до 20 МБ</span>
+        </label>
+        <div class="hint">Без резюме мы не сможем рассмотреть отклик — приложите файл или фото.</div>
+      </div>
+    </div>
+
+    <!-- ===== Согласие + сабмит ===== -->
+    <div class="card">
+      <label class="consent">
+        <input type="checkbox" id="consent">
+        <span>Нажимая кнопку «Хочу в команду!», я даю своё согласие на обработку моих персональных данных
+        в соответствии с Федеральным законом от 27.07.2006 года №152-ФЗ «О персональных данных», на условиях
+        и для целей, определённых в <a href="soglasie.html" target="_blank">Согласии на обработку персональных данных</a> <span class="req">*</span></span>
+      </label>
+      <button type="submit" class="btn-submit" id="submitBtn">Хочу в команду! 🚀</button>
+      <div class="err" id="errBox"></div>
+    </div>
+  </form>
+</div>
+
+<!-- ===== Success ===== -->
+<div id="success">
+  <div class="big">🎉</div>
+  <h1>Заявка получена!</h1>
+  <p>Спасибо! Мы внимательно посмотрим вашу анкету и видео-визитку и свяжемся с вами по e-mail или в Telegram.</p>
+  <p style="margin-top:18px"><a href="https://wowteach.ru" class="logo" style="justify-content:center">🦉 На главную WowSpeak</a></p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/tus-js-client@4/dist/tus.min.js"></script>
+<script>
+// ============ Supabase через прокси api.wowteach.ru ============
+const SUPABASE_URL = 'https://api.wowteach.ru';
+const SUPABASE_KEY = 'sb_publishable_nZIl9kzPNhkd9Gbsm7aAgA_cAeY1s4x';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const MAX_DOC   = 20  * 1024 * 1024;   // 20 МБ
+
+// ============ Вакансия из ?vacancy= ============
+const slug = new URLSearchParams(location.search).get('vacancy') || 'sales';
+let vacancy = null;
+
+(async function loadVacancy(){
+  const { data, error } = await sb.from('hr_vacancies').select('*').eq('slug', slug).maybeSingle();
+  if (error || !data) { document.getElementById('vacTitle').textContent = 'Вакансия не найдена'; return; }
+  vacancy = data;
+  document.getElementById('vacTitle').textContent = '📌 ' + data.title;
+  if (!data.is_open) {
+    document.getElementById('form').style.display = 'none';
+    document.getElementById('vacTitle').textContent = '😔 Вакансия «' + data.title + '» сейчас закрыта';
+  }
+})();
+
+// ============ Откуда узнали ============
+document.getElementById('source').addEventListener('change', function(){
+  document.getElementById('referralField').style.display   = this.value === 'employee_referral' ? '' : 'none';
+  document.getElementById('sourceOtherField').style.display = this.value === 'other' ? '' : 'none';
+});
+
+// ============ Чипсы ============
+document.querySelectorAll('.chips').forEach(g =>
+  g.addEventListener('click', e => { if (e.target.classList.contains('chip')) e.target.classList.toggle('on'); }));
+const chipValues = id => [...document.querySelectorAll('#'+id+' .chip.on')].map(c => c.dataset.v);
+
+// ============ Файловые поля ============
+function bindFile(inputId, boxId, maxSize){
+  const input = document.getElementById(inputId), box = document.getElementById(boxId);
+  input.addEventListener('change', () => {
+    const f = input.files[0];
+    if (!f) { box.classList.remove('has'); box.querySelector('b').textContent = '＋ Выбрать файл'; return; }
+    if (f.size > maxSize) { alert('Файл больше лимита (' + Math.round(maxSize/1024/1024) + ' МБ). Выберите файл поменьше.'); input.value=''; return; }
+    box.classList.add('has');
+    box.querySelector('b').textContent = '✓ ' + f.name;
+  });
+}
+bindFile('resume','resumeBox',MAX_DOC);
+
+// ============ Загрузка видео (TUS, чанки 6 МБ — стабильно через Cloudflare) ============
+
+async function uploadDoc(file, path){
+  const { error } = await sb.storage.from('hr-docs').upload(path, file);
+  if (error) throw error;
+  return path;
+}
+
+// ============ Submit ============
+const form = document.getElementById('form');
+const errBox = document.getElementById('errBox');
+const btn = document.getElementById('submitBtn');
+
+function fail(msg){ errBox.textContent = msg; errBox.style.display = 'block'; errBox.scrollIntoView({behavior:'smooth',block:'center'}); }
+const val = id => document.getElementById(id).value.trim();
+const extOf = f => (f.name.match(/\.[a-z0-9]+$/i) || ['.bin'])[0].toLowerCase();
+
+form.addEventListener('submit', async e => {
+  e.preventDefault();
+  errBox.style.display = 'none';
+
+  // honeypot: боту — тихий «успех»
+  if (val('hp_website')) { form.style.display='none'; document.getElementById('success').style.display='block'; return; }
+
+  if (!vacancy) return fail('Вакансия не загрузилась — обновите страницу.');
+  if (!val('first_name') || !val('last_name')) return fail('Заполните имя и фамилию.');
+  const emailVal = val('email');
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(emailVal)) return fail('Проверьте e-mail.');
+  if (!/\.ru$/i.test(emailVal)) return fail('Пожалуйста, укажите почту в домене .ru (например, mail.ru, yandex.ru или bk.ru). Почта на gmail.com и других зарубежных сервисах не принимается.');
+  if (!val('phone')) return fail('Укажите телефон.');
+  if (!val('telegram')) return fail('Укажите ник в Telegram.');
+  if (!val('city_tz')) return fail('Укажите город и часовой пояс.');
+  if (!val('source')) return fail('Укажите, откуда вы о нас узнали.');
+  if (val('source') === 'employee_referral' && !val('referral_name'))
+    return fail('Укажите имя и фамилию сотрудника, который вас порекомендовал.');
+  if (val('source') === 'other' && !val('source_other'))
+    return fail('Уточните, откуда вы о нас узнали.');
+  if (!val('sales_years')) return fail('Укажите опыт в продажах.');
+  if (!val('edtech')) return fail('Укажите, был ли опыт в онлайн-образовании.');
+  if (chipValues('crm').length === 0) return fail('Отметьте, с какими CRM вы работали.');
+  if (!val('shift')) return fail('Выберите смену.');
+  if (!val('equipment')) return fail('Укажите, есть ли гарнитура и камера.');
+  if (!document.getElementById('resume').files[0]) return fail('Приложите резюме — без него мы не сможем рассмотреть отклик.');
+  if (!document.getElementById('consent').checked) return fail('Нужно согласие на обработку персональных данных.');
+
+  btn.disabled = true; btn.textContent = 'Отправляем…';
+
+  try {
+    const appId = crypto.randomUUID();
+    const answers = {
+      sales_years: val('sales_years'),
+      edtech: val('edtech'),
+      crm: chipValues('crm'),
+      shift: val('shift'),
+      equipment: val('equipment'),
+      ready_from: val('ready_from') || null,
+      cover_letter: (document.getElementById('cover_letter').value || '').trim(),
+      source: val('source'),
+      source_other: val('source') === 'other' ? val('source_other') : null,
+      referral_name: val('source') === 'employee_referral' ? val('referral_name') : null
+    };
+
+    const docs = [['resume','resume_path']];
+    for (const [inputId, key] of docs) {
+      const f = document.getElementById(inputId).files[0];
+      if (f) answers[key] = await uploadDoc(f, appId + '/' + inputId + extOf(f));
+    }
+
+    // 3) заявка
+    const { error } = await sb.from('hr_applications').insert({
+      id: appId,
+      vacancy_id: vacancy.id,
+      full_name: val('first_name') + ' ' + val('last_name'),
+      email: val('email'),
+      phone: val('phone'),
+      telegram: val('telegram'),
+      city_tz: val('city_tz'),
+      answers
+    });
+    if (error) throw error;
+
+    form.style.display = 'none';
+    document.getElementById('hero').style.display = 'none';
+    document.getElementById('success').style.display = 'block';
+    window.scrollTo({ top: 0 });
+  } catch (err) {
+    console.error(err);
+    fail('Не получилось отправить: ' + (err.message || err) + '. Попробуйте ещё раз — или пришлите ссылку на видео вместо файла.');
+    btn.disabled = false; btn.textContent = 'Хочу в команду! 🚀';
+  }
+});
+</script>
+</body>
+</html>

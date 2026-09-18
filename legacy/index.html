@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#7B61FF">
+<title>Кабинет кандидата — WowSpeak 🦉</title>
+<meta name="robots" content="noindex">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --purple:#7B61FF; --purple-dark:#5A45D9; --purple-light:#F0ECFF;
+  --orange:#FF8C42; --orange-light:#FFE8D6;
+  --pink:#E91E8C; --green:#22C55E; --green-light:#DCFCE7;
+  --red:#EF4444; --red-light:#FEE2E2;
+  --cream:#FFFBF2; --cream-dark:#F5EFE2;
+  --dark:#2D2D3F; --gray:#5A5A6E; --white:#fff;
+  --radius:14px; --radius-lg:24px;
+  --shadow-sm:0 1px 3px rgba(45,45,63,.06); --shadow:0 8px 28px rgba(45,45,63,.12);
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:inherit}
+body{font-family:'Nunito',sans-serif;background:var(--cream);color:var(--dark);line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+  background-image:radial-gradient(circle, rgba(123,97,255,.05) 1px, transparent 1px);background-size:26px 26px}
+h1,h2,h3{font-family:'Fredoka',sans-serif;font-weight:600;line-height:1.2}
+a{color:var(--purple);text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+.wrap{max-width:900px;margin:0 auto;padding:0 24px}
+
+.header{position:sticky;top:0;z-index:40;background:rgba(255,251,242,.93);backdrop-filter:blur(10px);border-bottom:1px solid var(--cream-dark)}
+.header .wrap{display:flex;align-items:center;justify-content:space-between;padding:13px 24px;max-width:900px}
+.logo{font-family:'Fredoka',sans-serif;font-size:22px;color:var(--purple);font-weight:600}
+.header .me{font-size:13px;color:var(--gray)}
+.header .me button{background:none;border:none;color:var(--purple);font-weight:800;font-size:13px}
+
+.card{background:var(--white);border:1px solid var(--cream-dark);border-radius:var(--radius-lg);
+  padding:32px 34px;box-shadow:var(--shadow-sm);margin-bottom:20px}
+
+/* login */
+#login{display:none;padding:60px 0}
+#login .card{text-align:center}
+#login h1{font-size:24px;margin-bottom:8px}
+#login p{color:var(--gray);font-size:15px;margin-bottom:20px}
+#login input{width:100%;padding:13px 14px;border:2px solid var(--cream-dark);border-radius:var(--radius);
+  font-size:16px;background:#FDFCF8;margin-bottom:12px}
+#login input:focus{outline:none;border-color:var(--purple)}
+#login button.go{width:100%;padding:14px;border:none;border-radius:999px;font-weight:800;font-size:16px;
+  background:linear-gradient(135deg,var(--purple),var(--purple-dark));color:#fff;box-shadow:var(--shadow)}
+#login .msg{margin-top:14px;font-size:14px;font-weight:700;display:none;border-radius:var(--radius);padding:12px}
+#login .msg.ok{display:block;background:var(--green-light);color:#15803D}
+#login .msg.err{display:block;background:var(--red-light);color:#B91C1C}
+
+/* cabinet */
+#cab{display:none;padding:30px 0 80px}
+#cab h1{font-size:clamp(22px,4vw,30px);margin-bottom:18px}
+.app-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:18px}
+.app-head h2{font-size:19px}
+.app-head .when{font-size:12.5px;color:var(--gray)}
+
+/* progress steps */
+.steps{display:flex;margin:8px 0 18px}
+.pstep{flex:1;text-align:center;position:relative}
+.pstep::before{content:"";position:absolute;top:13px;left:-50%;width:100%;height:3px;background:var(--cream-dark)}
+.pstep:first-child::before{display:none}
+.pstep.done::before,.pstep.cur::before{background:var(--purple)}
+.pstep .dot{width:28px;height:28px;border-radius:50%;background:var(--cream-dark);color:#fff;
+  display:flex;align-items:center;justify-content:center;margin:0 auto 6px;font-size:13px;font-weight:800;
+  position:relative;z-index:1;border:3px solid var(--cream)}
+.pstep.done .dot{background:var(--purple)}
+.pstep.cur .dot{background:var(--orange);box-shadow:0 4px 12px rgba(255,140,66,.45)}
+.pstep .lbl{font-size:10.5px;font-weight:800;color:var(--gray)}
+.pstep.cur .lbl{color:var(--dark)}
+
+.now{border-radius:var(--radius);padding:16px 18px;font-size:15px}
+.now b{display:block;font-family:'Fredoka',sans-serif;font-weight:600;font-size:17px;margin-bottom:4px}
+.now.info{background:var(--purple-light)}
+.now.warm{background:var(--orange-light)}
+.now.win{background:var(--green-light)}
+.now.sad{background:var(--cream-dark)}
+.contact{font-size:13.5px;color:var(--gray);margin-top:14px}
+
+#noapps{display:none}
+@media(max-width:720px){
+  .wrap{padding:0 16px}
+  .card{padding:22px 18px}
+  .pstep .lbl{font-size:9.5px}
+}
+/* запись на собеседование */
+.book{margin-top:14px;background:var(--orange-light);border-radius:var(--radius);padding:16px 18px}
+.book b.h{font-family:'Fredoka',sans-serif;font-weight:600;display:block;margin-bottom:10px}
+.book .tzhint{font-size:12.5px;color:var(--gray);font-weight:700;margin:-4px 0 12px}
+.slot-day{font-size:12px;font-weight:900;color:var(--gray);text-transform:uppercase;letter-spacing:.04em;margin:12px 0 7px}
+.slot-row{display:flex;flex-wrap:wrap;gap:8px}
+.slot-btn{border:2px solid #fff;background:#fff;border-radius:14px;padding:8px 14px;box-shadow:var(--shadow-sm);
+  display:flex;flex-direction:column;align-items:center;gap:1px;line-height:1.2;cursor:pointer;min-width:74px}
+.slot-btn b{font-size:15px;font-weight:800}
+.slot-btn span{font-size:11px;color:var(--gray);font-weight:700;white-space:nowrap}
+.slot-btn:hover{border-color:var(--purple);color:var(--purple)}
+.slot-btn:hover span{color:var(--purple)}
+.slot-more{margin-top:12px;background:none;border:none;color:var(--purple);font-weight:800;font-size:13.5px;cursor:pointer;padding:0}
+.booked{margin-top:14px;background:var(--green-light);border-radius:var(--radius);padding:16px 18px;font-size:15px}
+.booked b.h{font-family:'Fredoka',sans-serif;font-weight:600;display:block;margin-bottom:4px}
+.booked .local{font-size:12.5px;color:var(--gray)}
+.booked .join{display:inline-block;margin-top:12px;background:linear-gradient(135deg,var(--purple),var(--purple-dark));
+  color:#fff;text-decoration:none;border-radius:999px;padding:13px 28px;font-weight:800;font-size:15.5px;
+  box-shadow:var(--shadow)}
+.booked .prep{margin-top:14px;background:#fff;border-radius:var(--radius);padding:14px 16px;font-size:14.5px;line-height:1.55}
+.booked .prep .h{font-family:'Fredoka',sans-serif;font-weight:600;display:block;margin-bottom:6px;font-size:15px}
+.booked .acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.booked .acts a,.booked .acts button{border:2px solid rgba(45,45,63,.12);background:#fff;border-radius:999px;
+  padding:8px 15px;font-size:13px;font-weight:800;color:var(--dark);text-decoration:none;cursor:pointer;font-family:inherit}
+.booked .acts a:hover,.booked .acts button:hover{border-color:var(--purple);color:var(--purple)}
+.booked .acts .warn:hover{border-color:var(--red);color:var(--red)}
+#cmWrap{display:none;position:fixed;inset:0;background:rgba(45,45,63,.55);z-index:70;
+  align-items:center;justify-content:center;padding:20px}
+#cmWrap .box{background:#fff;border-radius:20px;max-width:420px;width:100%;padding:26px 28px;box-shadow:var(--shadow);text-align:center}
+#cmWrap .t{font-family:'Fredoka',sans-serif;font-weight:600;font-size:20px;margin-bottom:8px}
+#cmWrap .d{font-size:14.5px;color:var(--gray);line-height:1.5}
+#cmWrap .a{display:flex;gap:10px;justify-content:center;margin-top:22px;flex-wrap:wrap}
+#cmWrap button{border:none;border-radius:999px;padding:12px 24px;font-weight:800;font-size:14.5px;cursor:pointer;font-family:inherit}
+#cmWrap .no{background:var(--cream-dark);color:var(--gray)}
+#cmWrap .yes{background:var(--purple);color:#fff}
+.bslot{margin-top:10px}
+.bslot-title{font-size:12.5px;color:var(--gray);font-weight:700;margin-bottom:6px}
+.bslot-grid{display:flex;flex-wrap:wrap;gap:6px}
+.bslot-grid button{border:2px solid var(--cream-dark);background:#fff;border-radius:10px;padding:8px 12px;
+  font-size:12.5px;font-weight:800;cursor:pointer;font-family:inherit;color:var(--ink)}
+.bslot-grid button:hover{border-color:var(--purple);color:var(--purple-dark)}
+.bslot-ok{background:var(--green-light);border-radius:12px;padding:11px 14px;font-size:13.5px;
+  display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.bslot-btn{background:var(--purple);color:#fff;border-radius:999px;padding:7px 15px;font-weight:800;
+  font-size:12.5px;text-decoration:none}
+.bslot-link{border:none;background:none;color:var(--purple-dark);font-weight:800;font-size:12px;
+  cursor:pointer;text-decoration:underline;padding:0;font-family:inherit;margin-top:6px}
+.bslot-note{font-size:12.5px;color:var(--gray)}
+.bslot-tg{display:inline-block;margin-top:8px;font-size:12.5px;color:var(--purple-dark);font-weight:700}
+/* Текст, который приходит из базы: ТЗ на собеседование, оффер, описания шагов.
+   Глобальный сброс в начале файла обнуляет отступы у p, ul и li — без этих
+   правил абзацы слипаются, а маркеры списка уезжают за край карточки. */
+.rich > *:first-child{margin-top:0}
+.rich > *:last-child{margin-bottom:0}
+.rich p{margin:0 0 11px}
+.rich ul,.rich ol{margin:0 0 11px;padding-left:22px}
+.rich li{margin-bottom:5px}
+.rich li:last-child{margin-bottom:0}
+.rich h1,.rich h2,.rich h3,.rich h4{margin:16px 0 7px;font-size:16px}
+.rich table{border-collapse:collapse;width:100%;margin:0 0 11px;font-size:13.5px}
+.rich th,.rich td{border:1px solid var(--cream-dark);padding:7px 9px;text-align:left}
+.rich th{background:var(--cream);font-weight:800}
+.rich a{text-decoration:underline;word-break:break-word}
+.rich img{max-width:100%;height:auto;border-radius:10px}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="wrap">
+    <a class="logo" href="https://wowteach.ru">🦉 WowSpeak</a>
+    <div class="me" id="me"></div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- ===== Вход ===== -->
+  <div id="login">
+    <div class="card">
+      <h1>Кабинет кандидата</h1>
+      <p>Кабинет открывается при приглашении на собеседование — логин и пароль приходят в письме-приглашении.</p>
+      <input type="email" id="email" placeholder="E-mail из анкеты" onkeydown="if(event.key==='Enter')doLogin()">
+      <input type="password" id="pass" placeholder="Пароль из письма-приглашения" onkeydown="if(event.key==='Enter')doLogin()">
+      <div class="cf-turnstile" data-sitekey="0x4AAAAAADz1mfQKn0ofqzfs" data-callback="onCaptcha" data-theme="light" style="margin:0 0 12px;display:flex;justify-content:center"></div>
+      <button class="go" id="goBtn" onclick="doLogin()">Войти</button>
+      <div style="margin-top:12px;font-size:13.5px"><a href="#" onclick="sendLink();return false">Нет пароля или забыли? Прислать ссылку для входа на почту →</a></div>
+      <div class="msg" id="loginMsg"></div>
+    </div>
+    <div style="text-align:center;font-size:14px;color:var(--gray)">
+      Ещё не подавали заявку? <a href="https://wowteach.ru/#vacancies">Посмотреть вакансии →</a>
+    </div>
+  </div>
+
+  <!-- ===== Кабинет ===== -->
+  <div id="cab">
+    <h1>Ваши заявки</h1>
+    <div id="appsList"></div>
+    <div class="card" id="noapps">
+      <p style="font-size:15px">По адресу <b id="noappsEmail"></b> заявок не нашлось. Проверьте, что вошли с того же e-mail, который указывали в анкете — или подайте заявку:</p>
+      <p style="margin-top:12px"><a href="https://wowteach.ru/#vacancies"><b>Открытые вакансии WowSpeak →</b></a></p>
+    </div>
+
+    <div class="card" id="pwCard" style="display:none">
+      <h2 style="font-size:17px;margin-bottom:6px">🔑 Сменить пароль</h2>
+      <p style="font-size:13.5px;color:var(--gray);margin-bottom:14px">Рекомендуем заменить присланный пароль на свой.</p>
+      <input type="password" id="newPass" placeholder="Новый пароль (минимум 8 символов)" style="width:100%;padding:12px 14px;border:2px solid var(--cream-dark);border-radius:var(--radius);font-size:15px;background:#FDFCF8;margin-bottom:10px">
+      <button onclick="changePass()" style="background:var(--purple);color:#fff;border:none;border-radius:999px;padding:12px 22px;font-weight:800;font-size:14px;cursor:pointer">Сохранить пароль</button>
+      <div id="pwMsg" style="margin-top:10px;font-size:13.5px;font-weight:700"></div>
+    </div>
+  </div>
+
+</div>
+
+<div id="cmWrap" onclick="if(event.target===this)cmResolve(false)">
+  <div class="box">
+    <div class="t" id="cmTitle"></div>
+    <div class="d" id="cmText"></div>
+    <div class="a">
+      <button class="no" onclick="cmResolve(false)">Отмена</button>
+      <button class="yes" id="cmYes" onclick="cmResolve(true)">Подтвердить</button>
+    </div>
+  </div>
+</div>
+
+<div id="offerModal" onclick="if(event.target===this)closeOfferModal()" style="display:none;position:fixed;inset:0;background:rgba(45,45,63,.55);z-index:60;align-items:flex-start;justify-content:center;padding:40px 14px;overflow-y:auto">
+  <div style="background:#fff;border-radius:20px;max-width:820px;width:100%;padding:28px 30px;box-shadow:var(--shadow)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <h2 style="font-size:21px">📄 Ваш оффер</h2>
+      <button onclick="closeOfferModal()" style="background:none;border:none;font-size:24px;color:var(--gray);cursor:pointer">✕</button>
+    </div>
+    <div style="font-size:13px;color:var(--gray);margin-bottom:16px">Пожалуйста, перечитайте условия и подтвердите, что всё понятно.</div>
+    <div id="offerModalBody"></div>
+    <div style="text-align:center;margin-top:22px;padding-top:18px;border-top:1px solid var(--cream-dark)">
+      <button id="offerModalOk" style="background:linear-gradient(135deg,var(--green),#16A34A);color:#fff;border:none;border-radius:999px;padding:14px 36px;font-weight:800;font-size:16px;cursor:pointer;box-shadow:var(--shadow)">Подтверждаю — всё понятно ✓</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// Кабинет живёт на localStorage (НЕ общий cookie) — чтобы вход кандидата
+// не перетирал сессии персонала на других поддоменах .wowteach.ru
+// ============ SUPABASE ============
+// Три пути до базы: основной прокси, запасной у другого провайдера,
+// и прямое подключение. Если один недоступен, запросы сами уходят
+// на следующий — править код при аварии не нужно.
+const SUPABASE_HOSTS = [
+  'https://api.wowteach.ru',                      // Timeweb
+  'https://api2.wowteach.ru',                     // VDSina, запасной
+  'https://vtcxghsqymwkyiogpndf.supabase.co',     // напрямую
+];
+const SUPABASE_PROXY = SUPABASE_HOSTS[0];
+const SUPABASE_URL   = SUPABASE_PROXY;
+const SB_PROXY_TIMEOUT_MS = 3000;
+let _sbHostIdx = 0;
+
+function _sbSwapHost(url){
+  return url.startsWith(SUPABASE_PROXY)
+    ? SUPABASE_HOSTS[_sbHostIdx] + url.slice(SUPABASE_PROXY.length)
+    : url;
+}
+function _sbNextHost(reason){
+  if (_sbHostIdx >= SUPABASE_HOSTS.length - 1) return false;
+  _sbHostIdx++;
+  console.warn('[supabase] переключаюсь на ' + SUPABASE_HOSTS[_sbHostIdx] + ':', reason);
+  return true;
+}
+async function _sbFetch(input, init = {}){
+  const urlStr = typeof input === 'string' ? input : (input?.url || String(input));
+  const method = (init.method || 'GET').toUpperCase();
+  // Повторяем только безопасное: чтение и авторизацию. Запись не переотправляем,
+  // иначе при таймауте после реального сохранения получили бы дубль.
+  const canRetry = method === 'GET' || method === 'HEAD' || urlStr.includes('/auth/v1/');
+  while (true) {
+    const target = _sbSwapHost(urlStr);
+    const isLast = _sbHostIdx >= SUPABASE_HOSTS.length - 1;
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), SB_PROXY_TIMEOUT_MS);
+    const onAbort = () => ctrl.abort();
+    if (init.signal) init.signal.addEventListener('abort', onAbort, { once: true });
+    try {
+      const res = await fetch(target, { ...init, signal: ctrl.signal });
+      clearTimeout(timer);
+      if (!isLast && res.status >= 502 && res.status <= 504) {
+        if (_sbNextHost('HTTP ' + res.status) && canRetry) continue;
+      }
+      return res;
+    } catch (e) {
+      clearTimeout(timer);
+      if (init.signal?.aborted) throw e;
+      if (isLast) throw e;
+      const moved = _sbNextHost(e.name === 'AbortError' ? 'таймаут' : (e.message || e));
+      if (moved && canRetry) continue;
+      throw e;
+    } finally {
+      if (init.signal) init.signal.removeEventListener('abort', onAbort);
+    }
+  }
+}
+const SUPABASE_KEY = 'sb_publishable_nZIl9kzPNhkd9Gbsm7aAgA_cAeY1s4x';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { global: { fetch: _sbFetch } });
+
+const FLOW = [
+  ['new',       'Заявка'],
+  ['screening', 'Рассмотрение'],
+  ['interview', 'Собеседование'],
+  ['offer',     'Оффер'],
+  ['onboarding','Онбординг'],
+  ['hired',     'В команде']
+];
+const NOW_TEXT = {
+  new:       { cls:'info', t:'Заявка получена 🎉', d:'Мы внимательно посмотрим вашу анкету и видео-визитку и свяжемся с вами по e-mail или в Telegram.' },
+  screening: { cls:'info', t:'Заявка на рассмотрении', d:'Рекрутер изучает вашу анкету и видео-визитку. Следующий шаг — приглашение на собеседование, мы напишем вам.' },
+  interview: { cls:'warm', t:'Этап собеседования 🎤', d:'Мы пригласили вас на онлайн-собеседование с демо-уроком. Проверьте почту (и папку «Спам») — там письмо с деталями.' },
+  offer:     { cls:'win',  t:'Вам направлен оффер! 🎉', d:'Поздравляем! Проверьте почту — мы свяжемся, чтобы обсудить условия и следующие шаги.' },
+  onboarding:{ cls:'win',  t:'Онбординг 🎓', d:'Добро пожаловать в команду! Ниже — ваш план адаптации: шаги, сроки и наставник. Отмечайте свои шаги по мере выполнения.' },
+  hired:     { cls:'win',  t:'Добро пожаловать в команду! 🦉', d:'Скоро здесь появится ваш план онбординга: обучение, наставник и первые ученики.' },
+  hired_done:{ cls:'win',  t:'Вы в команде! 🦉', d:'Онбординг пройден — впереди первые ученики. Любые вопросы: напишите наставнику или нам в Telegram @wowspeakHR.' },
+  rejected_school:    { cls:'sad', t:'По заявке принято решение', d:'К сожалению, сейчас мы не готовы предложить сотрудничество — подробности мы отправили вам на почту. Анкета сохранена в кадровом резерве: если появится подходящая вакансия, мы напишем.' },
+  rejected_candidate: { cls:'sad', t:'Заявка закрыта', d:'Заявка закрыта по вашей инициативе. Будем рады видеть вас снова — двери WowSpeak открыты!' }
+};
+
+document.addEventListener('DOMContentLoaded', init);
+async function init(){
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { show('login'); return; }
+  document.getElementById('me').innerHTML =
+    `${esc(session.user.email)} · <button onclick="logout()">Выйти</button>`;
+  await loadApps();
+  show('cab');
+  document.getElementById('pwCard').style.display = 'block';
+}
+function show(id){
+  document.getElementById('login').style.display = id === 'login' ? 'block' : 'none';
+  document.getElementById('cab').style.display   = id === 'cab'   ? 'block' : 'none';
+}
+
+let captchaToken = null;
+function onCaptcha(token){ captchaToken = token; }
+
+async function doLogin(){
+  const email = document.getElementById('email').value.trim().toLowerCase();
+  const pass  = document.getElementById('pass').value;
+  const msg = document.getElementById('loginMsg');
+  msg.className = 'msg';
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { msg.className='msg err'; msg.textContent='Проверьте e-mail.'; return; }
+  if (!pass) { msg.className='msg err'; msg.textContent='Введите пароль из письма-приглашения (или запросите ссылку ниже).'; return; }
+  if (!captchaToken) { msg.className='msg err'; msg.textContent='Подождите секунду — идёт проверка «я не робот».'; return; }
+  const btn = document.getElementById('goBtn');
+  btn.disabled = true; btn.textContent = 'Входим…';
+  const { error } = await sb.auth.signInWithPassword({ email, password: pass, options: { captchaToken } });
+  btn.disabled = false; btn.textContent = 'Войти';
+  if (error) {
+    msg.className='msg err'; msg.textContent='Не получилось войти: проверьте пароль или запросите ссылку для входа ниже.';
+    if (window.turnstile) { turnstile.reset(); captchaToken = null; }
+    return;
+  }
+  init();
+}
+
+async function sendLink(){
+  const email = document.getElementById('email').value.trim().toLowerCase();
+  const msg = document.getElementById('loginMsg');
+  msg.className = 'msg';
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { msg.className='msg err'; msg.textContent='Сначала введите e-mail.'; return; }
+  if (!captchaToken) { msg.className='msg err'; msg.textContent='Подождите секунду — идёт проверка «я не робот».'; return; }
+  const { error } = await sb.auth.signInWithOtp({
+    email,
+    options: { emailRedirectTo: 'https://job.wowteach.ru/', captchaToken }
+  });
+  if (window.turnstile) { turnstile.reset(); captchaToken = null; }
+  if (error) { msg.className='msg err'; msg.textContent='Не получилось: ' + error.message; return; }
+  msg.className='msg ok';
+  msg.textContent = '✉️ Ссылка отправлена! Откройте письмо на этом устройстве и перейдите по ссылке.';
+}
+async function logout(){ await sb.auth.signOut(); location.reload(); }
+
+async function changePass(){
+  const p = document.getElementById('newPass').value;
+  const msg = document.getElementById('pwMsg');
+  if (!p || p.length < 8) { msg.style.color = 'var(--red)'; msg.textContent = 'Пароль должен быть не короче 8 символов.'; return; }
+  const { error } = await sb.auth.updateUser({ password: p });
+  if (error) { msg.style.color = 'var(--red)'; msg.textContent = 'Не получилось: ' + error.message; return; }
+  document.getElementById('newPass').value = '';
+  msg.style.color = 'var(--green)'; msg.textContent = '✅ Пароль изменён.';
+}
+
+async function loadApps(){
+  const { data, error } = await sb.rpc('hr_my_applications');
+  const list = document.getElementById('appsList');
+  if (error) { list.innerHTML = '<div class="card">Не получилось загрузить: ' + esc(error.message) + '</div>'; return; }
+  if (!data || !data.length) {
+    const { data: { session } } = await sb.auth.getSession();
+    document.getElementById('noappsEmail').textContent = session?.user?.email || '';
+    document.getElementById('noapps').style.display = 'block';
+    return;
+  }
+  list.innerHTML = data.map(a => {
+    const isRejected = a.status === 'rejected';
+    const flowIdx = FLOW.findIndex(([k]) => k === a.status);
+    const steps = FLOW.map(([k, lbl], i) => {
+      let cls = '';
+      if (!isRejected) {
+        if (i < flowIdx) cls = 'done';
+        else if (i === flowIdx) cls = i === FLOW.length - 1 ? 'done cur' : 'cur';
+      }
+      return `<div class="pstep ${cls}"><div class="dot">${cls.includes('done') && !cls.includes('cur') ? '✓' : i + 1}</div><div class="lbl">${lbl}</div></div>`;
+    }).join('');
+    const nowKey = isRejected
+      ? (a.rejected_by === 'candidate' ? 'rejected_candidate' : 'rejected_school')
+      : (a.status === 'hired' && a.onboarding_started_at ? 'hired_done' : a.status);
+    const now = NOW_TEXT[nowKey] || NOW_TEXT.new;
+    return `<div class="card">
+      <div class="app-head">
+        <h2>${esc(a.vacancy_title)}</h2>
+        <div class="when">заявка от ${fmtDate(a.created_at)}</div>
+      </div>
+      ${isRejected ? '' : `<div class="steps">${steps}</div>`}
+      <div class="now ${now.cls}"><b>${now.t}</b>${now.d}</div>
+      ${a.status === 'interview' ? bookingBlock(a) : ''}
+      ${a.onboarding_started_at ? `<div id="onb-${a.id}" style="margin-top:14px"><div class="loading" style="padding:20px">Загружаю ваш план…</div></div>` : ''}
+      ${a.offer_sent_at && !a.onboarding_started_at ? `<div id="offer-${a.id}" style="margin-top:14px"><div class="loading" style="padding:20px">Загружаю ваш оффер…</div></div>` : ''}
+      ${a.interview_materials && !a.offer_sent_at && !a.interview_at ? `<div style="margin-top:14px;background:var(--purple-light);border-radius:var(--radius);padding:16px 18px">
+        <b style="font-family:'Fredoka',sans-serif;font-weight:600;display:block;margin-bottom:6px">📚 Материалы к собеседованию</b>
+        <div class="rich" style="font-size:14.5px">${a.interview_materials}</div>
+      </div>` : ''}
+      <div class="contact">Вопросы? Напишите нам в Telegram — <a href="https://t.me/wowspeakHR" target="_blank" rel="noopener">@wowspeakHR</a></div>
+    </div>`;
+  }).join('');
+  data.filter(a => a.status === 'interview' && !a.interview_at).forEach(a => loadSlots(a.id));
+  data.filter(a => a.interview_at).forEach(a => loadMeetLink(a));
+  data.filter(a => a.offer_sent_at && !a.onboarding_started_at).forEach(a => loadOffer(a));
+  data.filter(a => a.onboarding_started_at).forEach(a => loadOnboarding(a));
+}
+
+// ============ Онбординг ============
+const OWNER_TXT = { candidate:'ваш шаг', buddy:'наставник', methodist:'методист', assistant:'ассистент' };
+async function loadOnboarding(a){
+  const box = document.getElementById('onb-' + a.id);
+  if (!box) return;
+  const { data, error } = await sb.rpc('hr_my_onboarding', { p_application_id: a.id });
+  if (error || !data) { box.innerHTML = ''; return; }
+  const steps = data.steps || [];
+  const done = steps.filter(s => s.done_at).length;
+  const buddy = data.buddy || {};
+  const tg = (buddy.telegram || '').replace(/^@/, '');
+  // Открыт ровно один шаг — первый незакрытый. Следующие видно, но трогать их
+  // рано: иначе человек закрывает шаги вперёд, и план перестаёт показывать то,
+  // что он на самом деле прошёл. Персонал в HR-панели по-прежнему не ограничен.
+  const curIdx = steps.findIndex(s => !s.done_at);
+
+  if (data.stopped_at) {
+    box.innerHTML = `<div class="now sad"><b>Онбординг завершён</b>К сожалению, мы приняли решение не продолжать сотрудничество. Подробности мы отправили вам на почту.</div>`;
+    return;
+  }
+  if (data.done_at) {
+    box.innerHTML = `<div class="now win"><b>Онбординг завершён! 🎉</b>Поздравляем — вы полноценный член команды WowSpeak. Впереди первые ученики!</div>`;
+    return;
+  }
+
+  box.innerHTML = `
+    <div style="background:#fff;border:2px solid var(--purple);border-radius:var(--radius-lg);padding:24px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:6px">
+        <div style="font-family:'Fredoka',sans-serif;font-weight:600;font-size:20px">🎓 Ваш онбординг</div>
+        <div style="font-size:13px;font-weight:800;color:var(--purple)">${done} из ${steps.length} шагов</div>
+      </div>
+      <div style="height:8px;background:var(--cream-dark);border-radius:999px;overflow:hidden;margin-bottom:16px">
+        <div style="height:100%;width:${steps.length ? done*100/steps.length : 0}%;background:linear-gradient(90deg,var(--purple),var(--pink))"></div>
+      </div>
+
+      ${buddy.name ? `<div style="background:var(--purple-light);border-radius:var(--radius);padding:14px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+        <div style="font-size:14px"><b>🧑‍🏫 Ваш наставник: ${esc(buddy.name)}</b><br>
+          <span style="font-size:13px;color:var(--gray)">Поможет освоиться и ответит на вопросы</span></div>
+        ${tg ? `<a href="https://t.me/${esc(tg)}" target="_blank" style="background:var(--purple);color:#fff;border-radius:999px;padding:10px 18px;font-weight:800;font-size:13.5px;white-space:nowrap">Написать в Telegram →</a>` : ''}
+      </div>` : ''}
+
+      <div style="display:flex;flex-direction:column;gap:10px">
+        ${steps.map((s, i) => {
+          const over = !s.done_at && s.due_at && new Date(s.due_at) < new Date();
+          const mine = s.owner === 'candidate' && !s.done_at;
+          const locked = i > curIdx;
+          return `<div style="border:2px solid ${s.done_at ? 'var(--green)' : over ? 'var(--red)' : 'var(--cream-dark)'};border-radius:var(--radius);padding:14px 16px;background:${s.done_at ? 'var(--green-light)' : '#FDFCF8'}">
+            <div style="display:flex;gap:10px;align-items:flex-start">
+              <div style="width:26px;height:26px;border-radius:50%;background:${s.done_at?'var(--green)':'var(--cream-dark)'};color:${s.done_at?'#fff':'var(--gray)'};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;flex-shrink:0">${s.done_at ? '✓' : i+1}</div>
+              <div style="flex:1">
+                <div style="font-weight:800;font-size:15px">${esc(s.title)}</div>
+                <div style="font-size:12px;color:var(--gray);margin-top:2px">
+                  ${s.owner === 'candidate' ? '👤 ваш шаг' : '👥 отмечает ' + (OWNER_TXT[s.owner]||s.owner)}
+                  ${s.due_at && !s.done_at ? ` · <b style="color:${over?'var(--red)':'var(--gray)'}">${over?'🔥 просрочено':'до ' + new Date(s.due_at).toLocaleDateString('ru-RU',{day:'numeric',month:'long'})}</b>` : ''}
+                  ${s.done_at ? ` · ✅ ${new Date(s.done_at).toLocaleDateString('ru-RU',{day:'numeric',month:'long'})}` : ''}
+                </div>
+                ${s.description && !s.done_at && !locked ? `<div class="rich" style="font-size:13.5px;margin-top:8px;line-height:1.55">${s.description}</div>` : ''}
+                ${s.done_at ? '' : (locked
+                  ? `<div style="margin-top:10px;font-size:12.5px;color:var(--gray);font-weight:700">🔒 Откроется, когда закончится предыдущий шаг</div>`
+                  : stepAction(a, s, tg))}
+              </div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+
+  // подгружаем свободное время наставника для шагов с записью
+  steps.filter((s, i) => i === curIdx && BOOKABLE_STEPS.includes(s.slug) && !s.done_at)
+       .forEach(s => loadBuddySlots(s.slug));
+}
+
+// ---- запись к наставнику ----
+const bsCache = {};
+async function loadBuddySlots(step){
+  const box = document.getElementById('bs-' + step);
+  if (!box) return;
+  const { data, error } = await sb.rpc('hr_my_buddy_slots', { p_step_slug: step });
+  if (error) {
+    box.innerHTML = /hr_my_buddy_slots|schema cache/i.test(error.message)
+      ? '<span class="bslot-note">Запись на встречу скоро появится.</span>'
+      : '<span class="bslot-note">' + esc(error.message) + '</span>';
+    return;
+  }
+  if (!data || data.ok === false) { box.innerHTML = '<span class="bslot-note">' + esc(data?.reason || '—') + '</span>'; return; }
+  bsCache[step] = data;
+  renderBuddySlots(step);
+}
+function renderBuddySlots(step, showAll){
+  const box = document.getElementById('bs-' + step);
+  const d = bsCache[step];
+  if (!box || !d) return;
+  const fmt = t => new Date(t).toLocaleString('ru-RU', { weekday:'short', day:'numeric', month:'short',
+                                                        hour:'2-digit', minute:'2-digit' });
+  if (d.booked && !showAll) {
+    box.innerHTML = `<div class="bslot-ok">
+      <b>🗓️ Вы записаны: ${fmt(d.booked.start_at)}</b> (МСК), ${d.booked.duration_min} минут
+      ${d.meeting_url ? `<a href="${esc(d.meeting_url)}" target="_blank" class="bslot-btn">Подключиться →</a>` : ''}
+      <button class="bslot-link" onclick="renderBuddySlots('${step}', true)">выбрать другое время</button>
+    </div>`;
+    return;
+  }
+  const free = d.free || [];
+  if (!free.length) {
+    box.innerHTML = `<span class="bslot-note">У наставника пока нет свободных окон${d.buddy ? ' (' + esc(d.buddy) + ')' : ''} — напишите ему в Telegram, договоритесь напрямую.</span>`
+      + (d.booked ? `<button class="bslot-link" onclick="renderBuddySlots('${step}')">← назад к записи</button>` : '');
+    return;
+  }
+  box.innerHTML = `<div class="bslot-title">Выберите удобное время${d.buddy ? ' — ' + esc(d.buddy) : ''}:</div>
+    <div class="bslot-grid">${free.slice(0, 12).map(f =>
+      `<button onclick="bookBuddy('${step}','${f.id}')">${fmt(f.start_at)}</button>`).join('')}</div>
+    ${free.length > 12 ? `<span class="bslot-note">и ещё ${free.length - 12} — выберите из ближайших</span>` : ''}
+    ${d.booked ? `<button class="bslot-link" onclick="renderBuddySlots('${step}')">← оставить прежнее время</button>` : ''}`;
+}
+async function bookBuddy(step, slotId){
+  const box = document.getElementById('bs-' + step);
+  if (box) box.innerHTML = '<span class="bslot-note">Записываю…</span>';
+  const { error } = await sb.rpc('hr_book_buddy_slot', { p_slot_id: slotId, p_step_slug: step });
+  if (error) { alert('Не получилось: ' + error.message); loadBuddySlots(step); return; }
+  loadBuddySlots(step);
+}
+
+// Шаги, на которые подопечный записывается сам: наставник открывает окна,
+// человек выбирает время. Знакомство идёт перепиской — там только Telegram.
+const BOOKABLE_STEPS = ['prep_meeting', 'final_meeting', 'mvu_meet1', 'mvu_exam'];
+// Шаги, которые начинаются с чтения оффера. У преподавателя это «Перечитать оффер
+// и подтвердить», у менеджера вводного урока — «Подтвердить оффер»: слаги разные,
+// действие одно, и подтверждать вслепую, без текста оффера, человек не должен.
+const OFFER_STEPS = ['reread_offer', 'mvu_offer'];
+function stepAction(a, s, tg){
+  if (BOOKABLE_STEPS.includes(s.slug)) {
+    return `<div id="bs-${s.slug}" class="bslot">Загружаю свободное время…</div>`
+         + (tg ? `<a href="https://t.me/${esc(tg)}" target="_blank" class="bslot-tg">или написать наставнику →</a>` : '');
+  }
+  if (s.owner !== 'candidate') {
+    // шаг наставника «Знакомство» — даём кнопку написать в Telegram
+    if (s.slug === 'meet_buddy' && tg) {
+      return `<a href="https://t.me/${esc(tg)}" target="_blank" style="display:inline-block;margin-top:10px;background:var(--purple);color:#fff;border-radius:999px;padding:9px 18px;font-weight:800;font-size:13px">Написать наставнику в Telegram →</a>`;
+    }
+    return '';
+  }
+  // шаги обучения закрываются автоматически — кнопки нет
+  if (s.auto) {
+    return `<div style="margin-top:10px;font-size:12.5px;color:var(--gray);font-weight:700">⏳ Шаг отметится автоматически после прохождения обучения</div>`;
+  }
+  // шаг с оффером — открываем оффер в модалке, подтверждение внутри неё
+  if (OFFER_STEPS.includes(s.slug)) {
+    return `<button onclick="openOfferModal('${a.id}','${s.slug}')" style="margin-top:10px;background:var(--purple);color:#fff;border:none;border-radius:999px;padding:9px 18px;font-weight:800;font-size:13px;cursor:pointer">Открыть оффер →</button>`;
+  }
+  return `<button onclick="doneMyStep('${a.id}','${s.slug}')" style="margin-top:10px;background:var(--green);color:#fff;border:none;border-radius:999px;padding:9px 18px;font-weight:800;font-size:13px;cursor:pointer">Готово ✓</button>`;
+}
+
+// модалка с оффером для переподтверждения
+async function openOfferModal(appId, slug){
+  const ov = document.getElementById('offerModal');
+  const body = document.getElementById('offerModalBody');
+  ov.style.display = 'flex';
+  body.innerHTML = '<div class="loading" style="padding:30px">Загружаю оффер…</div>';
+  document.getElementById('offerModalOk').onclick = async () => {
+    await doneMyStep(appId, slug);
+    ov.style.display = 'none';
+  };
+  const { data, error } = await sb.rpc('hr_my_offer', { p_application_id: appId });
+  body.innerHTML = error || !data
+    ? 'Не удалось загрузить оффер.'
+    : `<div class="rich" style="font-size:14.5px;line-height:1.6">${data}</div>`;
+}
+function closeOfferModal(){ document.getElementById('offerModal').style.display = 'none'; }
+
+async function doneMyStep(appId, slug){
+  const { error } = await sb.rpc('hr_complete_step', { p_application_id: appId, p_step_slug: slug });
+  if (error) { alert('Не получилось: ' + error.message); return; }
+  loadApps();
+}
+
+// ============ Оффер ============
+async function loadOffer(a){
+  const box = document.getElementById('offer-' + a.id);
+  if (!box) return;
+  const { data, error } = await sb.rpc('hr_my_offer', { p_application_id: a.id });
+  if (error || !data) { box.innerHTML = ''; return; }
+  const accepted = a.offer_accepted_at;
+  box.innerHTML = `
+    <div style="background:#fff;border:2px solid var(--green);border-radius:var(--radius-lg);padding:22px 22px 18px">
+      <div style="font-family:'Fredoka',sans-serif;font-weight:600;font-size:20px;margin-bottom:4px">📄 Ваш оффер WowSpeak</div>
+      <div style="font-size:13px;color:var(--gray);margin-bottom:14px">Пожалуйста, внимательно ознакомьтесь с условиями.</div>
+      <div class="rich" style="font-size:14.5px;line-height:1.6">${data}</div>
+      <div style="margin-top:20px;text-align:center">
+        ${accepted
+          ? `<div style="background:var(--green-light);color:#15803D;border-radius:999px;padding:12px 20px;font-weight:800;display:inline-block">✅ Оффер принят ${fmtDate(accepted)} — добро пожаловать в команду! 🎉</div>`
+          : `<button onclick="acceptOffer('${a.id}')" style="background:linear-gradient(135deg,var(--green),#16A34A);color:#fff;border:none;border-radius:999px;padding:15px 40px;font-weight:800;font-size:17px;cursor:pointer;box-shadow:var(--shadow)">Принимаю оффер 🎉</button>`}
+      </div>
+    </div>`;
+}
+async function acceptOffer(id){
+  if (!confirm('Подтвердить принятие оффера? Команда WowSpeak получит уведомление.')) return;
+  const { error } = await sb.rpc('hr_accept_offer', {
+    p_application_id: id,
+    p_meta: { user_agent: navigator.userAgent }
+  });
+  if (error) { alert('Не получилось: ' + error.message); return; }
+  loadApps();
+}
+
+// ============ Запись на собеседование ============
+const MSK = { timeZone: 'Europe/Moscow' };
+function mskDate(d){ return new Date(d).toLocaleDateString('ru-RU', { ...MSK, weekday:'short', day:'numeric', month:'long' }); }
+function mskTime(d){ return new Date(d).toLocaleTimeString('ru-RU', { ...MSK, hour:'2-digit', minute:'2-digit' }); }
+function localNote(d){
+  const local = new Date(d).toLocaleTimeString('ru-RU', { hour:'2-digit', minute:'2-digit' });
+  return local !== mskTime(d) ? ` · у вас: ${local}` : '';
+}
+
+// ============ Своё окно подтверждения вместо системного confirm ============
+let _cmResolve = null;
+function askConfirm(title, text, okLabel){
+  document.getElementById('cmTitle').textContent = title;
+  document.getElementById('cmText').innerHTML = text;
+  document.getElementById('cmYes').textContent = okLabel || 'Подтвердить';
+  document.getElementById('cmWrap').style.display = 'flex';
+  return new Promise(res => { _cmResolve = res; });
+}
+function cmResolve(v){
+  document.getElementById('cmWrap').style.display = 'none';
+  if (_cmResolve) { _cmResolve(v); _cmResolve = null; }
+}
+
+// ============ Файл для календаря ============
+function icsHref(a){
+  const start = new Date(a.interview_at);
+  const end = new Date(start.getTime() + (a.interview_duration || 45) * 60000);
+  const z = d => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+  const body = [
+    'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//WowSpeak//HR//RU','CALSCALE:GREGORIAN',
+    'BEGIN:VEVENT',
+    'UID:' + a.id + '@wowteach.ru',
+    'DTSTAMP:' + z(new Date()),
+    'DTSTART:' + z(start),
+    'DTEND:' + z(end),
+    'SUMMARY:Собеседование в WowSpeak 🦉',
+    'DESCRIPTION:Онлайн-собеседование с демо-уроком. Ссылку на встречу пришлём на почту перед началом.',
+    'URL:https://job.wowteach.ru',
+    'END:VEVENT','END:VCALENDAR'
+  ].join('\r\n');
+  return 'data:text/calendar;charset=utf-8,' + encodeURIComponent(body);
+}
+
+// За сколько часов до встречи кандидат ещё может перенести её сам.
+// Столько же ждёт hr_cancel_booking на сервере и hr_free_slots,
+// когда отбирает, какие окна вообще показывать.
+const CANCEL_HOURS = 3;
+
+function bookingBlock(a){
+  if (a.interview_at) {
+    const start = new Date(a.interview_at).getTime();
+    const over  = Date.now() > start + (a.interview_duration || 45) * 60000;
+    const canCancel = !over && start - Date.now() > CANCEL_HOURS * 3600 * 1000;
+
+    // встреча уже прошла: сама запись кандидату больше ничего не даёт,
+    // но и убрать её он не может — освобождает время рекрутер
+    if (over) {
+      return `<div class="booked" style="background:var(--cream-dark)">
+        <b class="h">🕓 Встреча прошла</b>
+        ${mskDate(a.interview_at)}, ${mskTime(a.interview_at)} МСК
+        <div class="local" style="margin-top:10px">Мы вернёмся с ответом в ближайшие дни.
+        Если прийти не получилось — напишите нам в Telegram
+        <a href="https://t.me/wowspeakHR" target="_blank" rel="noopener">@wowspeakHR</a>,
+        откроем запись заново.</div>
+      </div>`;
+    }
+
+    return `<div class="booked">
+      <b class="h">🗓️ Собеседование назначено</b>
+      ${mskDate(a.interview_at)}, <b>${mskTime(a.interview_at)} МСК</b> · ${a.interview_duration || 45} минут · ${esc(a.interview_with || 'команда WowSpeak')}
+      <div class="local">Время московское${localNote(a.interview_at)}.</div>
+      <div id="meet-${a.id}"></div>
+      <div class="acts">
+        <a href="${icsHref(a)}" download="wowspeak-interview.ics">📅 Добавить в календарь</a>
+        ${canCancel ? `<button onclick="rescheduleBooking('${a.id}')">Перенести</button>
+                       <button class="warn" onclick="cancelBooking('${a.id}')">Отменить</button>` : ''}
+      </div>
+      ${canCancel ? '' : `<div class="local" style="margin-top:10px">До встречи меньше ${CANCEL_HOURS} часов — перенести из кабинета уже нельзя. Напишите нам в Telegram <a href="https://t.me/wowspeakHR" target="_blank" rel="noopener">@wowspeakHR</a>, поможем.</div>`}
+      ${a.interview_materials ? `<div class="prep">
+        <b class="h">📚 Что подготовить</b>
+        <div class="rich">${a.interview_materials}</div>
+      </div>` : ''}
+    </div>`;
+  }
+  return `<div class="book"><b class="h">🗓️ Выберите время собеседования</b>
+    <div class="tzhint">Время московское. Если ваш часовой пояс другой — под каждым вариантом подписано ваше местное время.</div>
+    <div id="slots-${a.id}">Загружаю свободные слоты…</div>
+  </div>`;
+}
+
+async function loadMeetLink(a){
+  const box = document.getElementById('meet-' + a.id);
+  if (!box) return;
+  const { data, error } = await sb.rpc('hr_my_meeting_url', { p_application_id: a.id });
+  if (error || !data) {
+    box.innerHTML = '<div class="local" style="margin-top:6px">Ссылку на встречу пришлём на почту перед началом.</div>';
+    return;
+  }
+  box.innerHTML = `<a class="join" href="${esc(data)}" target="_blank" rel="noopener">🎥 Подключиться к встрече</a>
+    <div class="local" style="margin-top:6px">Ссылка постоянная — открывайте её в назначенное время.</div>`;
+}
+
+const _slotState = {};   // appId → показывать ли все дни
+async function loadSlots(appId){
+  const box = document.getElementById('slots-' + appId);
+  if (!box) return;
+  const { data, error } = await sb.rpc('hr_free_slots', { p_application_id: appId });
+  if (error) { box.textContent = 'Не получилось загрузить: ' + error.message; return; }
+  if (!data?.length) {
+    box.innerHTML = '<div style="font-size:14.5px;line-height:1.55">Свободных слотов пока нет — мы добавим новые '
+      + 'в ближайшие дни, загляните позже 🙏<br><span style="color:var(--gray);font-size:13px">'
+      + 'Если время поджимает, напишите нам в Telegram <a href="https://t.me/wowspeakHR" target="_blank" rel="noopener">@wowspeakHR</a> — подберём вариант вручную.</span></div>';
+    return;
+  }
+
+  // группируем по дням
+  const days = [];
+  data.forEach(s => {
+    const key = mskDate(s.start_at);
+    let d = days.find(x => x.key === key);
+    if (!d) { d = { key, slots: [] }; days.push(d); }
+    d.slots.push(s);
+  });
+
+  const showAll = !!_slotState[appId];
+  const LIMIT = 3;
+  const shown = showAll ? days : days.slice(0, LIMIT);
+  const hidden = days.length - shown.length;
+
+  box.innerHTML = shown.map(d => `<div class="slot-day">${d.key}</div><div class="slot-row">`
+    + d.slots.map(s => {
+        const msk = mskTime(s.start_at);
+        const loc = new Date(s.start_at).toLocaleTimeString('ru-RU', { hour:'2-digit', minute:'2-digit' });
+        return `<button class="slot-btn" onclick="bookSlot('${appId}','${s.id}','${d.key}, ${msk} МСК')">`
+          + `<b>${msk}</b>${loc !== msk ? `<span>у вас ${loc}</span>` : ''}</button>`;
+      }).join('')
+    + '</div>').join('')
+    + (hidden > 0
+        ? `<button class="slot-more" onclick="_slotState['${appId}']=true;loadSlots('${appId}')">Показать ещё ${hidden} ${hidden === 1 ? 'день' : 'дн.'} →</button>`
+        : '');
+}
+
+async function bookSlot(appId, slotId, label){
+  const ok = await askConfirm('Записаться на собеседование?',
+    '<b>' + label + '</b><br>45 минут, онлайн. Перенести или отменить можно самому — не позднее чем за ' + CANCEL_HOURS + ' часа до начала.',
+    'Записаться');
+  if (!ok) return;
+  const { error } = await sb.rpc('hr_book_slot', { p_application_id: appId, p_slot_id: slotId });
+  if (error) { alert(error.message); loadSlots(appId); return; }
+  await loadApps();
+}
+
+async function cancelBooking(appId){
+  const ok = await askConfirm('Отменить запись?',
+    'Время освободится, и вы сможете выбрать новое.', 'Отменить запись');
+  if (!ok) return;
+  const { error } = await sb.rpc('hr_cancel_booking', { p_application_id: appId });
+  if (error) { alert(error.message); return; }
+  await loadApps();
+}
+
+async function rescheduleBooking(appId){
+  const ok = await askConfirm('Перенести собеседование?',
+    'Текущее время освободится, и сразу откроется список свободных вариантов.', 'Выбрать другое время');
+  if (!ok) return;
+  const { error } = await sb.rpc('hr_cancel_booking', { p_application_id: appId });
+  if (error) { alert(error.message); return; }
+  _slotState[appId] = true;
+  await loadApps();
+}
+
+function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmtDate(d){ return new Date(d).toLocaleDateString('ru-RU', { day:'numeric', month:'long', year:'numeric' }); }
+</script>
+</body>
+</html>
