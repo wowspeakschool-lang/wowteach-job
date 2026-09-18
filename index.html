@@ -433,6 +433,10 @@ async function loadOnboarding(a){
   const done = steps.filter(s => s.done_at).length;
   const buddy = data.buddy || {};
   const tg = (buddy.telegram || '').replace(/^@/, '');
+  // Открыт ровно один шаг — первый незакрытый. Следующие видно, но трогать их
+  // рано: иначе человек закрывает шаги вперёд, и план перестаёт показывать то,
+  // что он на самом деле прошёл. Персонал в HR-панели по-прежнему не ограничен.
+  const curIdx = steps.findIndex(s => !s.done_at);
 
   if (data.stopped_at) {
     box.innerHTML = `<div class="now sad"><b>Онбординг завершён</b>К сожалению, мы приняли решение не продолжать сотрудничество. Подробности мы отправили вам на почту.</div>`;
@@ -463,6 +467,7 @@ async function loadOnboarding(a){
         ${steps.map((s, i) => {
           const over = !s.done_at && s.due_at && new Date(s.due_at) < new Date();
           const mine = s.owner === 'candidate' && !s.done_at;
+          const locked = i > curIdx;
           return `<div style="border:2px solid ${s.done_at ? 'var(--green)' : over ? 'var(--red)' : 'var(--cream-dark)'};border-radius:var(--radius);padding:14px 16px;background:${s.done_at ? 'var(--green-light)' : '#FDFCF8'}">
             <div style="display:flex;gap:10px;align-items:flex-start">
               <div style="width:26px;height:26px;border-radius:50%;background:${s.done_at?'var(--green)':'var(--cream-dark)'};color:${s.done_at?'#fff':'var(--gray)'};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;flex-shrink:0">${s.done_at ? '✓' : i+1}</div>
@@ -473,8 +478,10 @@ async function loadOnboarding(a){
                   ${s.due_at && !s.done_at ? ` · <b style="color:${over?'var(--red)':'var(--gray)'}">${over?'🔥 просрочено':'до ' + new Date(s.due_at).toLocaleDateString('ru-RU',{day:'numeric',month:'long'})}</b>` : ''}
                   ${s.done_at ? ` · ✅ ${new Date(s.done_at).toLocaleDateString('ru-RU',{day:'numeric',month:'long'})}` : ''}
                 </div>
-                ${s.description && !s.done_at ? `<div class="rich" style="font-size:13.5px;margin-top:8px;line-height:1.55">${s.description}</div>` : ''}
-                ${!s.done_at ? stepAction(a, s, tg) : ''}
+                ${s.description && !s.done_at && !locked ? `<div class="rich" style="font-size:13.5px;margin-top:8px;line-height:1.55">${s.description}</div>` : ''}
+                ${s.done_at ? '' : (locked
+                  ? `<div style="margin-top:10px;font-size:12.5px;color:var(--gray);font-weight:700">🔒 Откроется, когда закончится предыдущий шаг</div>`
+                  : stepAction(a, s, tg))}
               </div>
             </div>
           </div>`;
@@ -483,7 +490,7 @@ async function loadOnboarding(a){
     </div>`;
 
   // подгружаем свободное время наставника для шагов с записью
-  steps.filter(s => BOOKABLE_STEPS.includes(s.slug) && !s.done_at)
+  steps.filter((s, i) => i === curIdx && BOOKABLE_STEPS.includes(s.slug) && !s.done_at)
        .forEach(s => loadBuddySlots(s.slug));
 }
 
