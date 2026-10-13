@@ -3707,8 +3707,12 @@ async function confirmBulk(){
   if (!from || !until) { alert('Укажите период.'); return; }
   const btn = document.getElementById('bulkGo');
   btn.disabled = true; btn.textContent = 'Создаю…';
+  // 13.10.2026, решение операционного директора: «это разные окна» —
+  // раньше слоты на период всегда создавались как собеседования, даже при
+  // выбранных «Встречах с подопечными». Теперь назначение передаётся в базу.
+  const purpose = document.getElementById('slotPurpose')?.value || 'interview';
   const { data, error } = await sb.rpc('hr_bulk_add_slots',
-    { p_weekdays: days, p_times: times, p_from: from, p_until: until });
+    { p_weekdays: days, p_times: times, p_from: from, p_until: until, p_purpose: purpose });
   btn.disabled = false; btn.textContent = 'Создать слоты';
   if (error) { alert('Не получилось: ' + error.message); return; }
   closeBulk();
