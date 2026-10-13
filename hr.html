@@ -3483,6 +3483,9 @@ async function viewSnapshot(id){
   const { data, error } = await sb.rpc('hr_get_offer_snapshot', { p_application_id: id });
   if (error) { alert('Не получилось: ' + error.message); return; }
   const m = data.meta || {};
+  // 13.10.2026, решение операционного директора: IP, устройство, грейд и язык
+  // приходят от кандидата (браузер шлёт их при принятии оффера) — выводим
+  // только через esc(), иначе в окне сотрудника исполнился бы чужой код.
   const w = window.open('', '_blank');
   w.document.write(`<!DOCTYPE html><html lang="ru"><head><meta charset="utf-8">
     <title>Принятый оффер</title>
@@ -3493,9 +3496,9 @@ async function viewSnapshot(id){
     <h1>📄 Оффер, принятый кандидатом</h1>
     <div class="meta">
       <b>✅ Принят:</b> ${data.accepted_at ? new Date(data.accepted_at).toLocaleString('ru-RU') : '—'}<br>
-      <b>Грейд:</b> ${m.grade || '—'} · <b>Язык:</b> ${m.lang || '—'}<br>
-      ${m.ip ? `<b>IP:</b> ${m.ip}<br>` : ''}
-      ${m.user_agent ? `<b>Устройство:</b> <span style="font-size:12px">${m.user_agent}</span>` : ''}
+      <b>Грейд:</b> ${esc(m.grade || '—')} · <b>Язык:</b> ${esc(m.lang || '—')}<br>
+      ${m.ip ? `<b>IP:</b> ${esc(m.ip)}<br>` : ''}
+      ${m.user_agent ? `<b>Устройство:</b> <span style="font-size:12px">${esc(m.user_agent)}</span>` : ''}
     </div>
     ${data.html || '<p>Снимок не сохранён (оффер принят до внедрения снимков).</p>'}
   </body></html>`);
